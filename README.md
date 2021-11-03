@@ -26,7 +26,7 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-The goal of this project is to demonstrate a practical implementation of UAV traffic management concepts. The hardware being used for this demonstration is the [PX4 Vision Autonomy Development Kit](https://docs.px4.io/v1.12/en/complete_vehicles/px4_vision_kit.html)
+The goal of this project is to demonstrate a practical implementation of UAV traffic management concepts. The hardware being used for this demonstration is the [PX4 Vision Autonomy Development Kit](https://docs.px4.io/v1.12/en/complete_vehicles/px4_vision_kit.html).
 
 ### Built With
 
