@@ -32,7 +32,6 @@ for i in drone_ids:
     swarm_pos_vel["P" + str(i)] = PosVelNED()
 
 client = mqtt.Client()
-# client.connect("localhost", 1883, 60)  # change localhost to IP of broker
 
 # run function (main code)
 async def run():
@@ -96,8 +95,6 @@ async def run():
         await asyncio.sleep(
             0.1 - (time.time() - loop_start_time)
         )  # to make while 1 work at 10 Hz
-        # print("loop duration=", (time.time() - loop_start_time))
-        # print(swarm_pos_vel)
     # End of Endless loop
 
 
@@ -161,33 +158,6 @@ def simple_flocking():
         output_vel = output_vel / np.linalg.norm(output_vel) * CONST_MAX_SPEED
 
     return output_vel.tolist()
-
-
-# def position_to_velocity(target_pos, target_vel, pos_error, kp, ki, max_speed, dt):
-#     # PID controller
-#     prev_error = [0, 0, 0]
-#     integ = [0, 0, 0]
-#     output_vel = [0, 0, 0]
-#     for i in range(0, 3):
-#         prev_error[i] = pos_error[i]
-#         pos_error[i] = target_pos[i] - my_telemetry.position[i]
-#         integ[i] = ((pos_error[i] + prev_error[i]) / 2) * dt + integ[i]
-#         if integ[i] >= 1:  # limiting the accumulator of integral term
-#             integ[i] = 1
-#         if integ[i] <= -1:
-#             integ[i] = -1
-
-#         output_vel[i] = kp * (pos_error[i]) + ki * integ[i] + target_vel[i]
-
-#     # limiting and normalizing the speed of the drone
-#     v = sqrt(output_vel[0] ** 2 + output_vel[1] ** 2 + output_vel[2] ** 2)
-#     norm_factor = 1
-#     if v > max_speed:
-#         norm_factor = max_speed / v
-#         for i in range(0, 3):
-#             output_vel[i] *= norm_factor
-
-#     return output_vel, pos_error
 
 
 def on_connect(client, userdata, flags, rc):
