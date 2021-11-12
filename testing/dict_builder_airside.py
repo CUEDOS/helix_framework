@@ -6,24 +6,34 @@ from mavsdk.offboard import OffboardError, VelocityNedYaw
 import pymap3d as pm
 import paho.mqtt.client as mqtt
 
-# defining class of drone telemetry
-class drone_telemetry:
-    position = [0, 0, 0]
-    velocity = [0, 0, 0]
-
-
 CONST_DRONE_ID = "P101"
+CONST_SWARM_SIZE = 8
 
 # below are reference GPS coordinates used as the origin of the NED coordinate system
 CONST_REF_LAT = 53.473489655102014
 CONST_REF_LON = -2.2354534026550343
 CONST_REF_ALT = 0
 
+
+class PosVelNED:
+    position = [0, 0, 0]
+    velocity = [0, 0, 0]
+
+
+my_telemetry = PosVelNED()
+
+# Create dict of PosVelNED objects with drone identifier e.g. P101 as the keys
+drone_ids = range(101, 101 + CONST_SWARM_SIZE)
+swarm_telemetry = {}
+for i in drone_ids:
+    swarm_telemetry["P" + str(i)] = PosVelNED()
+
+client = mqtt.Client()
+# client.connect("localhost", 1883, 60)  # change localhost to IP of broker
+
 # run function (main code)
 async def run():
-    # Init the drone
-    client = mqtt.Client()
-    client.connect("localhost", 1883, 60)  # change localhost to IP of broker
+
     drone = System()
     await drone.connect(system_address="udp://:14540")
     print("Waiting for drone to connect...")
@@ -50,6 +60,7 @@ async def run():
         await drone.action.disarm()
         return
     # Start background task
+    asyncio.ensure_future(dict_builder())
     asyncio.ensure_future(get_position(drone))
     asyncio.ensure_future(get_velocity(drone))
     # End of Init the drone
@@ -68,12 +79,12 @@ async def run():
     # Endless loop (Mission)
     while True:
         loop_start_time = time.time()
-        print(drone_telemetry.position)
+        # print(my_telemetry.position)
         client.publish(
-            CONST_DRONE_ID + "/telemetry/position", str(drone_telemetry.position)
+            CONST_DRONE_ID + "/telemetry/position", str(my_telemetry.position)
         )
         client.publish(
-            CONST_DRONE_ID + "/telemetry/velocity", str(drone_telemetry.velocity)
+            CONST_DRONE_ID + "/telemetry/velocity", str(my_telemetry.velocity)
         )
 
         # Creating desired path
@@ -95,7 +106,8 @@ async def run():
         await asyncio.sleep(
             0.1 - (time.time() - loop_start_time)
         )  # to make while 1 work at 10 Hz
-        print("loop duration=", (time.time() - loop_start_time))
+        # print("loop duration=", (time.time() - loop_start_time))
+        print(swarm_telemetry)
     # End of Endless loop
 
 
@@ -104,7 +116,7 @@ async def run():
 # runs in background and upates state class with latest telemetry
 async def get_position(drone):
     async for position in drone.telemetry.position():
-        drone_telemetry.position = pm.geodetic2ned(
+        my_telemetry.position = pm.geodetic2ned(
             position.latitude_deg,
             position.longitude_deg,
             position.absolute_altitude_m,
@@ -116,11 +128,19 @@ async def get_position(drone):
 
 async def get_velocity(drone):
     async for position_velocity_ned in drone.telemetry.position_velocity_ned():
-        drone_telemetry.velocity = [
+        my_telemetry.velocity = [
             position_velocity_ned.velocity.north_m_s,
             position_velocity_ned.velocity.east_m_s,
             position_velocity_ned.velocity.down_m_s,
         ]
+
+
+async def dict_builder():
+    client.message_callback_add("+/telemetry/position", on_message_position)
+    client.message_callback_add("+/telemetry/velocity", on_message_velocity)
+    client.connect_async("localhost", 1883, 60)  # change localhost to IP of broker
+    client.on_connect = on_connect
+    client.loop_start()
 
 
 def position_to_velocity(target_pos, target_vel, pos_error, kp, ki, max_speed, dt):
@@ -130,7 +150,7 @@ def position_to_velocity(target_pos, target_vel, pos_error, kp, ki, max_speed, d
     output_vel = [0, 0, 0]
     for i in range(0, 3):
         prev_error[i] = pos_error[i]
-        pos_error[i] = target_pos[i] - drone_telemetry.position[i]
+        pos_error[i] = target_pos[i] - my_telemetry.position[i]
         integ[i] = ((pos_error[i] + prev_error[i]) / 2) * dt + integ[i]
         if integ[i] >= 1:  # limiting the accumulator of integral term
             integ[i] = 1
@@ -148,6 +168,27 @@ def position_to_velocity(target_pos, target_vel, pos_error, kp, ki, max_speed, d
             output_vel[i] *= norm_factor
 
     return output_vel, pos_error
+
+
+def on_connect(client, userdata, flags, rc):
+    print("MQTT connected to broker with result code " + str(rc))
+    client.subscribe("+/telemetry/+")
+
+
+def on_message_position(mosq, obj, msg):
+    # Remove none numeric parts of string and then split into north east and down
+    received_string = msg.payload.decode().strip("()")
+    string_list = received_string.split(", ")
+    position = [float(i) for i in string_list]
+    swarm_telemetry[msg.topic[0:4]].position = position
+
+
+def on_message_velocity(mosq, obj, msg):
+    # Remove none numeric parts of string and then split into north east and down
+    received_string = msg.payload.decode().strip("[]")
+    string_list = received_string.split(", ")
+    velocity = [float(i) for i in string_list]
+    swarm_telemetry[msg.topic[0:4]].velocity = velocity
 
 
 if __name__ == "__main__":
