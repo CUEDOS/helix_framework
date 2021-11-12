@@ -1,6 +1,5 @@
+import sys
 import time
-
-# from math import cos, sin, sqrt
 import numpy as np
 import asyncio
 from mavsdk import System
@@ -8,8 +7,9 @@ from mavsdk.offboard import OffboardError, VelocityNedYaw
 import pymap3d as pm
 import paho.mqtt.client as mqtt
 
-CONST_DRONE_ID = "P101"
-CONST_SWARM_SIZE = 8
+CONST_DRONE_ID = "P" + str(sys.argv[1])
+CONST_SWARM_SIZE = int(sys.argv[2])
+CONST_PORT = int(sys.argv[3])
 CONST_MAX_SPEED = 5
 
 # below are reference GPS coordinates used as the origin of the NED coordinate system
@@ -37,8 +37,8 @@ client = mqtt.Client()
 # run function (main code)
 async def run():
 
-    drone = System()
-    await drone.connect(system_address="udp://:14540")
+    drone = System(mavsdk_server_address="localhost", port=CONST_PORT)
+    await drone.connect()
     print("Waiting for drone to connect...")
     async for state in drone.core.connection_state():
         if state.is_connected:
@@ -85,12 +85,12 @@ async def run():
         client.publish(CONST_DRONE_ID + "/telemetry/position", str(my_pos_vel.position))
         client.publish(CONST_DRONE_ID + "/telemetry/velocity", str(my_pos_vel.velocity))
 
-        print(simple_flocking())
+        output_vel = simple_flocking()
 
         # Sending the target velocities to the quadrotor
-        # await drone.offboard.set_velocity_ned(
-        #     VelocityNedYaw(output_vel[0], output_vel[1], output_vel[2], 0.0)
-        # )
+        await drone.offboard.set_velocity_ned(
+            VelocityNedYaw(output_vel[0], output_vel[1], output_vel[2], 0.0)
+        )
 
         # Checking frequency of the loop
         await asyncio.sleep(
@@ -146,7 +146,7 @@ def simple_flocking():
         / np.linalg.norm(com - np.array(my_pos_vel.position))
     )
 
-    r_0 = 1
+    r_0 = 10
     v_separation = np.array([0, 0, 0])
     for key in swarm_pos_vel:
         if key == CONST_DRONE_ID:
@@ -154,7 +154,7 @@ def simple_flocking():
         p = np.array(swarm_pos_vel[key].position)
         x = np.array(my_pos_vel.position) - p
         d = np.linalg.norm(x)
-        v_separation = v_separation + (x * (r_0 - d) / r_0)
+        v_separation = v_separation + ((x / d) * (r_0 - d) / r_0)
 
     output_vel = v_cohesion + v_separation
     if np.linalg.norm(output_vel) > CONST_MAX_SPEED:
