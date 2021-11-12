@@ -6,16 +6,20 @@ from mavsdk.offboard import OffboardError, VelocityNedYaw
 import pymap3d as pm
 import paho.mqtt.client as mqtt
 
-# defining class of drone telemetry------------------------------------------------------------------------------------
+# defining class of drone telemetry
 class drone_telemetry:
     position = [0, 0, 0]
     velocity = [0, 0, 0]
-    # qx = 0          # position of the quadrotor in x direction with respect to initial point
-    # qy = 0          # position of the quadrotor in y direction with respect to initial point
-    # qz = 0          # position of the quadrotor in z direction with respect to initial point
 
 
-# run function (main code) --------------------------------------------------------------------------------------------
+CONST_DRONE_ID = "P101"
+
+# below are reference GPS coordinates used as the origin of the NED coordinate system
+CONST_REF_LAT = 53.473489655102014
+CONST_REF_LON = -2.2354534026550343
+CONST_REF_ALT = 0
+
+# run function (main code)
 async def run():
     # Init the drone
     client = mqtt.Client()
@@ -46,118 +50,45 @@ async def run():
         await drone.action.disarm()
         return
     # Start background task
-    # below are reference GPS coordinates used as the origin of the NED coordinate system
-    ref_lat = 53.473489655102014
-    ref_long = -2.2354534026550343
-    ref_alt = 0
-    asyncio.ensure_future(get_position(drone, ref_lat, ref_long, ref_alt))
+    asyncio.ensure_future(get_position(drone))
     asyncio.ensure_future(get_velocity(drone))
-    # End of Init the drone  ------------------------------------------------------------------------------------------
+    # End of Init the drone
+    target_pos = [0, 0, 0]
+    target_vel = [0, 0, 0]
+    pos_error = [0, 0, 0]
     kp = 2
     ki = 1
     dt = 0.1  # duration of each loop
-    ex = 0  # error in x direction
-    Integ_x = 0  # Integral of error in x direction
-    ey = 0  # error in y direction
-    Integ_y = 0  # Integral of error in y direction
-    ez = 0  # error in z direction
-    Integ_z = 0  # Integral oCASCADEf error in z direction
-    maxSpeed = 5  # maximum magnitude of the speed vector
-    # take off the quadrotor ------------------------------------------------------------------------------------------
+    max_speed = 5  # maximum magnitude of the speed vector
+    # take off the quadrotor
     await drone.offboard.set_velocity_ned(VelocityNedYaw(0.0, 0.0, -2.0, 0.0))
     await asyncio.sleep(5)
 
-    Mission_start_time = time.time()  # start time of the mission
-    # Endless loop (Mission)--------------------------------------------------------------------------------------------
-    while 1:
+    mission_start_time = time.time()  # start time of the mission
+    # Endless loop (Mission)
+    while True:
         loop_start_time = time.time()
-
-        # Printing the poition of the quadrotor in NED coordinates ------------------------------------------------------
-        # print("--qx=",drone_telemetry.qx) # drone_telemetry.qx is the most updated position of the quadrotor in x direction
-        # print("--qy=",drone_telemetry.qy) # drone_telemetry.qy is the most updated position of the quadrotor in y direction
-        # print("--qz=",drone_telemetry.qz) # drone_telemetry.qz is the most updated position of the quadrotor in z direction
         print(drone_telemetry.position)
-        client.publish("P101/telemetry/position", str(drone_telemetry.position))
-        client.publish("P101/telemetry/velocity", str(drone_telemetry.velocity))
-        # client.publish("1/telemetry/position/qx", drone_telemetry.qx);
-        # client.publish("1/telemetry/position/qy", drone_telemetry.qy);
-        # client.publish("1/telemetry/position/qz", drone_telemetry.qz);
+        client.publish(
+            CONST_DRONE_ID + "/telemetry/position", str(drone_telemetry.position)
+        )
+        client.publish(
+            CONST_DRONE_ID + "/telemetry/velocity", str(drone_telemetry.velocity)
+        )
 
-        # Creating desired path ----------------------------------------------------------------------------------------
-        t = time.time() - Mission_start_time  # current time of the mission
-        x_desired = 5 * sin(0.5 * t)  # position of the desired position in x direction
-        Vx_desired = (
-            0.5 * 5 * cos(0.5 * t)
-        )  # velocity of the desired position in x direction
-        y_desired = 5 * cos(0.5 * t)  # position of the desired position in y direction
-        Vy_desired = (
-            0.5 * -5 * sin(0.5 * t)
-        )  # velocity of the desired position in y direction
-        z_desired = -20  # position of the desired position in z direction
-        Vz_desired = 0  # velocity of the desired position in z direction
+        # Creating desired path
+        t = time.time() - mission_start_time  # current time of the mission
 
-        # PID controller ------------------------------------------------------------------------------------------------
+        target_pos = [5 * sin(0.5 * t), 5 * cos(0.5 * t), -20]
+        target_vel = [0.5 * 5 * cos(0.5 * t), 0.5 * -5 * sin(0.5 * t), 0]
 
-        # x direction --------------------------------------------------------------------------------------------------
-        previous_ex = ex
-        ex = x_desired - drone_telemetry.position[0]
-        Integ_x = ((ex + previous_ex) / 2) * dt + Integ_x  # Trapezoidal Integration
-        if Integ_x >= 1:  # limiting the accumulator of integral term
-            Integ_x = 1
-        if Integ_x <= -1:
-            Integ_x = -1
+        output_vel, pos_error = position_to_velocity(
+            target_pos, target_vel, pos_error, kp, ki, max_speed, dt
+        )
 
-        target_vx = kp * (ex) + ki * Integ_x + Vx_desired
-
-        print("--ex=", ex)
-        print("--Integ_x=", Integ_x)
-
-        # y direction ---------------------------------------------------------------------------------------------------
-        previous_ey = ey
-        ey = y_desired - drone_telemetry.position[1]
-        Integ_y = ((ey + previous_ey) / 2) * dt + Integ_y  # Trapezoidal Integration
-
-        if Integ_y >= 1:  # limiting the accumulator of integral term
-            Integ_y = 1
-        if Integ_y <= -1:
-            Integ_y = -1
-
-        target_vy = kp * (ey) + ki * Integ_y + Vy_desired
-
-        print("--ey=", ey)
-        print("--Integ_y=", Integ_y)
-
-        # z direction -----------------------------------------------------------------------------------------------------
-        previous_ez = ez
-        ez = z_desired - drone_telemetry.position[2]
-        Integ_z = ((ez + previous_ez) / 2) * dt + Integ_z  # Trapezoidal Integration
-
-        if Integ_z >= 1:  # limiting the accumulator of integral term
-            Integ_z = 1
-        if Integ_z <= -1:
-            Integ_z = -1
-
-        target_vz = kp * (ez) + ki * Integ_z + Vz_desired
-
-        print("--ez=", ez)
-        print("--Integ_z=", Integ_z)
-
-        # limiting and normalizing the speed of the drone -------------------------------------------------------------------
-        v = sqrt(target_vx ** 2 + target_vy ** 2 + target_vz ** 2)
-        normFactor = 1
-        if v > maxSpeed:
-            normFactor = maxSpeed / v
-            target_vx *= normFactor
-            target_vy *= normFactor
-            target_vz *= normFactor
-
-        print("--target_vx=", target_vx)
-        print("--target_vy=", target_vy)
-        print("--target_vz=", target_vz)
-
-        # Sending the target velocities to the quadrotor ---------------------------------------------------------------------
+        # Sending the target velocities to the quadrotor
         await drone.offboard.set_velocity_ned(
-            VelocityNedYaw(target_vx, target_vy, target_vz, 0.0)
+            VelocityNedYaw(output_vel[0], output_vel[1], output_vel[2], 0.0)
         )
 
         # Checking frequency of the loop
@@ -165,22 +96,21 @@ async def run():
             0.1 - (time.time() - loop_start_time)
         )  # to make while 1 work at 10 Hz
         print("loop duration=", (time.time() - loop_start_time))
-    # End of Endless loop ---------------------------------------------------------------------------------------------------
+    # End of Endless loop
 
 
-# End of run function (main code) -------------------------------------------------------------------------------------------
+# End of run function (main code)
 
-# runs in background and upates state class with latest telemetry -----------------------------------------------------------
-async def get_position(drone, ref_lat, ref_long, ref_alt):
+# runs in background and upates state class with latest telemetry
+async def get_position(drone):
     async for position in drone.telemetry.position():
-        # drone_telemetry.qx, drone_telemetry.qy, drone_telemetry.qz = pm.geodetic2ned(position.latitude_deg, position.longitude_deg, position.absolute_altitude_m, ref_lat, ref_long, ref_alt)
         drone_telemetry.position = pm.geodetic2ned(
             position.latitude_deg,
             position.longitude_deg,
             position.absolute_altitude_m,
-            ref_lat,
-            ref_long,
-            ref_alt,
+            CONST_REF_LAT,
+            CONST_REF_LON,
+            CONST_REF_ALT,
         )
 
 
@@ -191,6 +121,33 @@ async def get_velocity(drone):
             position_velocity_ned.velocity.east_m_s,
             position_velocity_ned.velocity.down_m_s,
         ]
+
+
+def position_to_velocity(target_pos, target_vel, pos_error, kp, ki, max_speed, dt):
+    # PID controller
+    prev_error = [0, 0, 0]
+    integ = [0, 0, 0]
+    output_vel = [0, 0, 0]
+    for i in range(0, 3):
+        prev_error[i] = pos_error[i]
+        pos_error[i] = target_pos[i] - drone_telemetry.position[i]
+        integ[i] = ((pos_error[i] + prev_error[i]) / 2) * dt + integ[i]
+        if integ[i] >= 1:  # limiting the accumulator of integral term
+            integ[i] = 1
+        if integ[i] <= -1:
+            integ[i] = -1
+
+        output_vel[i] = kp * (pos_error[i]) + ki * integ[i] + target_vel[i]
+
+    # limiting and normalizing the speed of the drone
+    v = sqrt(output_vel[0] ** 2 + output_vel[1] ** 2 + output_vel[2] ** 2)
+    norm_factor = 1
+    if v > max_speed:
+        norm_factor = max_speed / v
+        for i in range(0, 3):
+            output_vel[i] *= norm_factor
+
+    return output_vel, pos_error
 
 
 if __name__ == "__main__":
