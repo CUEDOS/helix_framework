@@ -1,5 +1,6 @@
 <h2 align="center">Cascade Drone Swarm Physical Demonstration Project</h3>
 
+![CASCADE Logo](https://cascadeuav.files.wordpress.com/2018/03/cropped-white.png)
 
 <!-- TABLE OF CONTENTS -->
 <details>
