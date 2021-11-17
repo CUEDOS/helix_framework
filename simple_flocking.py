@@ -7,9 +7,12 @@ from mavsdk.offboard import OffboardError, VelocityNedYaw
 import pymap3d as pm
 import paho.mqtt.client as mqtt
 
-CONST_DRONE_ID = "P" + str(sys.argv[1])
-CONST_SWARM_SIZE = int(sys.argv[2])
-CONST_PORT = int(sys.argv[3])
+# CONST_DRONE_ID = "P" + str(sys.argv[1])
+# CONST_SWARM_SIZE = int(sys.argv[2])
+# CONST_PORT = int(sys.argv[3])
+CONST_DRONE_ID = "P101"
+CONST_SWARM_SIZE = 1
+CONST_PORT = 50041
 CONST_MAX_SPEED = 5
 
 # below are reference GPS coordinates used as the origin of the NED coordinate system
@@ -32,11 +35,11 @@ for i in drone_ids:
     swarm_pos_vel["P" + str(i)] = PosVelNED()
 
 client = mqtt.Client()
-
+drone = System(mavsdk_server_address="localhost", port=CONST_PORT)
 # run function (main code)
 async def run():
 
-    drone = System(mavsdk_server_address="localhost", port=CONST_PORT)
+    # drone = System(mavsdk_server_address="localhost", port=CONST_PORT)
     await drone.connect()
     print("Waiting for drone to connect...")
     async for state in drone.core.connection_state():
@@ -44,58 +47,9 @@ async def run():
             print(f"Drone discovered!")
             break
 
-    print("-- Arming")
-    await drone.action.arm()
-
-    print("-- Setting initial setpoint")
-    await drone.offboard.set_velocity_ned(VelocityNedYaw(0.0, 0.0, 0.0, 0.0))
-
-    print("-- Starting offboard")
-    try:
-        await drone.offboard.start()
-    except OffboardError as error:
-        print(
-            f"Starting offboard mode failed with error code: \
-              {error._result.result}"
-        )
-        print("-- Disarming")
-        await drone.action.disarm()
-        return
-    # Start background task
-    asyncio.ensure_future(dict_builder())
+    asyncio.ensure_future(communication(drone))
     asyncio.ensure_future(get_position(drone))
     asyncio.ensure_future(get_velocity(drone))
-    # End of Init the drone
-    target_pos = [0, 0, 0]
-    target_vel = [0, 0, 0]
-    pos_error = [0, 0, 0]
-    kp = 2
-    ki = 1
-    dt = 0.1  # duration of each loop
-    # take off the quadrotor
-    await drone.offboard.set_velocity_ned(VelocityNedYaw(0.0, 0.0, -2.0, 0.0))
-    await asyncio.sleep(5)
-
-    mission_start_time = time.time()  # start time of the mission
-    # Endless loop (Mission)
-    while True:
-        loop_start_time = time.time()
-        # print(my_telemetry.position)
-        client.publish(CONST_DRONE_ID + "/telemetry/position", str(my_pos_vel.position))
-        client.publish(CONST_DRONE_ID + "/telemetry/velocity", str(my_pos_vel.velocity))
-
-        output_vel = simple_flocking()
-
-        # Sending the target velocities to the quadrotor
-        await drone.offboard.set_velocity_ned(
-            VelocityNedYaw(output_vel[0], output_vel[1], output_vel[2], 0.0)
-        )
-
-        # Checking frequency of the loop
-        await asyncio.sleep(
-            0.1 - (time.time() - loop_start_time)
-        )  # to make while 1 work at 10 Hz
-    # End of Endless loop
 
 
 # End of run function (main code)
@@ -122,12 +76,109 @@ async def get_velocity(drone):
         ]
 
 
-async def dict_builder():
+async def takeoff(drone):
+    await drone.action.arm()
+    await drone.action.takeoff()
+
+
+async def land(drone):
+    await drone.action.land()
+    await drone.action.disarm()
+
+
+async def offboard(drone):
+    print("-- Setting initial setpoint")
+    await drone.offboard.set_velocity_ned(VelocityNedYaw(0.0, 0.0, 0.0, 0.0))
+
+    print("-- Starting offboard")
+    try:
+        await drone.offboard.start()
+    except OffboardError as error:
+        print(
+            f"Starting offboard mode failed with error code: \
+              {error._result.result}"
+        )
+        print("-- Disarming")
+        await drone.action.disarm()
+        return
+    # End of Init the drone
+    loop_duration = 0.1  # duration of each loop
+    # take off the quadrotor
+    await asyncio.sleep(2)
+    # Endless loop (Mission)
+    while True:
+        loop_start_time = time.time()
+        # print(my_telemetry.position)
+        client.publish(CONST_DRONE_ID + "/telemetry/position", str(my_pos_vel.position))
+        client.publish(CONST_DRONE_ID + "/telemetry/velocity", str(my_pos_vel.velocity))
+
+        output_vel = simple_flocking()
+
+        # Sending the target velocities to the quadrotor
+        await drone.offboard.set_velocity_ned(
+            VelocityNedYaw(output_vel[0], output_vel[1], output_vel[2], 0.0)
+        )
+
+        # Checking frequency of the loop
+        await asyncio.sleep(loop_duration - (time.time() - loop_start_time))
+
+
+# class CmdHandler:
+#     def __init__(self, drone):
+#         self.drone = drone
+#         self.running_task = 0
+
+#     def on_message_command(self, mosq, obj, msg):
+#         print("got here")
+#         if msg.payload.decode() == "takeoff":
+#             print("Taking Off")
+#             self.running_task = asyncio.run(takeoff(self.drone))
+#         elif msg.payload.decode() == "start":
+#             print("Starting Flocking")
+#             self.running_task = asyncio.run(offboard(self.drone))
+#         elif msg.payload.decode() == "stop":
+#             print("Stopping Flocking")
+#             self.running_task.cancel()
+#         elif msg.payload.decode() == "land":
+#             print("Landing")
+#             self.running_task = asyncio.run(land(self.drone))
+
+
+async def communication(drone):
+    # handler = CmdHandler(drone)
     client.message_callback_add("+/telemetry/position", on_message_position)
     client.message_callback_add("+/telemetry/velocity", on_message_velocity)
+    client.message_callback_add("commands", on_message_command)
+    # client.message_callback_add("commands", on_message_command)
     client.connect_async("localhost", 1883, 60)  # change localhost to IP of broker
     client.on_connect = on_connect
     client.loop_start()
+
+
+# running_task = None
+def on_message_command(mosq, obj, msg):
+    print("received message")
+    print(msg.payload.decode())
+
+    async def run_command():
+        if msg.payload.decode() == "takeoff":
+            print("Taking Off")
+            # running_task = asyncio.run(takeoff(drone))
+            await takeoff(drone)
+        elif msg.payload.decode() == "start":
+            print("Starting Flocking")
+            # running_task = asyncio.run(offboard(drone))
+            asyncio.get_event_loop().run(offboard(drone))
+        elif msg.payload.decode() == "stop":
+            print("Stopping Flocking")
+            # running_task.cancel()
+            asyncio.get_event_loop().run(land(drone))
+        elif msg.payload.decode() == "land":
+            print("Landing")
+            # running_task = asyncio.run(land(drone))
+            asyncio.get_event_loop().run(land(drone))
+
+    asyncio.run(run_command())
 
 
 def simple_flocking():
@@ -163,6 +214,7 @@ def simple_flocking():
 def on_connect(client, userdata, flags, rc):
     print("MQTT connected to broker with result code " + str(rc))
     client.subscribe("+/telemetry/+")
+    client.subscribe("commands")
 
 
 def on_message_position(mosq, obj, msg):
