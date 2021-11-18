@@ -6,28 +6,29 @@ import paho.mqtt.client as mqtt
 
 # this is the function called when the button is clicked
 def StartClickFunction():
-    client.publish("commands", "start")
-    print("clicked")
+    send_command("start")
 
 
 # this is the function called when the button is clicked
 def StopClickFunction():
-    client.publish("commands", "stop")
-    print("clicked")
+    send_command("stop")
 
 
 def TakeOffClickFunction():
-    client.publish("commands", "takeoff")
-    print("clicked")
+    send_command("takeoff")
 
 
 def LandClickFunction():
-    client.publish("commands", "land")
-    print("clicked")
+    send_command("land")
 
 
-client = mqtt.Client()
-client.connect("localhost", 1883, 60)
+# sends mqtt commands to broker
+def send_command(command):
+    client = mqtt.Client()
+    client.connect("localhost", 1883, 60)
+    client.publish("commands", command)
+    client.disconnect()
+
 
 root = Tk()
 
