@@ -2,6 +2,7 @@ import sys
 import time
 import numpy as np
 import asyncio
+import flocking
 from mavsdk import System
 from mavsdk.offboard import OffboardError, VelocityNedYaw
 import pymap3d as pm
@@ -77,6 +78,7 @@ async def run():
 
 
 async def takeoff(drone):
+    await drone.action.set_takeoff_altitude(30)
     await drone.action.arm()
     await drone.action.takeoff()
 
@@ -85,7 +87,6 @@ async def takeoff(drone):
 async def offboard(drone):
     print("-- Setting initial setpoint")
     await drone.offboard.set_velocity_ned(VelocityNedYaw(0.0, 0.0, 0.0, 0.0))
-
     print("-- Starting offboard")
     try:
         await drone.offboard.start()
@@ -95,6 +96,7 @@ async def offboard(drone):
             {error._result.result}"
         )
         print("-- Disarming")
+        await drone.action.land()
         await drone.action.disarm()
         return
     # End of Init the drone
@@ -109,7 +111,9 @@ async def offboard(drone):
         client.publish(CONST_DRONE_ID + "/telemetry/position", str(my_pos_vel.position))
         client.publish(CONST_DRONE_ID + "/telemetry/velocity", str(my_pos_vel.velocity))
 
-        output_vel = simple_flocking()
+        output_vel = flocking.simple_flocking(
+            CONST_DRONE_ID, swarm_pos_vel, my_pos_vel, CONST_MAX_SPEED
+        )
 
         # Sending the target velocities to the quadrotor
         await drone.offboard.set_velocity_ned(
@@ -159,38 +163,7 @@ def on_message_command(mosq, obj, msg):
     current_command = msg.payload.decode()
 
 
-# This is the function which carries out the flocking logic
-def simple_flocking():
-    com = np.array([0, 0, 0])
-    k_cohesion = 1
-    for key in swarm_pos_vel:
-        p = np.array(swarm_pos_vel[key].position)
-        com = com + p
-    com = com / len(swarm_pos_vel)
-    v_cohesion = (
-        k_cohesion
-        * (com - np.array(my_pos_vel.position))
-        / np.linalg.norm(com - np.array(my_pos_vel.position))
-    )
-
-    r_0 = 10
-    v_separation = np.array([0, 0, 0])
-    for key in swarm_pos_vel:
-        if key == CONST_DRONE_ID:
-            continue
-        p = np.array(swarm_pos_vel[key].position)
-        x = np.array(my_pos_vel.position) - p
-        d = np.linalg.norm(x)
-        v_separation = v_separation + ((x / d) * (r_0 - d) / r_0)
-
-    output_vel = v_cohesion + v_separation
-    if np.linalg.norm(output_vel) > CONST_MAX_SPEED:
-        output_vel = output_vel / np.linalg.norm(output_vel) * CONST_MAX_SPEED
-
-    return output_vel.tolist()
-
-
-# callabck triggeed on connection to MQTT
+# callback triggeed on connection to MQTT
 def on_connect(client, userdata, flags, rc):
     print("MQTT connected to broker with result code " + str(rc))
     client.subscribe("+/telemetry/+")
