@@ -93,16 +93,22 @@ def SITLCheckFunction():
     print("function activated")
     print(check_var.get())
     if check_var.get() == 0:
-        launch_btn.grid_remove()
-        select_firmware_btn.grid_remove()
-        path_label.grid_remove()
-        no_drones_label.grid_remove()
+        # drone_no_entry.grid_remove()
+        # firmware_label.grid_remove()
+        # launch_btn.grid_remove()
+        # select_firmware_btn.grid_remove()
+        # path_label.grid_remove()
+        # no_drones_label.grid_remove()
+        sitl_frame.grid_remove()
     else:
         print("returning items")
-        launch_btn.grid()
-        select_firmware_btn.grid()
-        path_label.grid()
-        no_drones_label.grid()
+        # drone_no_entry.grid()
+        # firmware_label.grid()
+        # launch_btn.grid()
+        # select_firmware_btn.grid()
+        # path_label.grid()
+        # no_drones_label.grid()
+        sitl_frame.grid()
 
 
 # sends mqtt commands to broker
@@ -137,26 +143,32 @@ def on_closing():
 root = Tk()
 check_var = IntVar(value=1)
 # This is the section of code which creates the main window
-root.geometry("636x525")
-root.configure(background="#F0F8FF")
+root.rowconfigure(tuple(range(2)), minsize=100)
+# root.columnconfigure(tuple(range(2)), uniform="button", minsize=210)
+root.grid_columnconfigure(tuple(range(2)), uniform="button", minsize=220)
+
+sitl_frame = Frame(root)
+
+sitl_frame.columnconfigure(tuple(range(3)), weight=1)
+sitl_frame.grid(row=3, column=0, columnspan=2, sticky="ew")
 
 launch_btn = Button(
-    root,
+    sitl_frame,
     text="Launch SITL Simulation",
     bg="#008B45",
     font=("arial", 12, "normal"),
     command=LaunchClickFunction,
 )
-launch_btn.grid(row=0, column=0)
+launch_btn.grid(row=5, column=0, columnspan=3, sticky="e")
 
 select_firmware_btn = Button(
-    root,
-    text="Select PX4 Firmware",
+    sitl_frame,
+    text="Select",
     # bg="#008B45",
     font=("arial", 12, "normal"),
     command=SelectClickFunction,
 )
-select_firmware_btn.grid(row=1, column=0)
+select_firmware_btn.grid(row=4, column=2, sticky="e")
 
 Button(
     root,
@@ -164,15 +176,19 @@ Button(
     bg="#008B45",
     font=("arial", 12, "normal"),
     command=StartClickFunction,
-).grid(row=2, column=0)
+).grid(
+    row=1,
+    column=0,
+    sticky="nesw",
+)
 
 Button(
     root,
-    text="Stop",
+    text="Hold",
     bg="#CD4F39",
     font=("arial", 12, "normal"),
     command=StopClickFunction,
-).grid(row=2, column=1)
+).grid(row=0, column=1, sticky="nesw")
 
 Button(
     root,
@@ -180,7 +196,7 @@ Button(
     bg="#CD4F39",
     font=("arial", 12, "normal"),
     command=TakeOffClickFunction,
-).grid(row=2, column=2)
+).grid(row=0, column=0, sticky="nesw")
 
 Button(
     root,
@@ -188,7 +204,7 @@ Button(
     bg="#CD4F39",
     font=("arial", 12, "normal"),
     command=LandClickFunction,
-).grid(row=2, column=3)
+).grid(row=1, column=1, sticky="nesw")
 
 sitl_check = Checkbutton(
     root,
@@ -198,22 +214,26 @@ sitl_check = Checkbutton(
     offvalue=0,
     command=SITLCheckFunction,
 )
-sitl_check.grid(row=3, column=0)
+sitl_check.grid(row=2, column=0, columnspan=2, sticky="w")
 
-no_drones_label = Label(root, text="Number of Drones:")
-no_drones_label.grid(row=0, column=1)
+no_drones_label = Label(sitl_frame, text="Number of Drones:")
+no_drones_label.grid(row=3, column=0, sticky="w")
 
-path_label = Label(root)
-path_label.grid(row=1, column=1)
+firmware_label = Label(sitl_frame, text="PX4 Firmware Path:")
+firmware_label.grid(row=4, column=0, sticky="w")
+
+path_label = Label(sitl_frame)
 with open("config.txt") as f:
     firmware_path = f.read()
 path_label.config(text=firmware_path)
+path_label.grid(row=4, column=1, sticky="w")
 
-drone_no_entry = Entry(root)
-drone_no_entry.grid(row=0, column=2)
+drone_no_entry = Entry(sitl_frame)
 drone_no_entry.insert(END, "3")
+drone_no_entry.grid(row=3, column=1, sticky="w")
 
 root.title("Cascade Demo")
 root.iconphoto(True, tk.PhotoImage(file="img/cascade-logo.png"))
 root.protocol("WM_DELETE_WINDOW", on_closing)
+# root.resizable(False, False)
 root.mainloop()
