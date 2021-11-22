@@ -220,7 +220,7 @@ drone_no_entry.insert(END, "3")
 drone_no_entry.grid(row=3, column=1, sticky="w")
 
 root.title("Cascade Demo")
-root.iconphoto(True, tk.PhotoImage(file="img/cascade-logo.png"))
+root.iconphoto(True, tk.PhotoImage(file="../img/cascade-logo.png"))
 root.protocol("WM_DELETE_WINDOW", on_closing)
 root.resizable(False, False)
 root.mainloop()
