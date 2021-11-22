@@ -2,3 +2,4 @@ range_test_data.csv
 wifi_strength_data.csv
 testing/tof_vs_dist.png
 cascade-demo/config.txt
+nohup.out
