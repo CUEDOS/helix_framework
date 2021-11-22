@@ -67,6 +67,7 @@ def LaunchClickFunction():
             stdin=None,
             stdout=None,
             stderr=None,
+            preexec_fn=os.setsid,
         )
 
         script[i] = subprocess.Popen(
@@ -78,6 +79,7 @@ def LaunchClickFunction():
                 str(50041 + i),
             ],
             cwd=os.getcwd(),
+            preexec_fn=os.setsid,
         )
 
 
@@ -123,8 +125,10 @@ def on_closing():
         sig = signal.SIGTERM
         os.killpg(os.getpgid(gazebo.pid), sig)
         for i in range(0, len(script)):
-            os.kill(mavsdk_server[i].pid, sig)
-            os.kill(script[i].pid, sig)
+            os.killpg(os.getpgid(mavsdk_server[i].pid), sig)
+            # os.kill(mavsdk_server[i].pid, sig)
+            os.killpg(os.getpgid(script[i].pid), sig)
+            # os.kill(script[i].pid, sig)
     root.destroy()
 
 
