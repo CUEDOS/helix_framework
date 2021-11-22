@@ -158,7 +158,7 @@ class App:
         )  # last argument important to allow process to be killed
 
         self.mavsdk_process = [None] * self.no_drones
-        self.script_processs = [None] * self.no_drones
+        self.script_process = [None] * self.no_drones
 
         for i in range(0, self.no_drones):
             self.mavsdk_process[i] = subprocess.Popen(
