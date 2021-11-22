@@ -6,6 +6,8 @@ import mavsdk
 import os
 import signal
 import tkinter as tk
+from tkinter import filedialog
+from tkinter import messagebox
 import paho.mqtt.client as mqtt
 
 
@@ -13,6 +15,12 @@ class App:
     def __init__(self, master):
         self.master = master
         self.check_var = tk.IntVar(value=1)
+        self.flocking_type = tk.StringVar(value="Select a flocking type")
+        self.flocking_options = [
+            "Simple Flocking",
+            "Advanced Flocking",
+            "Another type of Flocking",
+        ]
         self.gazebo_process = None
         self.mavsdk_process = [None]
         self.script_process = [None]
@@ -80,6 +88,11 @@ class App:
             command=self.LandClickFunction,
         ).grid(row=1, column=1, sticky="nesw")
 
+        self.flocking_menu = tk.OptionMenu(
+            master, self.flocking_type, *self.flocking_options
+        )
+        self.flocking_menu.grid(row=2, column=0, sticky="w")
+
         self.sitl_check = tk.Checkbutton(
             master,
             text="SITL",
@@ -88,7 +101,7 @@ class App:
             offvalue=0,
             command=self.SITLCheckFunction,
         )
-        self.sitl_check.grid(row=2, column=0, columnspan=2, sticky="w")
+        self.sitl_check.grid(row=2, column=1, sticky="w")
 
         self.no_drones_label = tk.Label(self.sitl_frame, text="Number of Drones:")
         self.no_drones_label.grid(row=3, column=0, sticky="w")
@@ -113,7 +126,11 @@ class App:
 
     # this is the function called when the button is clicked
     def StartClickFunction(self):
-        self.send_command("start")
+        # self.send_command("start")
+        if self.flocking_type.get() != "Select a flocking type":
+            self.send_command(self.flocking_type.get())
+        else:
+            messagebox.showinfo("Error", "Please select a flocking type")
 
     # this is the function called when the button is clicked
     def StopClickFunction(self):
@@ -141,7 +158,7 @@ class App:
         )  # last argument important to allow process to be killed
 
         self.mavsdk_process = [None] * self.no_drones
-        self.script_processs = [None] * self.no_drones
+        self.script_process = [None] * self.no_drones
 
         for i in range(0, self.no_drones):
             self.mavsdk_process[i] = subprocess.Popen(
@@ -172,7 +189,7 @@ class App:
 
     def SelectClickFunction(self):
         print("select")
-        firmware_path = tk.filedialog.askdirectory()
+        firmware_path = filedialog.askdirectory()
         self.path_label.config(text=firmware_path)
         with open("config.txt", "w") as f:
             f.write(firmware_path)
