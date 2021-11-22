@@ -178,7 +178,7 @@ class App:
             self.script_process[i] = subprocess.Popen(
                 [
                     sys.executable,
-                    "simple_flocking.py",
+                    "onboard.py",
                     str(101 + i),
                     str(self.no_drones),
                     str(50041 + i),
