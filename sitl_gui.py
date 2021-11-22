@@ -93,21 +93,9 @@ def SITLCheckFunction():
     print("function activated")
     print(check_var.get())
     if check_var.get() == 0:
-        # drone_no_entry.grid_remove()
-        # firmware_label.grid_remove()
-        # launch_btn.grid_remove()
-        # select_firmware_btn.grid_remove()
-        # path_label.grid_remove()
-        # no_drones_label.grid_remove()
         sitl_frame.grid_remove()
     else:
         print("returning items")
-        # drone_no_entry.grid()
-        # firmware_label.grid()
-        # launch_btn.grid()
-        # select_firmware_btn.grid()
-        # path_label.grid()
-        # no_drones_label.grid()
         sitl_frame.grid()
 
 
@@ -144,7 +132,6 @@ root = Tk()
 check_var = IntVar(value=1)
 # This is the section of code which creates the main window
 root.rowconfigure(tuple(range(2)), minsize=100)
-# root.columnconfigure(tuple(range(2)), uniform="button", minsize=210)
 root.grid_columnconfigure(tuple(range(2)), uniform="button", minsize=220)
 
 sitl_frame = Frame(root)
@@ -235,5 +222,5 @@ drone_no_entry.grid(row=3, column=1, sticky="w")
 root.title("Cascade Demo")
 root.iconphoto(True, tk.PhotoImage(file="img/cascade-logo.png"))
 root.protocol("WM_DELETE_WINDOW", on_closing)
-# root.resizable(False, False)
+root.resizable(False, False)
 root.mainloop()
