@@ -59,7 +59,7 @@ async def run():
             print("Taking Off")
             await takeoff(drone)
             current_command = "none"
-        elif current_command == "start":
+        elif current_command == "Simple Flocking":
             await offboard(drone)
         elif current_command == "stop":
             print("Stopping Flocking")
