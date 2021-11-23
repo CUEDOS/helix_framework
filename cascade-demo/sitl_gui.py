@@ -134,7 +134,7 @@ class App:
 
     # this is the function called when the button is clicked
     def StopClickFunction(self):
-        self.send_command("stop")
+        self.send_command("hold")
 
     def TakeOffClickFunction(self):
         self.send_command("takeoff")
