@@ -12,7 +12,13 @@ if [[ "$(id -u)" != "0" ]]; then
    clear
 fi
 
-function check_installed_pip() {
+function echo_block() {
+    echo "----------------------------"
+    echo $1
+    echo "----------------------------"
+}
+
+function check_installed_pip() {CREATED SETUP SCRIPT
    ${PYTHON} -m pip > /dev/null
    if [ $? -ne 0 ]; then
         echo_block "Installing Pip for ${PYTHON}"
