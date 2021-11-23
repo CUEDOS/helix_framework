@@ -62,7 +62,7 @@ class Agent:
                 Agent.current_command = "none"
             elif self.current_command == "Simple Flocking":
                 await self.offboard(self.drone)
-            elif Agent.current_command == "stop":
+            elif Agent.current_command == "hold":
                 print("Stopping Flocking")
                 await self.drone.action.hold()
                 Agent.current_command = "none"
@@ -150,8 +150,7 @@ class Agent:
 class Communication:
     client = mqtt.Client()
 
-    def __init__(self):
-        client = mqtt.Client()
+    # def __init__(self):
 
     async def run_comms(self):
         Communication.client.message_callback_add(
@@ -182,6 +181,7 @@ class Communication:
         received_string = msg.payload.decode().strip("()")
         string_list = received_string.split(", ")
         position = [float(i) for i in string_list]
+        # time.sleep(1)  # simulating comm latency
         Agent.swarm_pos_vel[msg.topic[0:4]].position = position
 
     def on_message_velocity(self, mosq, obj, msg):
@@ -189,6 +189,7 @@ class Communication:
         received_string = msg.payload.decode().strip("[]")
         string_list = received_string.split(", ")
         velocity = [float(i) for i in string_list]
+        # time.sleep(1)  # simulating comm latency
         Agent.swarm_pos_vel[msg.topic[0:4]].velocity = velocity
 
 
