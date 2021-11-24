@@ -18,7 +18,7 @@ function echo_block() {
     echo "----------------------------"
 }
 
-function check_installed_pip() {CREATED SETUP SCRIPT
+function check_installed_pip() {
    ${PYTHON} -m pip > /dev/null
    if [ $? -ne 0 ]; then
         echo_block "Installing Pip for ${PYTHON}"
