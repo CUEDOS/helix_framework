@@ -1,4 +1,4 @@
-#!/home/r32401vc/anaconda3/bin/python3
+#!/usr/bin/env python3
 
 import sys
 import subprocess
