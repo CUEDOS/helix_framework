@@ -191,7 +191,7 @@ class App:
         print("select")
         firmware_path = filedialog.askdirectory()
         self.path_label.config(text=firmware_path)
-        with open("config.txt", "w") as f:
+        with open("config.txt", "w+") as f:
             f.write(firmware_path)
 
     def SITLCheckFunction(self):
