@@ -42,20 +42,42 @@ The goal of this project is to demonstrate a practical implementation of UAV tra
 
 Follow the instructions below to install the dependencies required for this project.
 
-### Prerequisites
+### Quick Start
 
-This project uses python 3, make sure you have pip3 installed on your system and run the following commands in a terminal.
-* MAVSDK
-  ```sh
-  pip3 install mavsdk
-  ```
-* pymap3d
-  ```sh
-  pip3 install pymap3d
-  ```
-* paho-mqtt
-  ```sh
-  pip3 install paho-mqtt
-  ```
+Run the following commands one by one in terminal from your home directory to install cascade-demo and all the required dependencies.
+
+```sh
+sudo apt-get update
+```
+
+```sh
+sudo apt-get install git
+```
+
+```sh
+git clone https://github.com/CUEDOS/cascade-demo
+```
+
+```sh
+sudo ./cascade-demo/setup.sh
+```
+
+The last script will take while to run and will install all required python packages, the Mosquitto MQTT broker, the PX4 Firmware and the Gazebo simulation environment. Once the script finishes it will print 'Installation Complete'. At this point **restart your computer**.
+
+Once your computer has restarted run the following commands in terminal one by one.
+
+```sh
+cd PX4-Autopilot
+```
+
+```sh
+make px4_sitl gazebo
+```
+
+After a few minutes a gazebo window will open with a single drone on a flat ashphalt world. Close this window and the terminal window.
+
+Finally right click on the file called 'cascade-demo.desktop' on your desktop and select 'Allow Launching'. The icon will change to the CASCADE logo and you will now be able to open the gui using this app icon.
+
+  
 ### Installation
 See the wiki for installation advice for Ubuntu, Gazebo, PX4, VS Code and more
