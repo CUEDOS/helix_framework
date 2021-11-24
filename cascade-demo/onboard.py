@@ -7,7 +7,6 @@ from mavsdk import System
 from mavsdk.offboard import OffboardError, VelocityNedYaw
 import pymap3d as pm
 import paho.mqtt.client as mqtt
-import rth
 
 # takes command line arguments
 CONST_DRONE_ID = "P" + str(sys.argv[1])
@@ -70,11 +69,6 @@ class Agent:
             elif Agent.current_command == "land":
                 print("Landing")
                 await self.drone.action.land()
-                Agent.current_command = "none"
-            # TODO: Add return to home button and callback function in GUI
-            elif Agent.current_command == "rth"
-                print("Returning to Home")
-                await rth.ReturnAltitude(altitude)
                 Agent.current_command = "none"
 
             # Checking frequency of the loop
