@@ -8,7 +8,7 @@ from mavsdk.offboard import OffboardError, VelocityNedYaw
 import pymap3d as pm
 import paho.mqtt.client as mqtt
 
-# takes command line arguments
+# Takes command line arguments
 CONST_DRONE_ID = "P" + str(sys.argv[1])
 CONST_SWARM_SIZE = int(sys.argv[2])
 CONST_PORT = int(sys.argv[3])
