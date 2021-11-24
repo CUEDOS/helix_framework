@@ -58,3 +58,4 @@ This project uses python 3, make sure you have pip3 installed on your system and
   pip3 install paho-mqtt
   ```
 ### Installation
+See the wiki for installation advice for Ubuntu, Gazebo, PX4, VS Code and more
