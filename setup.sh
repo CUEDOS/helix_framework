@@ -102,6 +102,8 @@ Type=Application
 # give permissions for .desktop file
 chown -R $USER: `echo $USER_HOME`/cascade-demo/cascade-demo.desktop
 
+chown -R $USER: `echo $USER_HOME`/PX4-Autopilot
+
 # give read and write access to everyone
 chmod 755 `echo $USER_HOME`/cascade-demo/cascade-demo.desktop
 
