@@ -1,11 +1,9 @@
 #!/usr/bin/env bash
 
-setterm -background red
-
 if [[ "$(id -u)" != "0" ]]; then
    echo "THIS SCRIPT MUST BE RUN AS ROOT (sudo ./setup.sh)"
    sleep 3
-   clear      
+   clear
   else
    echo "THIS SCRIPT WILL BE EXECUTED AS ROOT   "
    sleep 3
@@ -22,9 +20,8 @@ function check_installed_pip() {
    ${PYTHON} -m pip > /dev/null
    if [ $? -ne 0 ]; then
         echo_block "Installing Pip for ${PYTHON}"
-        curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
-        ${PYTHON} get-pip.py
-        rm get-pip.py
+        sudo apt-get update
+        sudo apt-get install pip3
    fi
 }
 
@@ -72,10 +69,8 @@ echo_block "Installing mosquitto MQTT broker"
 sudo apt-get update
 sudo apt-get install mosquitto
 
-cd cascade-demo
-
-git clone https://github.com/PX4/PX4-Autopilot.git --recursive
-bash ./PX4-Autopilot/Tools/setup/ubuntu.sh
+#git clone https://github.com/PX4/PX4-Autopilot.git --recursive
+#bash ./PX4-Autopilot/Tools/setup/ubuntu.sh
 
 
 set -eou pipefail
@@ -84,11 +79,12 @@ setterm --reset
 
 clear
 
+USER_HOME=$(getent passwd $SUDO_USER | cut -d: -f6)
 
 # Delete old installations
-rm -f $HOME/cascade-demo/cascade-demo.desktop
-rm -f $HOME/.local/share/applications/cascade-demo.desktop
-rm -f $HOME/Desktop/cascade-demo.desktop
+rm -f $USER_HOME/cascade-demo/cascade-demo.desktop
+rm -f $USER_HOME/.local/share/applications/cascade-demo.desktop
+rm -f $USER_HOME/Desktop/cascade-demo.desktop
 rm -f /usr/share/applications/cascade-demo.desktop
 
 
@@ -97,24 +93,23 @@ echo "
 [Desktop Entry]
 Version=1.0
 Name=Cascade Demo
-Icon=`echo $HOME`/cascade-demo/img/cascade-logo.png
-Exec=`echo $HOME`/cascade-demo/cascade-demo/sitl_gui.py
-Path=`echo $HOME`/cascade-demo/cascade-demo/
+Icon=`echo $USER_HOME`/cascade-demo/img/cascade-logo.png
+Exec=`echo $USER_HOME`/cascade-demo/cascade-demo/sitl_gui.py
+Path=`echo $USER_HOME`/cascade-demo/cascade-demo/
 Terminal=false
 Type=Application
-" > `echo $HOME`/cascade-demo/cascade-demo.desktop
+" > `echo $USER_HOME`/cascade-demo/cascade-demo.desktop
 
 # give permissions for .desktop file
-chown $USER:$USER -R `echo $HOME`/cascade-demo/cascade-demo.desktop
+chown -R $USER: `echo $USER_HOME`/cascade-demo/cascade-demo.desktop
 
 # give read and write access to everyone
-chmod 755 `echo $HOME`/cascade-demo/cascade-demo.desktop
+chmod 755 `echo $USER_HOME`/cascade-demo/cascade-demo.desktop
 
-ln -s `echo $HOME`/cascade-demo/cascade-demo.desktop $HOME/.local/share/applications/cascade-demo.desktop
-ln -s `echo $HOME`/cascade-demo/cascade-demo.desktop $HOME/Desktop/cascade-demo.desktop
-ln -s `echo $HOME`/cascade-demo/cascade-demo.desktop /usr/share/applications/cascade-demo.desktop
+ln -s `echo $USER_HOME`/cascade-demo/cascade-demo.desktop $USER_HOME/.local/share/applications/cascade-demo.desktop
+ln -s `echo $USER_HOME`/cascade-demo/cascade-demo.desktop $USER_HOME/Desktop/cascade-demo.desktop
+ln -s `echo $USER_HOME`/cascade-demo/cascade-demo.desktop /usr/share/applications/cascade-demo.desktop
 
-update-menus
 
 clear
 
