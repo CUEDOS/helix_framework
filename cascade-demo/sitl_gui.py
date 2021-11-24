@@ -14,6 +14,7 @@ import paho.mqtt.client as mqtt
 class App:
     def __init__(self, master):
         self.master = master
+        self.normal_button_colour = "#4E73ED"
         self.check_var = tk.IntVar(value=1)
         self.flocking_type = tk.StringVar(value="Select a flocking type")
         self.flocking_options = [
@@ -27,12 +28,12 @@ class App:
 
         # This is the section of code which creates the main window
         master.rowconfigure(tuple(range(2)), minsize=100)
-        master.grid_columnconfigure(tuple(range(2)), uniform="button", minsize=220)
+        master.grid_columnconfigure(tuple(range(3)), uniform="button", minsize=146)
 
         self.sitl_frame = tk.Frame(master)
 
         self.sitl_frame.columnconfigure(tuple(range(3)), weight=1)
-        self.sitl_frame.grid(row=3, column=0, columnspan=2, sticky="ew")
+        self.sitl_frame.grid(row=3, column=0, columnspan=3, sticky="ew")
 
         self.launch_btn = tk.Button(
             self.sitl_frame,
@@ -55,43 +56,59 @@ class App:
         tk.Button(
             master,
             text="Start",
-            bg="#008B45",
+            bg=self.normal_button_colour,
             font=("arial", 12, "normal"),
             command=self.StartClickFunction,
         ).grid(
-            row=1,
-            column=0,
+            row=0,
+            column=2,
             sticky="nesw",
         )
 
         tk.Button(
             master,
             text="Hold",
-            bg="#CD4F39",
+            bg=self.normal_button_colour,
             font=("arial", 12, "normal"),
             command=self.StopClickFunction,
-        ).grid(row=0, column=1, sticky="nesw")
+        ).grid(row=1, column=0, sticky="nesw")
 
         tk.Button(
             master,
             text="Take Off",
-            bg="#CD4F39",
+            bg=self.normal_button_colour,
             font=("arial", 12, "normal"),
             command=self.TakeOffClickFunction,
-        ).grid(row=0, column=0, sticky="nesw")
+        ).grid(row=0, column=1, sticky="nesw")
 
         tk.Button(
             master,
             text="Land",
-            bg="#CD4F39",
+            bg=self.normal_button_colour,
             font=("arial", 12, "normal"),
             command=self.LandClickFunction,
         ).grid(row=1, column=1, sticky="nesw")
 
+        tk.Button(
+            master,
+            text="Arm",
+            bg="#CD4F39",
+            font=("arial", 12, "normal"),
+            command=self.ArmClickFunction,
+        ).grid(row=0, column=0, sticky="nesw")
+
+        tk.Button(
+            master,
+            text="Return",
+            bg=self.normal_button_colour,
+            font=("arial", 12, "normal"),
+            command=self.ReturnClickFunction,
+        ).grid(row=1, column=2, sticky="nesw")
+
         self.flocking_menu = tk.OptionMenu(
             master, self.flocking_type, *self.flocking_options
         )
-        self.flocking_menu.grid(row=2, column=0, sticky="w")
+        self.flocking_menu.grid(row=2, column=0, columnspan=2, sticky="w")
 
         self.sitl_check = tk.Checkbutton(
             master,
@@ -101,7 +118,7 @@ class App:
             offvalue=0,
             command=self.SITLCheckFunction,
         )
-        self.sitl_check.grid(row=2, column=1, sticky="w")
+        self.sitl_check.grid(row=2, column=2, sticky="e")
 
         self.no_drones_label = tk.Label(self.sitl_frame, text="Number of Drones:")
         self.no_drones_label.grid(row=3, column=0, sticky="w")
@@ -141,6 +158,12 @@ class App:
 
     def LandClickFunction(self):
         self.send_command("land")
+
+    def ArmClickFunction(self):
+        self.send_command("arm")
+
+    def ReturnClickFunction(self):
+        self.send_command("return")
 
     def LaunchClickFunction(self):
         print("launch")

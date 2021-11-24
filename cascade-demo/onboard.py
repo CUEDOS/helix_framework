@@ -3,6 +3,7 @@ import time
 import numpy as np
 import asyncio
 import flocking
+import rtl
 from mavsdk import System
 from mavsdk.offboard import OffboardError, VelocityNedYaw
 import pymap3d as pm
@@ -18,6 +19,17 @@ CONST_MAX_SPEED = 5
 CONST_REF_LAT = 53.473489655102014
 CONST_REF_LON = -2.2354534026550343
 CONST_REF_ALT = 0
+
+# Home positions of each drone
+# Format [Latitude, Longitude, Altitude]
+CONST_HOME = {
+    "P101": [0, 0, 0],
+    "P102": [0, 0, 0],
+    "P103": [0, 0, 0],
+    "P104": [0, 0, 0],
+    "P105": [0, 0, 0],
+    "P106": [0, 0, 0],
+}
 
 
 class PosVelNED:
@@ -56,16 +68,35 @@ class Agent:
 
         while True:
             command_loop_start_time = time.time()
-            if Agent.current_command == "takeoff":
+
+            if Agent.current_command == "arm":
+                print("ARMING")
+                await self.drone.action.arm()
+                Agent.current_command = "none"
+
+            elif Agent.current_command == "takeoff":
                 print("Taking Off")
                 await self.takeoff(self.drone)
                 Agent.current_command = "none"
+
             elif self.current_command == "Simple Flocking":
                 await self.offboard(self.drone)
+
             elif Agent.current_command == "hold":
                 print("Stopping Flocking")
                 await self.drone.action.hold()
                 Agent.current_command = "none"
+
+            elif Agent.current_command == "return":
+                print("Returning to home")
+                await self.drone.action.hold()
+                await rtl.return_to_home(
+                    CONST_HOME[CONST_DRONE_ID][0],
+                    CONST_HOME[CONST_DRONE_ID][1],
+                    CONST_HOME[CONST_DRONE_ID][2],
+                )
+                Agent.current_command = "none"
+
             elif Agent.current_command == "land":
                 print("Landing")
                 await self.drone.action.land()
@@ -78,7 +109,6 @@ class Agent:
 
     async def takeoff(self, drone):
         await drone.action.set_takeoff_altitude(20)
-        await drone.action.arm()
         await drone.action.takeoff()
 
     async def offboard(self, drone):
