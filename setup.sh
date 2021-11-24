@@ -3,7 +3,7 @@
 if [[ "$(id -u)" != "0" ]]; then
    echo "THIS SCRIPT MUST BE RUN AS ROOT (sudo ./setup.sh)"
    sleep 3
-   clear
+   exit 1
   else
    echo "THIS SCRIPT WILL BE EXECUTED AS ROOT   "
    sleep 3
@@ -49,8 +49,6 @@ function check_installed_python() {
 
 check_installed_python
 
-#PYTHON="python3"
-
 check_installed_pip
 
 echo_block "Installing Mavsdk"
@@ -69,8 +67,9 @@ echo_block "Installing mosquitto MQTT broker"
 sudo apt-get update
 sudo apt-get install mosquitto
 
-#git clone https://github.com/PX4/PX4-Autopilot.git --recursive
-#bash ./PX4-Autopilot/Tools/setup/ubuntu.sh
+cd $USER_HOME
+git clone https://github.com/PX4/PX4-Autopilot.git --recursive
+bash ./PX4-Autopilot/Tools/setup/ubuntu.sh --no-nuttx
 
 
 set -eou pipefail
@@ -124,4 +123,4 @@ echo ''
 
 sleep 3
 
-echo_block "Installation Finished"
+echo_block "Installation Finished, please restart your computer"
