@@ -22,7 +22,7 @@ def alt_calc(alt_dict):
 
     min_alt = 10  # meters - min return altitude above launch altitude
 
-    for i in range(1, CONST_SWARM_SIZE):  # Saving current altitudes in alts array
+    for i in drone_ids:  # Saving current altitudes in alts array
         alts = alt_dict["P" + str(i)]
 
     alts.sort()  # Sorting alts
