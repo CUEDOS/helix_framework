@@ -28,9 +28,7 @@ def alt_calc(alt_dict):
     alts.sort()  # Sorting alts
 
     return_alts_sorted
-    for i in range(
-        0, CONST_SWARM_SIZE - 1
-    ):  # Now i shows the order of the drones in alts
+    for i in range(0, CONST_SWARM_SIZE - 1):  # Now i shows the order of the drones in alts
         alt_return_dict[alt_dict[alts[i]]] = return_alts_sorted[i]
 
-    return return_alts_sorted
+    return alt_return_dict
