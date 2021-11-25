@@ -1,6 +1,14 @@
-<h1 align="center">Scorpio</h1>
-<img src="https://cascadeuav.files.wordpress.com/2018/03/cropped-white.png" width = 20%>
-
+<table style="height: 96px; width: 100%; border-collapse: collapse;" border="0">
+<tbody>
+<tr style="height: 96px;">
+<td style="width: 20%; height: 96px;"><img src="https://github.com/CUEDOS/cascade-demo/blob/return_dev/img/HelixioLogoFinalSmall.svg" alt="" /></td>
+<td style="text-align: center; height: 96px;">
+<img src="https://github.com/CUEDOS/cascade-demo/blob/return_dev/img/HelixioLogoFinal.svg" alt="" />
+</td>
+<td style="width: 20%; height: 96px;"><img src="https://cascadeuav.files.wordpress.com/2018/03/cropped-white.png" alt="" width="100%" /></td>
+</tr>
+</tbody>
+</table>
 
 <!-- TABLE OF CONTENTS -->
 <details>
