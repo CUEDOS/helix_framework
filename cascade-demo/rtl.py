@@ -3,9 +3,17 @@ async def return_to_home(
 ):
     await drone.action.goto_location(rtl_start_lat, rtl_start_long, rtl_altitude, 0)
     while 1:
-        if abs(current_lat-rtl_start_lat)<0.0001 and abs(current_long-rtl_start_long)<0.0001 and abs(current_alt-rtl_altitude)<0.05: # the drone is at the right altitude to return to home
+        if (
+            abs(current_lat - rtl_start_lat) < 0.0001
+            and abs(current_long - rtl_start_long) < 0.0001
+            and abs(current_alt - rtl_altitude) < 0.05
+        ):  # the drone is at the right altitude to return to home
             await drone.action.goto_location(home_lat, home_long, rtl_altitude, 0)
             while 1:
-                if the drone is above the launch point:
-                    await drone.action.land()    
+                if (
+                    abs(current_lat - home_lat) < 0.0001
+                    and abs(current_long - home_long) < 0.0001
+                    and abs(current_alt - rtl_altitude) < 0.05
+                ):  # the drone is exactly above the launch point
+                    await drone.action.land()
     return
