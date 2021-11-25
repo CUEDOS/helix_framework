@@ -5,14 +5,28 @@ import subprocess
 import mavsdk
 import os
 import signal
+import asyncio
+import gtools
 import tkinter as tk
 from tkinter import filedialog
 from tkinter import messagebox
 import paho.mqtt.client as mqtt
+from onboard import Communication
+
+# TODO move swarm size box outside of sitl section and update this when changed
+CONST_SWARM_SIZE = 6
 
 
 class App:
     def __init__(self, master):
+
+        self.comms = Communication(CONST_SWARM_SIZE)
+        asyncio.ensure_future(self.comms.run_comms())
+        drone_ids = range(101, 101 + CONST_SWARM_SIZE)
+        self.alt_dict = {}
+        for i in drone_ids:
+            self.alt_dict["P" + str(i)] = 0
+
         self.master = master
         self.normal_button_colour = "#4E73ED"
         self.check_var = tk.IntVar(value=1)
@@ -163,6 +177,15 @@ class App:
         self.send_command("arm")
 
     def ReturnClickFunction(self):
+        for key in self.alt_dict:
+            self.alt_dict[key] = self.comms.swarm_pos_vel[key].geodetic[2]
+
+        output_alt_dict = gtools.alt_calc(self.alt_dict)
+
+        for key in output_alt_dict:
+            Communication.client.publish(
+                key + "/home/altitude", str(output_alt_dict[key])
+            )
         self.send_command("return")
 
     def LaunchClickFunction(self):
@@ -228,10 +251,10 @@ class App:
 
     # sends mqtt commands to broker
     def send_command(self, command):
-        self.client = mqtt.Client()
-        self.client.connect("localhost", 1883, 60)
-        self.client.publish("commands", command)
-        self.client.disconnect()
+        # self.client = mqtt.Client()
+        # self.client.connect("localhost", 1883, 60)
+        Communication.client.publish("commands", command)
+        # self.client.disconnect()
 
     def validate_int(self, input):
         if input in "0123456789":
