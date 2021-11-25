@@ -1,24 +1,4 @@
 def alt_calc(alt_dict):
-    """
-    Parameters
-    ------------
-    alt_dict: Dict(key drone_index (string): value altitude (float), ...)
-
-    Example:
-    alt_dict =
-    {
-    "P101": 20,
-    "P102": 12,
-    ...
-    }
-    x = alt_dict["P101"]
-    print(x)
-    # 20
-
-    Returns:
-    --------
-    output_dict: Dict(key:drone_index (string), value: altitude (float))
-    """
 
     min_alt = 10  # meters - min return altitude above launch altitude
 
