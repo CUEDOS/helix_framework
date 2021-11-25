@@ -8,10 +8,10 @@ async def return_to_home(
         or abs(current_alt - rtl_altitude) > 0.05
     ):
     
-        # Now, the drone is at the right altitude to return to home
+    # Now, the drone is at the right altitude to return to home
     await drone.action.goto_location(home_lat, home_long, rtl_altitude, 0)
 
     while abs(current_lat - home_lat) > 0.0001 or abs(current_long - home_long) > 0.0001 or abs(current_alt - rtl_altitude) > 0.05):  
-    # the drone is exactly above the launch point
+    # Now, the drone is exactly above the launch point
     await drone.action.land()
 return
