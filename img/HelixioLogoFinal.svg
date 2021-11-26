@@ -7,50 +7,50 @@
    xmlns="http://www.w3.org/2000/svg"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   sodipodi:docname="HelixioLogoFinal.svg"
-   inkscape:version="1.0 (4035a4fb49, 2020-05-01)"
-   id="svg2358"
-   version="1.1"
-   viewBox="0 0 100 40"
+   width="100mm"
    height="40mm"
-   width="100mm">
+   viewBox="0 0 100 40"
+   version="1.1"
+   id="svg2358"
+   inkscape:version="1.0 (4035a4fb49, 2020-05-01)"
+   sodipodi:docname="HelixioLogoFinal.svg">
   <defs
      id="defs2352">
     <rect
-       id="rect3173"
-       height="15.119048"
-       width="10.205357"
+       x="89.391369"
        y="58.58631"
-       x="89.391369" />
+       width="10.205357"
+       height="15.119048"
+       id="rect3173" />
   </defs>
   <sodipodi:namedview
-     inkscape:snap-global="false"
-     inkscape:snap-center="true"
-     inkscape:snap-object-midpoints="true"
-     inkscape:window-maximized="1"
-     inkscape:window-y="-8"
-     inkscape:window-x="1912"
-     inkscape:window-height="1017"
-     inkscape:window-width="1920"
-     inkscape:snap-grids="false"
-     showgrid="false"
-     inkscape:document-rotation="0"
-     inkscape:current-layer="layer1"
-     inkscape:document-units="mm"
-     inkscape:cy="119.34029"
-     inkscape:cx="191.22631"
-     inkscape:zoom="2.8"
-     inkscape:pageshadow="2"
-     inkscape:pageopacity="0.0"
-     borderopacity="1.0"
-     bordercolor="#666666"
+     id="base"
      pagecolor="#ffffff"
-     id="base">
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="2.8"
+     inkscape:cx="191.22631"
+     inkscape:cy="119.34029"
+     inkscape:document-units="mm"
+     inkscape:current-layer="layer1"
+     inkscape:document-rotation="0"
+     showgrid="false"
+     inkscape:snap-grids="false"
+     inkscape:window-width="1920"
+     inkscape:window-height="1017"
+     inkscape:window-x="1912"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:snap-object-midpoints="true"
+     inkscape:snap-center="true"
+     inkscape:snap-global="false">
     <inkscape:grid
-       spacingy="2.6458333"
-       spacingx="2.6458333"
+       type="xygrid"
        id="grid2921"
-       type="xygrid" />
+       spacingx="2.6458333"
+       spacingy="2.6458333" />
   </sodipodi:namedview>
   <metadata
      id="metadata2355">
@@ -65,56 +65,66 @@
     </rdf:RDF>
   </metadata>
   <g
-     id="layer1"
+     inkscape:label="Layer 1"
      inkscape:groupmode="layer"
-     inkscape:label="Layer 1">
+     id="layer1">
     <circle
-       style="opacity:0.998;fill:none;fill-opacity:0.927419;stroke:#0176ff;stroke-width:2;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       id="path2949-5"
-       cy="20.345467"
+       r="7"
        cx="87.804329"
-       r="7" />
+       cy="20.345467"
+       id="path2949-5"
+       style="opacity:0.998;fill:none;fill-opacity:0.927419;stroke:#0176ff;stroke-width:2;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
     <path
-       sodipodi:nodetypes="cccccc"
-       style="fill:none;stroke:#000000;stroke-width:2.2;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="path2923-8"
        d="m 57.810444,18.478852 -7.48354,-7.483547 c 0.213253,-5.5245848 18.863788,-6.0816833 18.70886,0 l -18.70886,18.708866 c -0.164724,6.753007 18.769293,6.648648 18.70886,3e-6 l -7.48354,-7.483548"
-       id="path2923-8" />
+       style="fill:none;stroke:#000000;stroke-width:2.2;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       sodipodi:nodetypes="cccccc" />
+    <g
+       style="font-style:normal;font-weight:normal;font-size:22.5778px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       id="text2927-9"
+       aria-label="HELI">
+      <path
+         id="path3881"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:22.5778px;font-family:Roboto;-inkscape-font-specification:Roboto;stroke-width:0.264583"
+         d="M 16.593052,28.454926 H 14.465359 V 21.03556 H 6.3735102 v 7.419366 H 4.2568414 V 12.40352 h 2.1166688 v 6.901223 H 14.465359 V 12.40352 h 2.127693 z" />
+      <path
+         id="path3883"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:22.5778px;font-family:Roboto;-inkscape-font-specification:Roboto;stroke-width:0.264583"
+         d="m 29.425357,21.03556 h -6.956344 v 5.688548 h 8.080824 v 1.730818 H 20.352344 V 12.40352 h 10.08725 v 1.741842 h -7.970581 v 5.159381 h 6.956344 z" />
+      <path
+         id="path3885"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:22.5778px;font-family:Roboto;-inkscape-font-specification:Roboto;stroke-width:0.264583"
+         d="m 35.312341,26.724108 h 7.606779 v 1.730818 H 33.184648 V 12.40352 h 2.127693 z" />
+      <path
+         id="path3887"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:22.5778px;font-family:Roboto;-inkscape-font-specification:Roboto;stroke-width:0.264583"
+         d="M 47.626506,28.454926 H 45.509838 V 12.40352 h 2.116668 z" />
+    </g>
     <text
        xml:space="preserve"
-       style="font-style:normal;font-weight:normal;font-size:22.5778px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
-       x="2.3937318"
-       y="28.454926"
-       id="text2927-9"><tspan
-         sodipodi:role="line"
-         id="tspan2925-3"
-         x="2.3937318"
-         y="28.454926"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:22.5778px;font-family:Roboto;-inkscape-font-specification:Roboto;stroke-width:0.264583">HELI</tspan></text>
-    <text
-       style="font-style:normal;font-weight:normal;font-size:22.57777778px;line-height:1.25;font-family:Roboto;white-space:pre;shape-inside:url(#rect3173);fill:#000000;fill-opacity:1;stroke:none;-inkscape-font-specification:Roboto;font-stretch:normal;font-variant:normal;"
        id="text3171"
-       xml:space="preserve"><tspan
+       style="font-style:normal;font-weight:normal;font-size:22.57777778px;line-height:1.25;font-family:Roboto;white-space:pre;shape-inside:url(#rect3173);fill:#000000;fill-opacity:1;stroke:none;-inkscape-font-specification:Roboto;font-stretch:normal;font-variant:normal;"><tspan
          style="visibility:hidden"
          x="89.390625"
-         y="93.460634"><tspan
+         y="93.460654"><tspan
            style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:22.5778px;font-family:Roboto;-inkscape-font-specification:Roboto">O</tspan></tspan></text>
     <rect
-       y="26.493858"
-       x="71.338623"
-       height="2"
-       width="2"
+       style="opacity:0.998;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1.15125;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        id="rect3013"
-       style="opacity:0.998;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1.15125;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+       width="2"
+       height="2"
+       x="71.338623"
+       y="26.493858" />
     <path
-       sodipodi:nodetypes="cc"
-       id="path2947-4-0"
+       style="fill:none;fill-opacity:1;stroke:#0176ff;stroke-width:2;stroke-linecap:square;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        d="M 76.576276,13.367524 V 27.381717"
-       style="fill:none;fill-opacity:1;stroke:#0176ff;stroke-width:2;stroke-linecap:square;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+       id="path2947-4-0"
+       sodipodi:nodetypes="cc" />
     <circle
-       cx="87.402504"
-       cy="20.362587"
-       id="path2949-79-6"
+       r="0"
        style="opacity:0.998;fill:none;fill-opacity:0.927419;stroke:#989898;stroke-width:2;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       r="0" />
+       id="path2949-79-6"
+       cy="20.362587"
+       cx="87.402504" />
   </g>
 </svg>
