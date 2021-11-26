@@ -56,7 +56,7 @@ def alt_calc(alt_dict):
     alt_return_dict=alt_dict
     for i in range(0, CONST_SWARM_SIZE):
         for j in range(0, CONST_SWARM_SIZE ):
-            if alt_dict["P" + str(j + 101)] == alts[i]: #
+            if alt_dict["P" + str(j + 101)] == alts[i]: # drone "P" + str(j + 101) is the ith drone 
                 alt_return_dict["P" + str(j + 101)]= alt_return_sorted[i]
 
     return alt_return_dict
