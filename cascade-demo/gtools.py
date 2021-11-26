@@ -25,7 +25,7 @@ def alt_calc(alt_dict):
     alts.sort()  # Sorting alts
 
     # Calculating the mean of current alts -------------------------------------------------------------------------------
-    mean=sum(alts)/CONST_SWARM_SIZE
+    mean = sum(alt_dict.values())/len(alt_dict)
 
     # Creating sorted return alts ------------------------------------------------------------------------------------------
     middle_element = floor(CONST_SWARM_SIZE / 2)
