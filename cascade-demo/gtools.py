@@ -12,6 +12,12 @@ def alt_calc(alt_dict):
     mean=mean/CONST_SWARM_SIZE
     
     alt_return_sorted
+
+    if alt_return_sorted[0]<min_alt:  # Checking minimum alt
+        difference=min_alt-alt_return_sorted[0]
+        for i in range(0, CONST_SWARM_SIZE - 1):
+            alt_return_sorted[i]=alt_return_sorted[i]+difference
+
     for i in range(0, CONST_SWARM_SIZE - 1):  # Now i shows the order of the drones in alts
         alt_return_dict[alt_dict[alts[i]]] = alt_return_sorted[i]
 
