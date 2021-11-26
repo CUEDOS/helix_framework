@@ -1,6 +1,15 @@
 from math import floor
 def alt_calc(alt_dict):
-
+    """
+    Parameters
+    ------------
+    alt_dict: Dict(key drone_index (string): value altitude (float), ...)
+   
+    Returns
+    -----------
+    output_dict: Dict(key:drone_index (string), value: altitude (float))
+    """
+    
     min_alt = 10  # in meters - min return altitude above launch altitude
     alt_step = 2  # in meters - the alt difference between return alts
 
