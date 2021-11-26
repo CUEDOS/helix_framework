@@ -4,7 +4,8 @@ def alt_calc(alt_dict):
     min_alt = 10  # in meters - min return altitude above launch altitude
     alt_step = 2  # in meters - the alt difference between return alts
 
-    for i in range(0, CONST_SWARM_SIZE - 1):  # Saving current altitudes in alts array ----------------------------------
+    alts=[0]*CONST_SWARM_SIZE                # Saving current altitudes in alts array ----------------------------------
+    for i in range(0, CONST_SWARM_SIZE - 1):
         alts[i] = alt_dict["P" + str(i + 101)]
 
     alts.sort()    # Sorting alts
