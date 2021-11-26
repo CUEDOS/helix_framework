@@ -57,6 +57,6 @@ def alt_calc(alt_dict):
     for i in range(0, CONST_SWARM_SIZE):
         for j in range(0, CONST_SWARM_SIZE ):
             if alt_dict["P" + str(j + 101)] == alts[i]: # drone "P" + str(j + 101) is the ith drone 
-                alt_return_dict["P" + str(j + 101)]= alt_return_sorted[i]
+                alt_return_dict["P" + str(j + 101)]= alt_return_sorted[i] # assigning ith return altitude to the ith drone 
 
     return alt_return_dict
