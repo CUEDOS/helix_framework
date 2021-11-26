@@ -1,4 +1,3 @@
-from math import floor
 import numpy as np
 
 def alt_calc(alt_dict):
