@@ -53,4 +53,5 @@ def alt_calc(alt_dict):
     alt_return_dict=alt_dict
     for i in range(0, CONST_SWARM_SIZE):
         alt_return_dict[sorted_idx[i]]= alt_return_sorted[i] # assigning ith return altitude to the ith drone 
+
     return(alt_return_dict)
