@@ -48,6 +48,7 @@ def alt_calc(alt_dict):
             alt_return_sorted[i]=alt_return_sorted[i]+difference
     
     # assigning sorted alts (Now i shows the order of the drones in alts) -----------------------------------------------
+    alt_return_dict=alt_dict
     for i in range(0, CONST_SWARM_SIZE):  
         alt_return_dict[alt_dict[alts[i]]] = alt_return_sorted[i]
 
