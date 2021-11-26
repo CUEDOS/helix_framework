@@ -6,6 +6,7 @@ def alt_calc(alt_dict):
         alts[i] = alt_dict["P" + str(i + 101)]
 
     alts.sort()    # Sorting alts
+    
     mean=0
     for i in range(0, CONST_SWARM_SIZE - 1): # Calculating the mean of current alts
         mean=mean+alts[i]
