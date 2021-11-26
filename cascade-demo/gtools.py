@@ -17,6 +17,7 @@ def alt_calc(alt_dict):
     
     #Creating sorted return alts ------------------------------------------------------------------------------------------
     middle_element=floor(CONST_SWARM_SIZE/2)
+    alt_return_sorted=[0]*CONST_SWARM_SIZE
     alt_return_sorted[middle_element]=mean
     
     if CONST_SWARM_SIZE%2 == 1:
