@@ -23,7 +23,8 @@ def alt_calc(alt_dict):
         alts[i] = alt_dict["P" + str(i + 101)]
 
     alts.sort()  # Sorting alts
-
+    sorted_idx = sorted(alt_dict, key=alt_dict.get)
+    
     # Calculating the mean of current alts -------------------------------------------------------------------------------
     mean = sum(alt_dict.values())/len(alt_dict)
 
@@ -51,7 +52,5 @@ def alt_calc(alt_dict):
     # assigning sorted alts (Now i shows the order of the drones in alts) -----------------------------------------------
     alt_return_dict=alt_dict
     for i in range(0, CONST_SWARM_SIZE):
-        for j in range(0, CONST_SWARM_SIZE ):
-            if alt_dict["P" + str(j + 101)] == alts[i]: # drone "P" + str(j + 101) is the ith drone 
-                alt_return_dict["P" + str(j + 101)]= alt_return_sorted[i] # assigning ith return altitude to the ith drone 
+        alt_return_dict[sorted_idx[i]]= alt_return_sorted[i] # assigning ith return altitude to the ith drone 
     return(alt_return_dict)
