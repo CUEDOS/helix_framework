@@ -21,11 +21,11 @@ def alt_calc(alt_dict):
     alt_return_sorted[middle_element]=mean
     
     if CONST_SWARM_SIZE%2 == 1:
-        for i in range (1, (CONST_SWARM_SIZE - 1)/2):
+        for i in range (1, int((CONST_SWARM_SIZE - 1)/2)):
             alt_return_sorted[middle_element-i]=mean-i*alt_step
             alt_return_sorted[middle_element+i]=mean+i*alt_step
     else:
-        for i in range (1, (CONST_SWARM_SIZE - 2)/2):
+        for i in range (1, int((CONST_SWARM_SIZE - 2)/2)):
             alt_return_sorted[middle_element-i]=mean-i*alt_step
             alt_return_sorted[middle_element+i]=mean+i*alt_step
         alt_return_sorted[0]=alt_return_sorted[1]-alt_step
