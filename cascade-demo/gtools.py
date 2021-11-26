@@ -1,6 +1,5 @@
 from math import floor
 
-
 def alt_calc(alt_dict):
     """
     Parameters
@@ -17,7 +16,7 @@ def alt_calc(alt_dict):
 
     min_alt = 10  # in meters - min return altitude above launch altitude
     alt_step = 2  # in meters - the alt difference between return alts
-
+    CONST_SWARM_SIZE=len(alt_dict)
     # Saving current altitudes in alts array -----------------------------------------------------------------------------
     alts = [0] * CONST_SWARM_SIZE
     for i in range(0, CONST_SWARM_SIZE):
