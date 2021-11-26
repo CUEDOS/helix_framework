@@ -16,39 +16,29 @@ CONST_PORT = int(sys.argv[3])
 CONST_MAX_SPEED = 5
 
 # below are reference GPS coordinates used as the origin of the NED coordinate system
-CONST_REF_LAT = 53.473489655102014
-CONST_REF_LON = -2.2354534026550343
-CONST_REF_ALT = 0
-
-# Home positions of each drone
-# Format [Latitude, Longitude, Altitude]
-CONST_HOME = {
-    "P101": [0, 0, 0],
-    "P102": [0, 0, 0],
-    "P103": [0, 0, 0],
-    "P104": [0, 0, 0],
-    "P105": [0, 0, 0],
-    "P106": [0, 0, 0],
-}
+CONST_REF_LAT = 53.435053670574646
+CONST_REF_LON = -2.248619912055967
+CONST_REF_ALT = 39
 
 
 class PosVelNED:
-    position = [0, 0, 0]
-    velocity = [0, 0, 0]
+    geodetic = [0, 0, 0]
+    position_ned = [0, 0, 0]
+    velocity_ned = [0, 0, 0]
 
 
 class Agent:
-    current_command = "none"
-    drone_ids = range(101, 101 + CONST_SWARM_SIZE)
-    swarm_pos_vel = {}
-    for i in drone_ids:
-        swarm_pos_vel["P" + str(i)] = PosVelNED()
+    # current_command = "none"
+    # drone_ids = range(101, 101 + CONST_SWARM_SIZE)
+    # swarm_pos_vel = {}
+    # for i in drone_ids:
+    #     swarm_pos_vel["P" + str(i)] = PosVelNED()
 
     def __init__(self):
         self.my_pos_vel = PosVelNED()
 
         # Create dict of PosVelNED objects with drone identifier e.g. P101 as the keys
-        drone_ids = range(101, 101 + CONST_SWARM_SIZE)
+        # drone_ids = range(101, 101 + CONST_SWARM_SIZE)
 
     async def run(self):
         self.drone = System(mavsdk_server_address="localhost", port=CONST_PORT)
@@ -59,8 +49,9 @@ class Agent:
                 print(f"Drone discovered!")
                 break
 
-        comms = Communication()
-        asyncio.ensure_future(comms.run_comms())
+        self.comms = Communication(CONST_SWARM_SIZE)
+        asyncio.ensure_future(self.comms.run_comms())
+        await asyncio.sleep(1)
         asyncio.ensure_future(self.get_position(self.drone))
         asyncio.ensure_future(self.get_velocity(self.drone))
 
@@ -69,38 +60,38 @@ class Agent:
         while True:
             command_loop_start_time = time.time()
 
-            if Agent.current_command == "arm":
+            if self.comms.current_command == "arm":
                 print("ARMING")
                 await self.drone.action.arm()
-                Agent.current_command = "none"
+                self.comms.current_command = "none"
 
-            elif Agent.current_command == "takeoff":
+            elif self.comms.current_command == "takeoff":
                 print("Taking Off")
                 await self.takeoff(self.drone)
-                Agent.current_command = "none"
+                self.comms.current_command = "none"
 
-            elif self.current_command == "Simple Flocking":
+            elif self.comms.current_command == "Simple Flocking":
                 await self.offboard(self.drone)
 
-            elif Agent.current_command == "hold":
+            elif self.comms.current_command == "hold":
                 print("Stopping Flocking")
                 await self.drone.action.hold()
-                Agent.current_command = "none"
+                self.comms.current_command = "none"
 
-            elif Agent.current_command == "return":
+            elif self.comms.current_command == "return":
                 print("Returning to home")
                 await self.drone.action.hold()
-                await rtl.return_to_home(
-                    CONST_HOME[CONST_DRONE_ID][0],
-                    CONST_HOME[CONST_DRONE_ID][1],
-                    CONST_HOME[CONST_DRONE_ID][2],
-                )
-                Agent.current_command = "none"
+                # await rtl.return_to_home(
+                #     CONST_HOME[CONST_DRONE_ID][0],
+                #     CONST_HOME[CONST_DRONE_ID][1],
+                #     CONST_HOME[CONST_DRONE_ID][2],
+                # )
+                self.comms.current_command = "none"
 
-            elif Agent.current_command == "land":
+            elif self.comms.current_command == "land":
                 print("Landing")
                 await self.drone.action.land()
-                Agent.current_command = "none"
+                self.comms.current_command = "none"
 
             # Checking frequency of the loop
             await asyncio.sleep(
@@ -131,19 +122,22 @@ class Agent:
         # take off the quadrotor
         await asyncio.sleep(2)
         # Endless loop (Mission)
-        while Agent.current_command == "Simple Flocking":
+        while self.comms.current_command == "Simple Flocking":
             offboard_loop_start_time = time.time()
 
             # send the position of the drone to the other drones
-            Communication.client.publish(
-                CONST_DRONE_ID + "/telemetry/position", str(self.my_pos_vel.position)
-            )
-            Communication.client.publish(
-                CONST_DRONE_ID + "/telemetry/velocity", str(self.my_pos_vel.velocity)
-            )
+            # Communication.client.publish(
+            #     CONST_DRONE_ID + "/telemetry/position", str(self.my_pos_vel.position)
+            # )
+            # Communication.client.publish(
+            #     CONST_DRONE_ID + "/telemetry/velocity", str(self.my_pos_vel.velocity)
+            # )
 
             output_vel = flocking.simple_flocking(
-                CONST_DRONE_ID, Agent.swarm_pos_vel, self.my_pos_vel, CONST_MAX_SPEED
+                CONST_DRONE_ID,
+                self.comms.swarm_pos_vel,
+                self.my_pos_vel,
+                CONST_MAX_SPEED,
             )
 
             # Sending the target velocities to the quadrotor
@@ -158,8 +152,16 @@ class Agent:
 
     # runs in background and upates state class with latest telemetry
     async def get_position(self, drone):
+        # set the rate of telemetry updates to 10Hz
+        await drone.telemetry.set_rate_position(50)
         async for position in drone.telemetry.position():
-            self.my_pos_vel.position = pm.geodetic2ned(
+            self.my_pos_vel.geodetic = (
+                position.latitude_deg,
+                position.longitude_deg,
+                position.relative_altitude_m,
+            )
+
+            self.my_pos_vel.position_ned = pm.geodetic2ned(
                 position.latitude_deg,
                 position.longitude_deg,
                 position.absolute_altitude_m,
@@ -168,26 +170,50 @@ class Agent:
                 CONST_REF_ALT,
             )
 
+            Communication.client.publish(
+                CONST_DRONE_ID + "/telemetry/position_ned",
+                str(self.my_pos_vel.position_ned),
+            )
+
+            Communication.client.publish(
+                CONST_DRONE_ID + "/telemetry/geodetic",
+                str(self.my_pos_vel.geodetic),
+            )
+
     async def get_velocity(self, drone):
+        # set the rate of telemetry updates to 10Hz
+        # await drone.telemetry.set_rate_position_velocity_ned(10)
         async for position_velocity_ned in drone.telemetry.position_velocity_ned():
-            self.my_pos_vel.velocity = [
+            self.my_pos_vel.velocity_ned = [
                 position_velocity_ned.velocity.north_m_s,
                 position_velocity_ned.velocity.east_m_s,
                 position_velocity_ned.velocity.down_m_s,
             ]
+            Communication.client.publish(
+                CONST_DRONE_ID + "/telemetry/velocity_ned",
+                str(self.my_pos_vel.velocity_ned),
+            )
 
 
 class Communication:
     client = mqtt.Client()
 
-    # def __init__(self):
+    def __init__(self, swarm_size):
+        self.current_command = "none"
+        self.drone_ids = range(101, 101 + swarm_size)
+        self.swarm_pos_vel = {}
+        for i in self.drone_ids:
+            self.swarm_pos_vel["P" + str(i)] = PosVelNED()
 
     async def run_comms(self):
         Communication.client.message_callback_add(
-            "+/telemetry/position", self.on_message_position
+            "+/telemetry/geodetic", self.on_message_geodetic
         )
         Communication.client.message_callback_add(
-            "+/telemetry/velocity", self.on_message_velocity
+            "+/telemetry/position_ned", self.on_message_position
+        )
+        Communication.client.message_callback_add(
+            "+/telemetry/velocity_ned", self.on_message_velocity
         )
         Communication.client.message_callback_add("commands", self.on_message_command)
         Communication.client.connect_async(
@@ -198,7 +224,7 @@ class Communication:
 
     def on_message_command(self, mosq, obj, msg):
         print("received command")
-        Agent.current_command = msg.payload.decode()
+        self.current_command = msg.payload.decode()
 
     # callback triggeed on connection to MQTT
     def on_connect(self, client, userdata, flags, rc):
@@ -206,13 +232,21 @@ class Communication:
         client.subscribe("+/telemetry/+")
         client.subscribe("commands")
 
+    def on_message_geodetic(self, mosq, obj, msg):
+        # Remove none numeric parts of string and then split into north east and down
+        received_string = msg.payload.decode().strip("()")
+        string_list = received_string.split(", ")
+        geodetic = [float(i) for i in string_list]
+        # time.sleep(1)  # simulating comm latency
+        self.swarm_pos_vel[msg.topic[0:4]].geodetic = geodetic
+
     def on_message_position(self, mosq, obj, msg):
         # Remove none numeric parts of string and then split into north east and down
         received_string = msg.payload.decode().strip("()")
         string_list = received_string.split(", ")
         position = [float(i) for i in string_list]
         # time.sleep(1)  # simulating comm latency
-        Agent.swarm_pos_vel[msg.topic[0:4]].position = position
+        self.swarm_pos_vel[msg.topic[0:4]].position_ned = position
 
     def on_message_velocity(self, mosq, obj, msg):
         # Remove none numeric parts of string and then split into north east and down
@@ -220,7 +254,7 @@ class Communication:
         string_list = received_string.split(", ")
         velocity = [float(i) for i in string_list]
         # time.sleep(1)  # simulating comm latency
-        Agent.swarm_pos_vel[msg.topic[0:4]].velocity = velocity
+        self.swarm_pos_vel[msg.topic[0:4]].velocity_ned = velocity
 
 
 if __name__ == "__main__":

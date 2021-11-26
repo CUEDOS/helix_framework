@@ -1,31 +1,54 @@
+from math import floor
 def alt_calc(alt_dict):
     """
     Parameters
     ------------
-    alt_dict: Dict(key:drone_index (string), value: altitude (float))
-
-    Example:
-    alt_dict = 
-    {
-    "P101": 20,
-    "P102": 12,
-    ...
-    }
-    x = alt_dict["P101"]
-    print(x)
-    # 20
-
-    Returns:
-    --------
+    alt_dict: Dict(key drone_index (string): value altitude (float), ...)
+   
+    Returns
+    -----------
     output_dict: Dict(key:drone_index (string), value: altitude (float))
     """
     
-    min_alt = 10 # meters - min return altitude above launch altitude
+    min_alt = 10  # in meters - min return altitude above launch altitude
+    alt_step = 2  # in meters - the alt difference between return alts
 
-    # TODO find a way to sort the altitudes, and therefore sorting the drones
+    # Saving current altitudes in alts array -----------------------------------------------------------------------------
+    alts=[0]*CONST_SWARM_SIZE               
+    for i in range(0, CONST_SWARM_SIZE ):
+        alts[i] = alt_dict["P" + str(i + 101)]
 
-    # TODO Make new dictionary with return altitudes
+    alts.sort()    # Sorting alts
+    
+    # Calculating the mean of current alts -------------------------------------------------------------------------------
+    mean=0          
+    for i in range(0, CONST_SWARM_SIZE ): 
+        mean=mean+alts[i]
+    mean=mean/CONST_SWARM_SIZE
+    
+    #Creating sorted return alts ------------------------------------------------------------------------------------------
+    middle_element=floor(CONST_SWARM_SIZE/2)
+    alt_return_sorted=[0]*CONST_SWARM_SIZE
+    alt_return_sorted[middle_element]=mean
+    
+    if CONST_SWARM_SIZE%2 == 1:
+        for i in range (1, int((CONST_SWARM_SIZE - 1)/2)+1):
+            alt_return_sorted[middle_element-i]=mean-i*alt_step
+            alt_return_sorted[middle_element+i]=mean+i*alt_step
+    else:
+        for i in range (1, int((CONST_SWARM_SIZE - 2)/2)+1):
+            alt_return_sorted[middle_element-i]=mean-i*alt_step
+            alt_return_sorted[middle_element+i]=mean+i*alt_step
+        alt_return_sorted[0]=alt_return_sorted[1]-alt_step
+    
+    # Checking minimum alt -----------------------------------------------------------------------------------------------
+    if alt_return_sorted[0]<min_alt:  
+        difference=min_alt-alt_return_sorted[0]
+        for i in range(0, CONST_SWARM_SIZE):
+            alt_return_sorted[i]=alt_return_sorted[i]+difference
+    
+    # assigning sorted alts (Now i shows the order of the drones in alts) -----------------------------------------------
+    for i in range(0, CONST_SWARM_SIZE):  
+        alt_return_dict[alt_dict[alts[i]]] = alt_return_sorted[i]
 
-    # TODO Ensure all altitudes are higher than min altitude
-
-    return output_dict
+    return alt_return_dict
