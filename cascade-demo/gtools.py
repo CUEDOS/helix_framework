@@ -41,5 +41,3 @@ def alt_calc(alt_dict):
         alt_return_dict[idx]=alts[i]
 
     return(alt_return_dict)
-
-    return(alt_return_dict)
