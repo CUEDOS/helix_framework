@@ -25,10 +25,7 @@ def alt_calc(alt_dict):
     alts.sort()  # Sorting alts
 
     # Calculating the mean of current alts -------------------------------------------------------------------------------
-    mean = 0
-    for i in range(0, CONST_SWARM_SIZE):
-        mean = mean + alts[i]
-    mean = mean / CONST_SWARM_SIZE
+    mean=sum(alts)/CONST_SWARM_SIZE
 
     # Creating sorted return alts ------------------------------------------------------------------------------------------
     middle_element = floor(CONST_SWARM_SIZE / 2)
@@ -57,5 +54,4 @@ def alt_calc(alt_dict):
         for j in range(0, CONST_SWARM_SIZE ):
             if alt_dict["P" + str(j + 101)] == alts[i]: # drone "P" + str(j + 101) is the ith drone 
                 alt_return_dict["P" + str(j + 101)]= alt_return_sorted[i] # assigning ith return altitude to the ith drone 
-
-    return alt_return_dict
+    return(alt_return_dict)
