@@ -1,4 +1,4 @@
-<img src="https://github.com/CUEDOS/cascade-demo/blob/return_dev/img/HelixioLogoFinal.svg" alt="" />
+<img src="https://github.com/CUEDOS/cascade-demo/blob/main/img/HelixioLogoFinal.svg" alt="" />
 
 
 <!-- TABLE OF CONTENTS -->
