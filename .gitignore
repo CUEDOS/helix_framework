@@ -5,3 +5,12 @@ cascade-demo/config.txt
 nohup.out
 Firmware
 PX4-Autopilot
+cascade-demo/__pycache__/flocking.cpython-38.pyc
+.vscode/launch.json
+__pycache__/flocking.cpython-37.pyc
+cascade-demo/__pycache__/communication.cpython-37.pyc
+cascade-demo/__pycache__/flocking.cpython-37.pyc
+.gitignore
+cascade-demo/__pycache__/gtools.cpython-37.pyc
+cascade-demo/__pycache__/onboard.cpython-37.pyc
+cascade-demo/__pycache__/rtl.cpython-37.pyc

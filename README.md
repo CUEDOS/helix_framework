@@ -1,5 +1,4 @@
-<h2 align="center">Cascade Drone Swarm Physical Demonstration Project</h2>
-<img src="https://cascadeuav.files.wordpress.com/2018/03/cropped-white.png" width = 20%>
+<img src="https://github.com/CUEDOS/cascade-demo/blob/return_dev/img/HelixioLogoFinal.svg" alt="" />
 
 
 <!-- TABLE OF CONTENTS -->
