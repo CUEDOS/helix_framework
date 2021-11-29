@@ -22,20 +22,24 @@ class Communication:
             self.swarm_pos_vel["P" + str(i)] = PosVelNED()
 
     async def run_comms(self):
-        Communication.client.message_callback_add(
+        self.client.message_callback_add(
             "+/telemetry/geodetic", self.on_message_geodetic
         )
-        Communication.client.message_callback_add(
+        self.client.message_callback_add(
             "+/telemetry/position_ned", self.on_message_position
         )
-        Communication.client.message_callback_add(
+        self.client.message_callback_add(
             "+/telemetry/velocity_ned", self.on_message_velocity
         )
-        Communication.client.connect_async(
+        self.client.connect_async(
             "localhost", 1883, 60
         )  # change localhost to IP of broker
-        Communication.client.on_connect = self.on_connect
-        Communication.client.loop_start()
+        self.client.on_connect = self.on_connect
+        self.client.loop_start()
+
+    def close(self):
+        self.client.disconnect()
+        self.client.loop_stop()
 
     # callback triggeed on connection to MQTT
     def on_connect(self, client, userdata, flags, rc):
@@ -77,24 +81,24 @@ class DroneCommunication(Communication):
         self.create_dict()
 
     async def run_comms(self):
-        Communication.client.message_callback_add(
+        self.client.message_callback_add(
             "+/telemetry/geodetic", self.on_message_geodetic
         )
-        Communication.client.message_callback_add(
+        self.client.message_callback_add(
             "+/telemetry/position_ned", self.on_message_position
         )
-        Communication.client.message_callback_add(
+        self.client.message_callback_add(
             "+/telemetry/velocity_ned", self.on_message_velocity
         )
-        Communication.client.message_callback_add(
+        self.client.message_callback_add(
             self.id + "/home/altitude", self.on_message_home
         )
-        Communication.client.message_callback_add("commands", self.on_message_command)
-        Communication.client.connect_async(
+        self.client.message_callback_add("commands", self.on_message_command)
+        self.client.connect_async(
             "localhost", 1883, 60
         )  # change localhost to IP of broker
-        Communication.client.on_connect = self.on_connect
-        Communication.client.loop_start()
+        self.client.on_connect = self.on_connect
+        self.client.loop_start()
 
     def on_connect(self, client, userdata, flags, rc):
         print("MQTT connected to broker with result code " + str(rc))

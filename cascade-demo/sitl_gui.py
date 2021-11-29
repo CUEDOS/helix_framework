@@ -17,19 +17,16 @@ import paho.mqtt.client as mqtt
 # from onboard import Communication
 from communication import Communication
 
-# TODO move swarm size box outside of sitl section and update this when changed
-CONST_SWARM_SIZE = 3
-
 
 class App:
     def __init__(self, master):
 
         # self.comms = Communication(CONST_SWARM_SIZE)
         # asyncio.ensure_future(self.comms.run_comms())
-        drone_ids = range(101, 101 + CONST_SWARM_SIZE)
-        self.alt_dict = {}
-        for i in drone_ids:
-            self.alt_dict["P" + str(i)] = 0
+        # drone_ids = range(101, 101 + CONST_SWARM_SIZE)
+        # self.alt_dict = {}
+        # for i in drone_ids:
+        #     self.alt_dict["P" + str(i)] = 0
 
         self.master = master
         self.normal_button_colour = "#4E73ED"
@@ -51,7 +48,7 @@ class App:
         self.sitl_frame = tk.Frame(master)
 
         self.sitl_frame.columnconfigure(tuple(range(3)), weight=1)
-        self.sitl_frame.grid(row=3, column=0, columnspan=3, sticky="ew")
+        self.sitl_frame.grid(row=4, column=0, columnspan=3, sticky="ew")
 
         self.launch_btn = tk.Button(
             self.sitl_frame,
@@ -126,7 +123,7 @@ class App:
         self.flocking_menu = tk.OptionMenu(
             master, self.flocking_type, *self.flocking_options
         )
-        self.flocking_menu.grid(row=2, column=0, columnspan=2, sticky="w")
+        self.flocking_menu.grid(row=3, column=0, columnspan=2, sticky="w")
 
         self.sitl_check = tk.Checkbutton(
             master,
@@ -136,10 +133,16 @@ class App:
             offvalue=0,
             command=self.SITLCheckFunction,
         )
-        self.sitl_check.grid(row=2, column=2, sticky="e")
+        self.sitl_check.grid(row=3, column=2, sticky="e")
 
-        self.no_drones_label = tk.Label(self.sitl_frame, text="Number of Drones:")
-        self.no_drones_label.grid(row=3, column=0, sticky="w")
+        tk.Button(
+            master,
+            text="Confirm",
+            command=self.StartCommsClickFunction,
+        ).grid(row=2, column=2, sticky="nesw")
+
+        self.no_drones_label = tk.Label(master, text="Number of Drones:")
+        self.no_drones_label.grid(row=2, column=0, sticky="w")
 
         self.firmware_label = tk.Label(self.sitl_frame, text="PX4 Firmware Path:")
         self.firmware_label.grid(row=4, column=0, sticky="w")
@@ -151,9 +154,14 @@ class App:
         self.path_label.config(text=self.firmware_path)
         self.path_label.grid(row=4, column=1, sticky="w")
 
-        self.drone_no_entry = tk.Entry(self.sitl_frame)
+        self.drone_no_entry = tk.Entry(master)
         self.drone_no_entry.insert(tk.END, "3")
-        self.drone_no_entry.grid(row=3, column=1, sticky="w")
+        self.drone_no_entry.grid(row=2, column=1, sticky="w")
+
+        # begin communications with default swarm size
+        self.swarm_size = 3
+        self.comms_thread = None
+        self.start_comms_thread()
 
         # change back after debugging
         master.title("Cascade Demo")
@@ -183,25 +191,22 @@ class App:
         self.send_command("arm")
 
     def ReturnClickFunction(self):
+        self.create_alt_dict()
         for key in self.alt_dict:
-            self.alt_dict[key] = comms.swarm_pos_vel[key].geodetic[2]
-            print(comms.swarm_pos_vel[key].geodetic[0])
+            self.alt_dict[key] = self.comms.swarm_pos_vel[key].geodetic[2]
+            print(self.comms.swarm_pos_vel[key].geodetic[0])
 
         output_alt_dict = gtools.alt_calc(self.alt_dict)
         print(output_alt_dict)
         for key in output_alt_dict:
-            comms.client.publish(key + "/home/altitude", str(output_alt_dict[key]))
+            self.comms.client.publish(key + "/home/altitude", str(output_alt_dict[key]))
         time.sleep(1)
         self.send_command("return")
 
     def LaunchClickFunction(self):
         print("launch")
-        if self.validate_int(self.drone_no_entry.get()) is True:
-            self.no_drones = int(self.drone_no_entry.get())
-        else:
-            tk.messagebox.showinfo("Error", "Please enter an Int")
         self.gazebo_process = subprocess.Popen(
-            ["bash", "gazebo_sitl_multiple_run.sh", "-n", str(self.no_drones)],
+            ["bash", "gazebo_sitl_multiple_run.sh", "-n", str(self.swarm_size)],
             cwd=self.path_label.cget("text") + "/Tools/",
             stdin=None,
             stdout=None,
@@ -209,10 +214,10 @@ class App:
             preexec_fn=os.setsid,
         )  # last argument important to allow process to be killed
 
-        self.mavsdk_process = [None] * self.no_drones
-        self.script_process = [None] * self.no_drones
+        self.mavsdk_process = [None] * self.swarm_size
+        self.script_process = [None] * self.swarm_size
 
-        for i in range(0, self.no_drones):
+        for i in range(0, self.swarm_size):
             self.mavsdk_process[i] = subprocess.Popen(
                 [
                     "./mavsdk_server",
@@ -232,7 +237,7 @@ class App:
                     sys.executable,
                     "onboard.py",
                     str(101 + i),
-                    str(self.no_drones),
+                    str(self.swarm_size),
                     str(50041 + i),
                 ],
                 cwd=os.getcwd(),
@@ -255,10 +260,39 @@ class App:
             print("returning items")
             self.sitl_frame.grid()
 
+    def StartCommsClickFunction(self):
+        # set new swarm size and then restart comms thread
+        if self.validate_int(self.drone_no_entry.get()) is True:
+            self.swarm_size = int(self.drone_no_entry.get())
+        else:
+            tk.messagebox.showinfo("Error", "Please enter an Int")
+        if self.comms_thread != None:
+            self.comms.close()
+        self.start_comms_thread()
+
+    def start_comms_thread(self):
+        self.comms = Communication(self.swarm_size)
+        self.comms_thread = threading.Thread(
+            target=asyncio.run, args=(self.comms.run_comms(),), daemon=True
+        )
+        self.comms_thread.start()
+
+    # def SITLEntryFunction(self):
+    #     if self.validate_int(self.drone_no_entry.get()) is True:
+    #         self.swarm_size = int(self.drone_no_entry.get())
+    #     else:
+    #         tk.messagebox.showinfo("Error", "Please enter an Int")
+
+    def create_alt_dict(self):
+        drone_ids = range(101, 101 + self.swarm_size)
+        self.alt_dict = {}
+        for i in drone_ids:
+            self.alt_dict["P" + str(i)] = 0
+
     # sends mqtt commands to broker
     def send_command(self, command):
         print("send command called")
-        comms.client.publish("commands", command)
+        self.comms.client.publish("commands", command)
 
     def validate_int(self, input):
         if input in "0123456789":
@@ -281,12 +315,11 @@ class App:
 
 
 if __name__ == "__main__":
-    comms = Communication(CONST_SWARM_SIZE)
-    # asyncio.run_until_complete(self.comms.run_comms())
-    comms_thread = threading.Thread(
-        target=asyncio.run, args=(comms.run_comms(),), daemon=True
-    )
-    comms_thread.start()
+    # comms = Communication(CONST_SWARM_SIZE)
+    # comms_thread = threading.Thread(
+    #     target=asyncio.run, args=(comms.run_comms(),), daemon=True
+    # )
+    # comms_thread.start()
     root = tk.Tk()
     app = App(root)
     root.mainloop()
