@@ -13,20 +13,11 @@ import tkinter as tk
 from tkinter import filedialog
 from tkinter import messagebox
 import paho.mqtt.client as mqtt
-
-# from onboard import Communication
 from communication import Communication
 
 
 class App:
     def __init__(self, master):
-
-        # self.comms = Communication(CONST_SWARM_SIZE)
-        # asyncio.ensure_future(self.comms.run_comms())
-        # drone_ids = range(101, 101 + CONST_SWARM_SIZE)
-        # self.alt_dict = {}
-        # for i in drone_ids:
-        #     self.alt_dict["P" + str(i)] = 0
 
         self.master = master
         self.normal_button_colour = "#4E73ED"
@@ -50,6 +41,10 @@ class App:
         self.sitl_frame.columnconfigure(tuple(range(3)), weight=1)
         self.sitl_frame.grid(row=4, column=0, columnspan=3, sticky="ew")
 
+        self.relaunch_frame = tk.Frame(self.sitl_frame)
+        self.relaunch_frame.columnconfigure(tuple(range(2)), weight=1)
+        self.relaunch_frame.grid(row=2, column=0, columnspan=3, sticky="ew")
+
         self.launch_btn = tk.Button(
             self.sitl_frame,
             text="Launch SITL Simulation",
@@ -57,7 +52,7 @@ class App:
             font=("arial", 12, "normal"),
             command=self.LaunchClickFunction,
         )
-        self.launch_btn.grid(row=5, column=0, columnspan=3, sticky="e")
+        self.launch_btn.grid(row=1, column=0, columnspan=3, sticky="e")
 
         self.select_firmware_btn = tk.Button(
             self.sitl_frame,
@@ -66,7 +61,7 @@ class App:
             font=("arial", 12, "normal"),
             command=self.SelectClickFunction,
         )
-        self.select_firmware_btn.grid(row=4, column=2, sticky="e")
+        self.select_firmware_btn.grid(row=0, column=2, sticky="e")
 
         tk.Button(
             master,
@@ -145,18 +140,30 @@ class App:
         self.no_drones_label.grid(row=2, column=0, sticky="w")
 
         self.firmware_label = tk.Label(self.sitl_frame, text="PX4 Firmware Path:")
-        self.firmware_label.grid(row=4, column=0, sticky="w")
+        self.firmware_label.grid(row=0, column=0, sticky="w")
 
         self.path_label = tk.Label(self.sitl_frame)
         # change back file path after debugging
         with open("config.txt") as f:
             self.firmware_path = f.read()
         self.path_label.config(text=self.firmware_path)
-        self.path_label.grid(row=4, column=1, sticky="w")
+        self.path_label.grid(row=0, column=1, sticky="w")
 
         self.drone_no_entry = tk.Entry(master)
         self.drone_no_entry.insert(tk.END, "3")
         self.drone_no_entry.grid(row=2, column=1, sticky="w")
+
+        tk.Button(
+            self.relaunch_frame,
+            text="relaunch Gazebo",
+            command=self.RelaunchGazeboClickFunction,
+        ).grid(row=0, column=0, sticky="nesw")
+
+        tk.Button(
+            self.relaunch_frame,
+            text="relaunch scripts",
+            command=self.RelaunchScriptsClickFunction,
+        ).grid(row=0, column=1, sticky="nesw")
 
         # begin communications with default swarm size
         self.swarm_size = 3
@@ -205,44 +212,9 @@ class App:
 
     def LaunchClickFunction(self):
         print("launch")
-        self.gazebo_process = subprocess.Popen(
-            ["bash", "gazebo_sitl_multiple_run.sh", "-n", str(self.swarm_size)],
-            cwd=self.path_label.cget("text") + "/Tools/",
-            stdin=None,
-            stdout=None,
-            stderr=None,
-            preexec_fn=os.setsid,
-        )  # last argument important to allow process to be killed
-
-        self.mavsdk_process = [None] * self.swarm_size
-        self.script_process = [None] * self.swarm_size
-
-        for i in range(0, self.swarm_size):
-            self.mavsdk_process[i] = subprocess.Popen(
-                [
-                    "./mavsdk_server",
-                    "-p",
-                    str(50041 + i),
-                    "udp://:" + str(14540 + i),
-                ],
-                cwd=os.path.split(mavsdk.__file__)[0] + "/bin",
-                stdin=None,
-                stdout=None,
-                stderr=None,
-                preexec_fn=os.setsid,
-            )
-
-            self.script_process[i] = subprocess.Popen(
-                [
-                    sys.executable,
-                    "onboard.py",
-                    str(101 + i),
-                    str(self.swarm_size),
-                    str(50041 + i),
-                ],
-                cwd=os.getcwd(),
-                preexec_fn=os.setsid,
-            )
+        self.start_gazebo()
+        self.start_mavsdk_servers()
+        self.start_scripts()
 
     def SelectClickFunction(self):
         print("select")
@@ -259,6 +231,21 @@ class App:
         else:
             print("returning items")
             self.sitl_frame.grid()
+
+    def RelaunchGazeboClickFunction(self):
+        if self.gazebo_process != None:
+            sig = signal.SIGTERM
+            os.killpg(os.getpgid(self.gazebo_process.pid), sig)
+
+        self.start_gazebo()
+
+    def RelaunchScriptsClickFunction(self):
+        if self.script_process != None:
+            sig = signal.SIGTERM
+            for i in range(0, len(self.script_process)):
+                os.killpg(os.getpgid(self.script_process[i].pid), sig)
+
+        self.start_scripts()
 
     def StartCommsClickFunction(self):
         # set new swarm size and then restart comms thread
@@ -288,6 +275,48 @@ class App:
         self.alt_dict = {}
         for i in drone_ids:
             self.alt_dict["P" + str(i)] = 0
+
+    def start_gazebo(self):
+        self.gazebo_process = subprocess.Popen(
+            ["bash", "gazebo_sitl_multiple_run.sh", "-n", str(self.swarm_size)],
+            cwd=self.path_label.cget("text") + "/Tools/",
+            stdin=None,
+            stdout=None,
+            stderr=None,
+            preexec_fn=os.setsid,
+        )  # last argument important to allow process to be killed
+
+    def start_mavsdk_servers(self):
+        self.mavsdk_process = [None] * self.swarm_size
+        for i in range(0, self.swarm_size):
+            self.mavsdk_process[i] = subprocess.Popen(
+                [
+                    "./mavsdk_server",
+                    "-p",
+                    str(50041 + i),
+                    "udp://:" + str(14540 + i),
+                ],
+                cwd=os.path.split(mavsdk.__file__)[0] + "/bin",
+                stdin=None,
+                stdout=None,
+                stderr=None,
+                preexec_fn=os.setsid,
+            )
+
+    def start_scripts(self):
+        self.script_process = [None] * self.swarm_size
+        for i in range(0, self.swarm_size):
+            self.script_process[i] = subprocess.Popen(
+                [
+                    sys.executable,
+                    "onboard.py",
+                    str(101 + i),
+                    str(self.swarm_size),
+                    str(50041 + i),
+                ],
+                cwd=os.getcwd(),
+                preexec_fn=os.setsid,
+            )
 
     # sends mqtt commands to broker
     def send_command(self, command):
