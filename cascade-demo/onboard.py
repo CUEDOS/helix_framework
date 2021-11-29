@@ -3,42 +3,18 @@ import time
 import numpy as np
 import asyncio
 import flocking
-import rtl
 from mavsdk import System
 from mavsdk.offboard import OffboardError, VelocityNedYaw
 import pymap3d as pm
 import paho.mqtt.client as mqtt
-
-# Takes command line arguments
-CONST_DRONE_ID = "P" + str(sys.argv[1])
-CONST_SWARM_SIZE = int(sys.argv[2])
-CONST_PORT = int(sys.argv[3])
-CONST_MAX_SPEED = 5
-
-# below are reference GPS coordinates used as the origin of the NED coordinate system
-CONST_REF_LAT = 53.435053670574646
-CONST_REF_LON = -2.248619912055967
-CONST_REF_ALT = 39
+from communication import PosVelNED, DroneCommunication
 
 
-class PosVelNED:
-    geodetic = [0, 0, 0]
-    position_ned = [0, 0, 0]
-    velocity_ned = [0, 0, 0]
-
-
+# Class containing all methods for the drones.
 class Agent:
-    # current_command = "none"
-    # drone_ids = range(101, 101 + CONST_SWARM_SIZE)
-    # swarm_pos_vel = {}
-    # for i in drone_ids:
-    #     swarm_pos_vel["P" + str(i)] = PosVelNED()
-
     def __init__(self):
         self.my_pos_vel = PosVelNED()
-
-        # Create dict of PosVelNED objects with drone identifier e.g. P101 as the keys
-        # drone_ids = range(101, 101 + CONST_SWARM_SIZE)
+        self.return_alt = 10
 
     async def run(self):
         self.drone = System(mavsdk_server_address="localhost", port=CONST_PORT)
@@ -49,7 +25,7 @@ class Agent:
                 print(f"Drone discovered!")
                 break
 
-        self.comms = Communication(CONST_SWARM_SIZE)
+        self.comms = DroneCommunication(CONST_SWARM_SIZE, CONST_DRONE_ID)
         asyncio.ensure_future(self.comms.run_comms())
         await asyncio.sleep(1)
         asyncio.ensure_future(self.get_position(self.drone))
@@ -62,6 +38,8 @@ class Agent:
 
             if self.comms.current_command == "arm":
                 print("ARMING")
+                self.home_lat = self.my_pos_vel.geodetic[0]
+                self.home_long = self.my_pos_vel.geodetic[1]
                 await self.drone.action.arm()
                 self.comms.current_command = "none"
 
@@ -81,11 +59,9 @@ class Agent:
             elif self.comms.current_command == "return":
                 print("Returning to home")
                 await self.drone.action.hold()
-                # await rtl.return_to_home(
-                #     CONST_HOME[CONST_DRONE_ID][0],
-                #     CONST_HOME[CONST_DRONE_ID][1],
-                #     CONST_HOME[CONST_DRONE_ID][2],
-                # )
+                await self.return_to_home(
+                    self.my_pos_vel.geodetic[0], self.my_pos_vel.geodetic[1]
+                )
                 self.comms.current_command = "none"
 
             elif self.comms.current_command == "land":
@@ -119,19 +95,11 @@ class Agent:
             return
         # End of Init the drone
         offboard_loop_duration = 0.1  # duration of each loop
-        # take off the quadrotor
+
         await asyncio.sleep(2)
         # Endless loop (Mission)
         while self.comms.current_command == "Simple Flocking":
             offboard_loop_start_time = time.time()
-
-            # send the position of the drone to the other drones
-            # Communication.client.publish(
-            #     CONST_DRONE_ID + "/telemetry/position", str(self.my_pos_vel.position)
-            # )
-            # Communication.client.publish(
-            #     CONST_DRONE_ID + "/telemetry/velocity", str(self.my_pos_vel.velocity)
-            # )
 
             output_vel = flocking.simple_flocking(
                 CONST_DRONE_ID,
@@ -150,15 +118,30 @@ class Agent:
                 offboard_loop_duration - (time.time() - offboard_loop_start_time)
             )
 
+    async def return_to_home(self, rtl_start_lat, rtl_start_long):
+        print("send goto")
+        print(self.comms.return_alt)
+        await self.drone.action.goto_location(
+            rtl_start_lat, rtl_start_long, self.comms.return_alt, 0
+        )
+
+        while abs(self.my_pos_vel.geodetic[2] - self.comms.return_alt) > 0.5:
+            await asyncio.sleep(1)
+
+        await self.drone.action.goto_location(
+            self.home_lat, self.home_long, self.comms.return_alt, 0
+        )
+
     # runs in background and upates state class with latest telemetry
     async def get_position(self, drone):
         # set the rate of telemetry updates to 10Hz
         await drone.telemetry.set_rate_position(50)
         async for position in drone.telemetry.position():
+
             self.my_pos_vel.geodetic = (
                 position.latitude_deg,
                 position.longitude_deg,
-                position.relative_altitude_m,
+                position.absolute_altitude_m,
             )
 
             self.my_pos_vel.position_ned = pm.geodetic2ned(
@@ -170,12 +153,12 @@ class Agent:
                 CONST_REF_ALT,
             )
 
-            Communication.client.publish(
+            self.comms.client.publish(
                 CONST_DRONE_ID + "/telemetry/position_ned",
                 str(self.my_pos_vel.position_ned),
             )
 
-            Communication.client.publish(
+            self.comms.client.publish(
                 CONST_DRONE_ID + "/telemetry/geodetic",
                 str(self.my_pos_vel.geodetic),
             )
@@ -189,78 +172,27 @@ class Agent:
                 position_velocity_ned.velocity.east_m_s,
                 position_velocity_ned.velocity.down_m_s,
             ]
-            Communication.client.publish(
+            self.comms.client.publish(
                 CONST_DRONE_ID + "/telemetry/velocity_ned",
                 str(self.my_pos_vel.velocity_ned),
             )
 
 
-class Communication:
-    client = mqtt.Client()
-
-    def __init__(self, swarm_size):
-        self.current_command = "none"
-        self.drone_ids = range(101, 101 + swarm_size)
-        self.swarm_pos_vel = {}
-        for i in self.drone_ids:
-            self.swarm_pos_vel["P" + str(i)] = PosVelNED()
-
-    async def run_comms(self):
-        Communication.client.message_callback_add(
-            "+/telemetry/geodetic", self.on_message_geodetic
-        )
-        Communication.client.message_callback_add(
-            "+/telemetry/position_ned", self.on_message_position
-        )
-        Communication.client.message_callback_add(
-            "+/telemetry/velocity_ned", self.on_message_velocity
-        )
-        Communication.client.message_callback_add("commands", self.on_message_command)
-        Communication.client.connect_async(
-            "localhost", 1883, 60
-        )  # change localhost to IP of broker
-        Communication.client.on_connect = self.on_connect
-        Communication.client.loop_start()
-
-    def on_message_command(self, mosq, obj, msg):
-        print("received command")
-        self.current_command = msg.payload.decode()
-
-    # callback triggeed on connection to MQTT
-    def on_connect(self, client, userdata, flags, rc):
-        print("MQTT connected to broker with result code " + str(rc))
-        client.subscribe("+/telemetry/+")
-        client.subscribe("commands")
-
-    def on_message_geodetic(self, mosq, obj, msg):
-        # Remove none numeric parts of string and then split into north east and down
-        received_string = msg.payload.decode().strip("()")
-        string_list = received_string.split(", ")
-        geodetic = [float(i) for i in string_list]
-        # time.sleep(1)  # simulating comm latency
-        self.swarm_pos_vel[msg.topic[0:4]].geodetic = geodetic
-
-    def on_message_position(self, mosq, obj, msg):
-        # Remove none numeric parts of string and then split into north east and down
-        received_string = msg.payload.decode().strip("()")
-        string_list = received_string.split(", ")
-        position = [float(i) for i in string_list]
-        # time.sleep(1)  # simulating comm latency
-        self.swarm_pos_vel[msg.topic[0:4]].position_ned = position
-
-    def on_message_velocity(self, mosq, obj, msg):
-        # Remove none numeric parts of string and then split into north east and down
-        received_string = msg.payload.decode().strip("[]")
-        string_list = received_string.split(", ")
-        velocity = [float(i) for i in string_list]
-        # time.sleep(1)  # simulating comm latency
-        self.swarm_pos_vel[msg.topic[0:4]].velocity_ned = velocity
-
-
 if __name__ == "__main__":
+
+    # Takes command line arguments
+    CONST_DRONE_ID = "P" + str(sys.argv[1])
+    CONST_SWARM_SIZE = int(sys.argv[2])
+    CONST_PORT = int(sys.argv[3])
+    CONST_MAX_SPEED = 5
+
+    # below are reference GPS coordinates used as the origin of the NED coordinate system
+    CONST_REF_LAT = 53.435053670574646
+    CONST_REF_LON = -2.248619912055967
+    CONST_REF_ALT = 39
+
     # Start the main function
     agent = Agent()
     asyncio.ensure_future(agent.run())
-
     # Runs the event loop until the program is canceled with e.g. CTRL-C
     asyncio.get_event_loop().run_forever()

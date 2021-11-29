@@ -2,26 +2,30 @@
 
 import sys
 import subprocess
+import threading
 import mavsdk
 import os
 import signal
 import asyncio
 import gtools
+import time
 import tkinter as tk
 from tkinter import filedialog
 from tkinter import messagebox
 import paho.mqtt.client as mqtt
-from onboard import Communication
+
+# from onboard import Communication
+from communication import Communication
 
 # TODO move swarm size box outside of sitl section and update this when changed
-CONST_SWARM_SIZE = 6
+CONST_SWARM_SIZE = 3
 
 
 class App:
     def __init__(self, master):
 
-        self.comms = Communication(CONST_SWARM_SIZE)
-        asyncio.ensure_future(self.comms.run_comms())
+        # self.comms = Communication(CONST_SWARM_SIZE)
+        # asyncio.ensure_future(self.comms.run_comms())
         drone_ids = range(101, 101 + CONST_SWARM_SIZE)
         self.alt_dict = {}
         for i in drone_ids:
@@ -141,6 +145,7 @@ class App:
         self.firmware_label.grid(row=4, column=0, sticky="w")
 
         self.path_label = tk.Label(self.sitl_frame)
+        # change back file path after debugging
         with open("config.txt") as f:
             self.firmware_path = f.read()
         self.path_label.config(text=self.firmware_path)
@@ -150,6 +155,7 @@ class App:
         self.drone_no_entry.insert(tk.END, "3")
         self.drone_no_entry.grid(row=3, column=1, sticky="w")
 
+        # change back after debugging
         master.title("Cascade Demo")
         master.iconphoto(True, tk.PhotoImage(file="../img/cascade-logo.png"))
         master.protocol("WM_DELETE_WINDOW", self.on_closing)
@@ -178,14 +184,14 @@ class App:
 
     def ReturnClickFunction(self):
         for key in self.alt_dict:
-            self.alt_dict[key] = self.comms.swarm_pos_vel[key].geodetic[2]
+            self.alt_dict[key] = comms.swarm_pos_vel[key].geodetic[2]
+            print(comms.swarm_pos_vel[key].geodetic[0])
 
         output_alt_dict = gtools.alt_calc(self.alt_dict)
-
+        print(output_alt_dict)
         for key in output_alt_dict:
-            Communication.client.publish(
-                key + "/home/altitude", str(output_alt_dict[key])
-            )
+            comms.client.publish(key + "/home/altitude", str(output_alt_dict[key]))
+        time.sleep(1)
         self.send_command("return")
 
     def LaunchClickFunction(self):
@@ -251,10 +257,8 @@ class App:
 
     # sends mqtt commands to broker
     def send_command(self, command):
-        # self.client = mqtt.Client()
-        # self.client.connect("localhost", 1883, 60)
-        Communication.client.publish("commands", command)
-        # self.client.disconnect()
+        print("send command called")
+        comms.client.publish("commands", command)
 
     def validate_int(self, input):
         if input in "0123456789":
@@ -277,6 +281,12 @@ class App:
 
 
 if __name__ == "__main__":
+    comms = Communication(CONST_SWARM_SIZE)
+    # asyncio.run_until_complete(self.comms.run_comms())
+    comms_thread = threading.Thread(
+        target=asyncio.run, args=(comms.run_comms(),), daemon=True
+    )
+    comms_thread.start()
     root = tk.Tk()
     app = App(root)
     root.mainloop()
