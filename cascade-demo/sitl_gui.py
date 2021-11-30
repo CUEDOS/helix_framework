@@ -1,6 +1,7 @@
-#!/home/r32401vc/anaconda3/bin/python3
+#!/usr/bin/env python3
 
-# /usr/bin/env python3
+# /home/r32401vc/anaconda3/bin/python3
+
 
 import sys
 import subprocess
@@ -53,7 +54,7 @@ class App:
             text="Launch SITL Simulation",
             bg="#008B45",
             font=("arial", 12, "normal"),
-            command=self.LaunchClickFunction,
+            command=self.on_click_launch,
         )
         self.launch_btn.grid(row=1, column=0, columnspan=3, sticky="e")
 
@@ -62,7 +63,7 @@ class App:
             text="Select",
             # bg="#008B45",
             font=("arial", 12, "normal"),
-            command=self.SelectClickFunction,
+            command=self.on_click_select,
         )
         self.select_firmware_btn.grid(row=0, column=2, sticky="e")
 
@@ -71,7 +72,7 @@ class App:
             text="Start",
             bg=self.normal_button_colour,
             font=("arial", 12, "normal"),
-            command=self.StartClickFunction,
+            command=self.on_click_start,
         ).grid(
             row=0,
             column=2,
@@ -83,7 +84,7 @@ class App:
             text="Hold",
             bg=self.normal_button_colour,
             font=("arial", 12, "normal"),
-            command=self.StopClickFunction,
+            command=self.on_click_hold,
         ).grid(row=1, column=0, sticky="nesw")
 
         tk.Button(
@@ -91,7 +92,7 @@ class App:
             text="Take Off",
             bg=self.normal_button_colour,
             font=("arial", 12, "normal"),
-            command=self.TakeOffClickFunction,
+            command=self.on_click_takeoff,
         ).grid(row=0, column=1, sticky="nesw")
 
         tk.Button(
@@ -99,7 +100,7 @@ class App:
             text="Land",
             bg=self.normal_button_colour,
             font=("arial", 12, "normal"),
-            command=self.LandClickFunction,
+            command=self.on_click_land,
         ).grid(row=1, column=1, sticky="nesw")
 
         tk.Button(
@@ -107,7 +108,7 @@ class App:
             text="Arm",
             bg="#CD4F39",
             font=("arial", 12, "normal"),
-            command=self.ArmClickFunction,
+            command=self.on_click_arm,
         ).grid(row=0, column=0, sticky="nesw")
 
         tk.Button(
@@ -115,7 +116,7 @@ class App:
             text="Return",
             bg=self.normal_button_colour,
             font=("arial", 12, "normal"),
-            command=self.ReturnClickFunction,
+            command=self.on_click_return,
         ).grid(row=1, column=2, sticky="nesw")
 
         self.flocking_menu = tk.OptionMenu(
@@ -129,14 +130,14 @@ class App:
             variable=self.check_var,
             onvalue=1,
             offvalue=0,
-            command=self.SITLCheckFunction,
+            command=self.sitl_check,
         )
         self.sitl_check.grid(row=3, column=2, sticky="e")
 
         tk.Button(
             master,
             text="Confirm",
-            command=self.StartCommsClickFunction,
+            command=self.on_click_confirm,
         ).grid(row=2, column=2, sticky="nesw")
 
         self.no_drones_label = tk.Label(master, text="Number of Drones:")
@@ -159,13 +160,13 @@ class App:
         tk.Button(
             self.relaunch_frame,
             text="relaunch Gazebo",
-            command=self.RelaunchGazeboClickFunction,
+            command=self.on_click_relaunch_gazebo,
         ).grid(row=0, column=0, sticky="nesw")
 
         tk.Button(
             self.relaunch_frame,
             text="relaunch scripts",
-            command=self.RelaunchScriptsClickFunction,
+            command=self.on_click_relaunch_scripts,
         ).grid(row=0, column=1, sticky="nesw")
 
         # begin communications with default swarm size
@@ -181,7 +182,7 @@ class App:
         master.resizable(False, False)
 
     # this is the function called when the button is clicked
-    def StartClickFunction(self):
+    def on_click_start(self):
         # self.send_command("start")
         if self.flocking_type.get() != "Select a flocking type":
             self.send_command(self.flocking_type.get())
@@ -189,19 +190,19 @@ class App:
             messagebox.showinfo("Error", "Please select a flocking type")
 
     # this is the function called when the button is clicked
-    def StopClickFunction(self):
+    def on_click_hold(self):
         self.send_command("hold")
 
-    def TakeOffClickFunction(self):
+    def on_click_takeoff(self):
         self.send_command("takeoff")
 
-    def LandClickFunction(self):
+    def on_click_land(self):
         self.send_command("land")
 
-    def ArmClickFunction(self):
+    def on_click_arm(self):
         self.send_command("arm")
 
-    def ReturnClickFunction(self):
+    def on_click_return(self):
         self.create_alt_dict()
         for key in self.alt_dict:
             self.alt_dict[key] = self.comms.swarm_pos_vel[key].geodetic[2]
@@ -214,20 +215,20 @@ class App:
         time.sleep(1)
         self.send_command("return")
 
-    def LaunchClickFunction(self):
+    def on_click_launch(self):
         print("launch")
         self.start_gazebo()
         self.start_mavsdk_servers()
         self.start_scripts()
 
-    def SelectClickFunction(self):
+    def on_click_select(self):
         print("select")
         firmware_path = filedialog.askdirectory()
         self.path_label.config(text=firmware_path)
         with open("config.txt", "w+") as f:
             f.write(firmware_path)
 
-    def SITLCheckFunction(self):
+    def sitl_check(self):
         print("function activated")
         print(self.check_var.get())
         if self.check_var.get() == 0:
@@ -236,14 +237,14 @@ class App:
             print("returning items")
             self.sitl_frame.grid()
 
-    def RelaunchGazeboClickFunction(self):
+    def on_click_relaunch_gazebo(self):
         if self.gazebo_process != None:
             sig = signal.SIGTERM
             os.killpg(os.getpgid(self.gazebo_process.pid), sig)
 
         self.start_gazebo()
 
-    def RelaunchScriptsClickFunction(self):
+    def on_click_relaunch_scripts(self):
         if self.script_process != None:
             sig = signal.SIGTERM
             for i in range(0, len(self.script_process)):
@@ -251,7 +252,7 @@ class App:
 
         self.start_scripts()
 
-    def StartCommsClickFunction(self):
+    def on_click_confirm(self):
         # set new swarm size and then restart comms thread
         if self.validate_int(self.drone_no_entry.get()) is True:
             self.swarm_size = int(self.drone_no_entry.get())
