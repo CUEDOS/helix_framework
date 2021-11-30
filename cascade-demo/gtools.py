@@ -29,7 +29,6 @@ def alt_calc(alt_dict):
     # Creating sorted return alts ------------------------------------------------------------------------------------------
     alts = np.arange(size) - (size - 1) / 2  # Makes an array centered around 0
     alts *= alt_step  # Increases to stepsize
-    alts += site_elevation
     alts += mean  # Adds to mean
 
     # Checking minimum and maximum alt -----------------------------------------------------------------------------------------------
