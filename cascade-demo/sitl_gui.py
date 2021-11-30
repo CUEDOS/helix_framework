@@ -1,4 +1,6 @@
-#!/usr/bin/env python3
+#!/home/r32401vc/anaconda3/bin/python3
+
+# /usr/bin/env python3
 
 import sys
 import subprocess
@@ -25,6 +27,7 @@ class App:
         self.flocking_type = tk.StringVar(value="Select a flocking type")
         self.flocking_options = [
             "Simple Flocking",
+            "Migration Test",
             "Advanced Flocking",
             "Another type of Flocking",
         ]
@@ -172,7 +175,8 @@ class App:
 
         # change back after debugging
         master.title("Cascade Demo")
-        master.iconphoto(True, tk.PhotoImage(file="../img/cascade-logo.png"))
+        # master.iconphoto(True, tk.PhotoImage(file="../img/cascade-logo.png"))
+        master.iconphoto(True, tk.PhotoImage(file="../img/HelixioLogoFinalSmall.png"))
         master.protocol("WM_DELETE_WINDOW", self.on_closing)
         master.resizable(False, False)
 
@@ -278,7 +282,14 @@ class App:
 
     def start_gazebo(self):
         self.gazebo_process = subprocess.Popen(
-            ["bash", "gazebo_sitl_multiple_run.sh", "-n", str(self.swarm_size)],
+            [
+                "bash",
+                "gazebo_sitl_multiple_run.sh",
+                "-n",
+                str(self.swarm_size),
+                "-w",
+                "baylands",
+            ],
             cwd=self.path_label.cget("text") + "/Tools/",
             stdin=None,
             stdout=None,

@@ -51,6 +51,9 @@ class Agent:
             elif self.comms.current_command == "Simple Flocking":
                 await self.offboard(self.drone)
 
+            elif self.comms.current_command == "Migration Test":
+                await self.migration_test(self.drone)
+
             elif self.comms.current_command == "hold":
                 print("Stopping Flocking")
                 await self.drone.action.hold()
@@ -105,18 +108,83 @@ class Agent:
                 CONST_DRONE_ID,
                 self.comms.swarm_pos_vel,
                 self.my_pos_vel,
-                CONST_MAX_SPEED,
+                offboard_loop_duration,
+                1,
             )
 
             # Sending the target velocities to the quadrotor
             await drone.offboard.set_velocity_ned(
-                VelocityNedYaw(output_vel[0], output_vel[1], output_vel[2], 0.0)
+                flocking.check_velocity(
+                    output_vel, self.my_pos_vel, CONST_MAX_SPEED, offboard_loop_duration
+                )
             )
 
             # Checking frequency of the loop
             await asyncio.sleep(
                 offboard_loop_duration - (time.time() - offboard_loop_start_time)
             )
+
+    async def migration_test(self, drone):
+        print("-- Setting initial setpoint")
+        await drone.offboard.set_velocity_ned(VelocityNedYaw(0.0, 0.0, 0.0, 0.0))
+        print("-- Starting offboard")
+        try:
+            await drone.offboard.start()
+        except OffboardError as error:
+            print(
+                f"Starting offboard mode failed with error code: \
+                {error._result.result}"
+            )
+            print("-- Disarming")
+            await drone.action.land()
+            await drone.action.disarm()
+            return
+        # End of Init the drone
+        offboard_loop_duration = 0.1  # duration of each loop
+
+        await asyncio.sleep(2)
+        # Endless loop (Mission)
+        Migrated = False
+        while self.comms.current_command == "Migration Test":
+            print("getting new point to migrate to")
+            desired_pos = flocking.migration_test(Migrated)
+            print(desired_pos)
+            while self.comms.current_command == "Migration Test" and (
+                abs(self.my_pos_vel.position_ned[0] - desired_pos[0]) > 1
+                or abs(self.my_pos_vel.position_ned[1] - desired_pos[1]) > 1
+                or abs(self.my_pos_vel.position_ned[2] - desired_pos[2]) > 1
+            ):
+                offboard_loop_start_time = time.time()
+
+                flocking_vel = flocking.simple_flocking(
+                    CONST_DRONE_ID,
+                    self.comms.swarm_pos_vel,
+                    self.my_pos_vel,
+                    offboard_loop_duration,
+                    1,
+                )
+
+                migration_vel = flocking.velocity_to_point(
+                    self.my_pos_vel, desired_pos, CONST_MAX_SPEED
+                )
+
+                output_vel = flocking_vel + migration_vel
+
+                # Sending the target velocities to the quadrotor
+                await drone.offboard.set_velocity_ned(
+                    flocking.check_velocity(
+                        output_vel,
+                        self.my_pos_vel,
+                        CONST_MAX_SPEED,
+                        offboard_loop_duration,
+                    )
+                )
+
+                # Checking frequency of the loop
+                await asyncio.sleep(
+                    offboard_loop_duration - (time.time() - offboard_loop_start_time)
+                )
+            Migrated = not Migrated
 
     async def return_to_home(self, rtl_start_lat, rtl_start_long):
         print("send goto")
@@ -187,9 +255,13 @@ if __name__ == "__main__":
     CONST_MAX_SPEED = 5
 
     # below are reference GPS coordinates used as the origin of the NED coordinate system
-    CONST_REF_LAT = 53.435053670574646
-    CONST_REF_LON = -2.248619912055967
-    CONST_REF_ALT = 39
+    # CONST_REF_LAT = 47.39796
+    # CONST_REF_LON = 8.5443076
+    # CONST_REF_ALT = 488
+
+    CONST_REF_LAT = 37.413534
+    CONST_REF_LON = -121.996561
+    CONST_REF_ALT = 1.3
 
     # Start the main function
     agent = Agent()
