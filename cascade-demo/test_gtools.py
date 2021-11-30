@@ -1,5 +1,5 @@
 import unittest
-import gtools # importing the module we want to test (the test file should be in the same directory as module file)
+import gtools # importing the module we want to test its function (the test file should be in the same directory as module file)
 
 class TestGtools(unittest.TestCase): # inherit from unittest.TestCase 
 	def test_alt_calc (self):  # this is a method so it should start with test_ and then the function we want to test
