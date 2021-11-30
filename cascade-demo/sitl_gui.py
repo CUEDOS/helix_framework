@@ -16,14 +16,15 @@ import tkinter as tk
 from tkinter import filedialog
 from tkinter import messagebox
 import paho.mqtt.client as mqtt
-from communication import Communication
+from communication import GroundCommunication
 
 
 class App:
     def __init__(self, master):
 
         self.master = master
-        self.normal_button_colour = "#4E73ED"
+        self.normal_button_colour = "grey"
+        self.activated_button_colour = "#4E73ED"
         self.check_var = tk.IntVar(value=1)
         self.flocking_type = tk.StringVar(value="Select a flocking type")
         self.flocking_options = [
@@ -38,13 +39,18 @@ class App:
 
         # This is the section of code which creates the main window
         master.rowconfigure(tuple(range(2)), minsize=100)
-        master.grid_columnconfigure(tuple(range(3)), uniform="button", minsize=146)
+        master.grid_columnconfigure(tuple(range(1, 4)), uniform="button", minsize=146)
 
+        # Create the frame with the status of the agents
+        self.status_frame = tk.Frame(master)
+        self.status_frame.grid(row=0, column=0, rowspan=5, sticky="nesw")
+
+        # Create the frame containing sitl controls
         self.sitl_frame = tk.Frame(master)
-
         self.sitl_frame.columnconfigure(tuple(range(3)), weight=1)
-        self.sitl_frame.grid(row=4, column=0, columnspan=3, sticky="ew")
+        self.sitl_frame.grid(row=4, column=1, columnspan=3, sticky="ew")
 
+        # Create the frame containing relaunch controls
         self.relaunch_frame = tk.Frame(self.sitl_frame)
         self.relaunch_frame.columnconfigure(tuple(range(2)), weight=1)
         self.relaunch_frame.grid(row=2, column=0, columnspan=3, sticky="ew")
@@ -67,41 +73,45 @@ class App:
         )
         self.select_firmware_btn.grid(row=0, column=2, sticky="e")
 
-        tk.Button(
+        self.start_button = tk.Button(
             master,
             text="Start",
             bg=self.normal_button_colour,
             font=("arial", 12, "normal"),
             command=self.on_click_start,
-        ).grid(
+        )
+        self.start_button.grid(
             row=0,
-            column=2,
+            column=3,
             sticky="nesw",
         )
 
-        tk.Button(
+        self.hold_button = tk.Button(
             master,
             text="Hold",
             bg=self.normal_button_colour,
             font=("arial", 12, "normal"),
             command=self.on_click_hold,
-        ).grid(row=1, column=0, sticky="nesw")
+        )
+        self.hold_button.grid(row=1, column=1, sticky="nesw")
 
-        tk.Button(
+        self.takeoff_button = tk.Button(
             master,
             text="Take Off",
             bg=self.normal_button_colour,
             font=("arial", 12, "normal"),
             command=self.on_click_takeoff,
-        ).grid(row=0, column=1, sticky="nesw")
+        )
+        self.takeoff_button.grid(row=0, column=2, sticky="nesw")
 
-        tk.Button(
+        self.land_button = tk.Button(
             master,
             text="Land",
             bg=self.normal_button_colour,
             font=("arial", 12, "normal"),
             command=self.on_click_land,
-        ).grid(row=1, column=1, sticky="nesw")
+        )
+        self.land_button.grid(row=1, column=2, sticky="nesw")
 
         tk.Button(
             master,
@@ -109,20 +119,21 @@ class App:
             bg="#CD4F39",
             font=("arial", 12, "normal"),
             command=self.on_click_arm,
-        ).grid(row=0, column=0, sticky="nesw")
+        ).grid(row=0, column=1, sticky="nesw")
 
-        tk.Button(
+        self.return_button = tk.Button(
             master,
             text="Return",
             bg=self.normal_button_colour,
             font=("arial", 12, "normal"),
             command=self.on_click_return,
-        ).grid(row=1, column=2, sticky="nesw")
+        )
+        self.return_button.grid(row=1, column=3, sticky="nesw")
 
         self.flocking_menu = tk.OptionMenu(
             master, self.flocking_type, *self.flocking_options
         )
-        self.flocking_menu.grid(row=3, column=0, columnspan=2, sticky="w")
+        self.flocking_menu.grid(row=3, column=1, columnspan=2, sticky="w")
 
         self.sitl_check = tk.Checkbutton(
             master,
@@ -132,16 +143,16 @@ class App:
             offvalue=0,
             command=self.sitl_check,
         )
-        self.sitl_check.grid(row=3, column=2, sticky="e")
+        self.sitl_check.grid(row=3, column=3, sticky="e")
 
         tk.Button(
             master,
             text="Confirm",
             command=self.on_click_confirm,
-        ).grid(row=2, column=2, sticky="nesw")
+        ).grid(row=2, column=3, sticky="nesw")
 
         self.no_drones_label = tk.Label(master, text="Number of Drones:")
-        self.no_drones_label.grid(row=2, column=0, sticky="w")
+        self.no_drones_label.grid(row=2, column=1, sticky="w")
 
         self.firmware_label = tk.Label(self.sitl_frame, text="PX4 Firmware Path:")
         self.firmware_label.grid(row=0, column=0, sticky="w")
@@ -155,7 +166,7 @@ class App:
 
         self.drone_no_entry = tk.Entry(master)
         self.drone_no_entry.insert(tk.END, "3")
-        self.drone_no_entry.grid(row=2, column=1, sticky="w")
+        self.drone_no_entry.grid(row=2, column=2, sticky="w")
 
         tk.Button(
             self.relaunch_frame,
@@ -174,9 +185,14 @@ class App:
         self.comms_thread = None
         self.start_comms_thread()
 
-        # change back after debugging
-        master.title("Cascade Demo")
-        # master.iconphoto(True, tk.PhotoImage(file="../img/cascade-logo.png"))
+        self.drone_ids = range(101, 101 + self.swarm_size)
+
+        # create default status elements
+        self.status_element_frame = {}
+        self.generate_status_elements()
+
+        # Set up window title and icon
+        master.title("Helix.io")
         master.iconphoto(True, tk.PhotoImage(file="../img/HelixioLogoFinalSmall.png"))
         master.protocol("WM_DELETE_WINDOW", self.on_closing)
         master.resizable(False, False)
@@ -205,8 +221,8 @@ class App:
     def on_click_return(self):
         self.create_alt_dict()
         for key in self.alt_dict:
-            self.alt_dict[key] = self.comms.swarm_pos_vel[key].geodetic[2]
-            print(self.comms.swarm_pos_vel[key].geodetic[0])
+            self.alt_dict[key] = self.comms.swarm_telemetry[key].geodetic[2]
+            print(self.comms.swarm_telemetry[key].geodetic[0])
 
         output_alt_dict = gtools.alt_calc(self.alt_dict)
         print(output_alt_dict)
@@ -256,29 +272,31 @@ class App:
         # set new swarm size and then restart comms thread
         if self.validate_int(self.drone_no_entry.get()) is True:
             self.swarm_size = int(self.drone_no_entry.get())
+            drone_ids = range(101, 101 + self.swarm_size)
         else:
             tk.messagebox.showinfo("Error", "Please enter an Int")
         if self.comms_thread != None:
             self.comms.close()
         self.start_comms_thread()
 
+        self.generate_status_elements()
+
+    # Start the MQTT communication class in a new thread
     def start_comms_thread(self):
-        self.comms = Communication(self.swarm_size)
+        self.comms = GroundCommunication(self.swarm_size)
         self.comms_thread = threading.Thread(
             target=asyncio.run, args=(self.comms.run_comms(),), daemon=True
         )
         self.comms_thread.start()
+        self.add_comms_callbacks()
 
-    # def SITLEntryFunction(self):
-    #     if self.validate_int(self.drone_no_entry.get()) is True:
-    #         self.swarm_size = int(self.drone_no_entry.get())
-    #     else:
-    #         tk.messagebox.showinfo("Error", "Please enter an Int")
+    # Bind callback methods to comms updates
+    def add_comms_callbacks(self):
+        self.comms.bind_callback(self.on_arm_status_update)
 
     def create_alt_dict(self):
-        drone_ids = range(101, 101 + self.swarm_size)
         self.alt_dict = {}
-        for i in drone_ids:
+        for i in self.drone_ids:
             self.alt_dict["P" + str(i)] = 0
 
     def start_gazebo(self):
@@ -329,6 +347,51 @@ class App:
                 cwd=os.getcwd(),
                 preexec_fn=os.setsid,
             )
+
+    def generate_status_elements(self):
+        if self.status_element_frame != {}:
+            for element in self.status_element_frame.values():
+                element.destroy()
+
+        # Build dictionaries of status elements
+        self.status_element_frame = {}
+        self.status_button = {}
+        self.status_label = {}
+
+        for i in range(self.swarm_size):
+            key = "P" + str(101 + i)
+            self.status_element_frame[key] = tk.Frame(self.status_frame)
+            self.status_element_frame[key].grid(row=i, column=0, sticky="ew")
+
+            self.status_button[key] = tk.Button(
+                self.status_element_frame[key],
+                text=key,
+                bg="#008B45",
+                font=("arial", 12, "normal"),
+            )
+            self.status_button[key].grid(row=0, column=0, sticky="ew")
+
+            self.status_label[key] = tk.Label(
+                self.status_element_frame[key], text="STATUS"
+            )
+            self.status_label[key].grid(row=1, column=0, sticky="ew")
+
+    # Callback triggered when arm status is updated
+    def on_arm_status_update(self, agent, status):
+        # messagebox.showinfo("Arm Status", status)
+        if status == "True":
+            self.status_label[agent].config(text="ARMED")
+            self.change_button_colour(self.activated_button_colour)
+        else:
+            self.status_label[agent].config(text="DISARMED")
+            self.change_button_colour(self.normal_button_colour)
+
+    def change_button_colour(self, colour):
+        self.takeoff_button.config(bg=colour)
+        self.start_button.config(bg=colour)
+        self.hold_button.config(bg=colour)
+        self.land_button.config(bg=colour)
+        self.return_button.config(bg=colour)
 
     # sends mqtt commands to broker
     def send_command(self, command):
