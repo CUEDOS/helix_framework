@@ -4,6 +4,7 @@ import numpy as np
 import asyncio
 import flocking
 from mavsdk import System
+from mavsdk.action import ActionError
 from mavsdk.offboard import OffboardError, VelocityNedYaw
 import pymap3d as pm
 import paho.mqtt.client as mqtt
@@ -38,9 +39,15 @@ class Agent:
 
             if self.comms.current_command == "arm":
                 print("ARMING")
-                self.home_lat = self.my_pos_vel.geodetic[0]
-                self.home_long = self.my_pos_vel.geodetic[1]
-                await self.drone.action.arm()
+
+                try:
+                    await self.drone.action.arm()
+                    self.home_lat = self.my_pos_vel.geodetic[0]
+                    self.home_long = self.my_pos_vel.geodetic[1]
+                except ActionError as error:
+                    print("Arming failed: ", error._result.result_str)
+                    self.report_error(error._result.result_str)
+
                 self.comms.current_command = "none"
 
             elif self.comms.current_command == "takeoff":
@@ -244,6 +251,9 @@ class Agent:
                 CONST_DRONE_ID + "/telemetry/velocity_ned",
                 str(self.my_pos_vel.velocity_ned),
             )
+
+    def report_error(self, error):
+        self.comms.client.publish("errors", CONST_DRONE_ID + ": " + error)
 
 
 if __name__ == "__main__":
