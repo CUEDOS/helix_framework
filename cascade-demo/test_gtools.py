@@ -7,5 +7,5 @@ class TestGtools(unittest.TestCase): # inherit from unittest.TestCase
 		alt_return_dict = gtools.alt_calc(alt_dict)  # module name. function name (input)
 		print ("alt_return_dict=", alt_return_dict)
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # to be able to run the code directly
 	unittest.main()
