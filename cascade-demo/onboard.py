@@ -57,7 +57,7 @@ class Agent:
                 self.comms.current_command = "none"
 
             elif self.comms.current_command == "Simple Flocking":
-                await self.offboard(self.drone)
+                await self.simple_flocking(self.drone)
 
             elif self.comms.current_command == "Migration Test":
                 await self.migration_test(self.drone)
@@ -70,6 +70,7 @@ class Agent:
             elif self.comms.current_command == "return":
                 print("Returning to home")
                 await self.drone.action.hold()
+                await asyncio.sleep(1)
                 await self.return_to_home(
                     self.my_telem.geodetic[0], self.my_telem.geodetic[1]
                 )
@@ -89,7 +90,7 @@ class Agent:
         await drone.action.set_takeoff_altitude(20)
         await drone.action.takeoff()
 
-    async def offboard(self, drone):
+    async def start_offboard(self, drone):
         print("-- Setting initial setpoint")
         await drone.offboard.set_velocity_ned(VelocityNedYaw(0.0, 0.0, 0.0, 0.0))
         print("-- Starting offboard")
@@ -104,6 +105,10 @@ class Agent:
             await drone.action.land()
             await drone.action.disarm()
             return
+
+    async def simple_flocking(self, drone):
+        await self.start_offboard(drone)
+
         # End of Init the drone
         offboard_loop_duration = 0.1  # duration of each loop
 
@@ -123,7 +128,12 @@ class Agent:
             # Sending the target velocities to the quadrotor
             await drone.offboard.set_velocity_ned(
                 flocking.check_velocity(
-                    output_vel, self.my_telem, CONST_MAX_SPEED, offboard_loop_duration
+                    output_vel,
+                    self.my_telem,
+                    CONST_MAX_SPEED,
+                    0.0,
+                    offboard_loop_duration,
+                    1,
                 )
             )
 
@@ -133,20 +143,8 @@ class Agent:
             )
 
     async def migration_test(self, drone):
-        print("-- Setting initial setpoint")
-        await drone.offboard.set_velocity_ned(VelocityNedYaw(0.0, 0.0, 0.0, 0.0))
-        print("-- Starting offboard")
-        try:
-            await drone.offboard.start()
-        except OffboardError as error:
-            print(
-                f"Starting offboard mode failed with error code: \
-                {error._result.result}"
-            )
-            print("-- Disarming")
-            await drone.action.land()
-            await drone.action.disarm()
-            return
+        await self.start_offboard(drone)
+
         # End of Init the drone
         offboard_loop_duration = 0.1  # duration of each loop
 
@@ -172,8 +170,8 @@ class Agent:
                     1,
                 )
 
-                migration_vel = flocking.velocity_to_point(
-                    self.my_telem, desired_pos, CONST_MAX_SPEED
+                migration_vel, yaw = flocking.velocity_to_point(
+                    self.my_telem, desired_pos
                 )
 
                 output_vel = flocking_vel + migration_vel
@@ -184,7 +182,9 @@ class Agent:
                         output_vel,
                         self.my_telem,
                         CONST_MAX_SPEED,
+                        yaw,
                         offboard_loop_duration,
+                        2,
                     )
                 )
 

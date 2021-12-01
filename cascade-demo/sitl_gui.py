@@ -419,11 +419,7 @@ class App:
 
 
 if __name__ == "__main__":
-    # comms = Communication(CONST_SWARM_SIZE)
-    # comms_thread = threading.Thread(
-    #     target=asyncio.run, args=(comms.run_comms(),), daemon=True
-    # )
-    # comms_thread.start()
+
     root = tk.Tk()
     app = App(root)
     root.mainloop()
