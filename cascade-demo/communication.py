@@ -1,4 +1,5 @@
 import asyncio
+import gtools
 import paho.mqtt.client as mqtt
 
 
@@ -12,15 +13,15 @@ class AgentTelemetry:
 class Communication:
     client = mqtt.Client()
 
-    def __init__(self, swarm_size):
-        self.swarm_size = swarm_size
-        self.create_dict()
+    def __init__(self, real_swarm_size, sitl_swarm_size):
+        self.create_dict(real_swarm_size, sitl_swarm_size)
 
-    def create_dict(self):
-        self.drone_ids = range(101, 101 + self.swarm_size)
-        self.swarm_telemetry = {}
-        for i in self.drone_ids:
-            self.swarm_telemetry["P" + str(i)] = AgentTelemetry()
+    def create_dict(self, real_swarm_size, sitl_swarm_size):
+        self.swarm_telemetry = gtools.create_swarm_dict(
+            real_swarm_size, sitl_swarm_size
+        )
+        for key in self.swarm_telemetry.keys():
+            self.swarm_telemetry[key] = AgentTelemetry()
 
     async def run_comms(self):
         self.client.message_callback_add(
@@ -74,12 +75,11 @@ class Communication:
 
 # Inherits from Communication class, overriding methods specific to drones.
 class DroneCommunication(Communication):
-    def __init__(self, swarm_size, id):
+    def __init__(self, real_swarm_size, sitl_swarm_size, id):
         self.id = id
-        self.swarm_size = swarm_size
         self.current_command = "none"
         # self.return_alt = 10
-        self.create_dict()
+        self.create_dict(real_swarm_size, sitl_swarm_size)
 
     async def run_comms(self):
         self.client.message_callback_add(
@@ -118,10 +118,9 @@ class DroneCommunication(Communication):
 
 
 class GroundCommunication(Communication):
-    def __init__(self, swarm_size):
+    def __init__(self, real_swarm_size, sitl_swarm_size):
         self.observers = []
-        self.swarm_size = swarm_size
-        self.create_dict()
+        self.create_dict(real_swarm_size, sitl_swarm_size)
 
     async def run_comms(self):
         self.client.message_callback_add(

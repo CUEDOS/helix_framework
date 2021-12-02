@@ -6,6 +6,7 @@
 import sys
 import subprocess
 import threading
+from tkinter.constants import N
 import mavsdk
 import os
 import signal
@@ -53,7 +54,7 @@ class App:
         # Create the frame containing relaunch controls
         self.relaunch_frame = tk.Frame(self.sitl_frame)
         self.relaunch_frame.columnconfigure(tuple(range(2)), weight=1)
-        self.relaunch_frame.grid(row=2, column=0, columnspan=3, sticky="ew")
+        self.relaunch_frame.grid(row=3, column=0, columnspan=3, sticky="ew")
 
         self.launch_btn = tk.Button(
             self.sitl_frame,
@@ -62,7 +63,7 @@ class App:
             font=("arial", 12, "normal"),
             command=self.on_click_launch,
         )
-        self.launch_btn.grid(row=1, column=0, columnspan=3, sticky="e")
+        self.launch_btn.grid(row=2, column=0, columnspan=3, sticky="e")
 
         self.select_firmware_btn = tk.Button(
             self.sitl_frame,
@@ -71,7 +72,7 @@ class App:
             font=("arial", 12, "normal"),
             command=self.on_click_select,
         )
-        self.select_firmware_btn.grid(row=0, column=2, sticky="e")
+        self.select_firmware_btn.grid(row=1, column=2, sticky="e")
 
         self.start_button = tk.Button(
             master,
@@ -151,22 +152,29 @@ class App:
             command=self.on_click_confirm,
         ).grid(row=2, column=3, sticky="nesw")
 
-        self.no_drones_label = tk.Label(master, text="Number of Drones:")
-        self.no_drones_label.grid(row=2, column=1, sticky="w")
+        self.real_drones_label = tk.Label(master, text="Real Drones:")
+        self.real_drones_label.grid(row=2, column=1, sticky="w")
+
+        self.real_drones_entry = tk.Entry(master)
+        self.real_drones_entry.insert(tk.END, "0")
+        self.real_drones_entry.grid(row=2, column=2, sticky="w")
+
+        self.sitl_drones_label = tk.Label(self.sitl_frame, text="SITL Drones:")
+        self.sitl_drones_label.grid(row=0, column=0, sticky="w")
+
+        self.sitl_drones_entry = tk.Entry(self.sitl_frame)
+        self.sitl_drones_entry.insert(tk.END, "3")
+        self.sitl_drones_entry.grid(row=0, column=1, sticky="w")
 
         self.firmware_label = tk.Label(self.sitl_frame, text="PX4 Firmware Path:")
-        self.firmware_label.grid(row=0, column=0, sticky="w")
+        self.firmware_label.grid(row=1, column=0, sticky="w")
 
         self.path_label = tk.Label(self.sitl_frame)
         # change back file path after debugging
         with open("config.txt") as f:
             self.firmware_path = f.read()
         self.path_label.config(text=self.firmware_path)
-        self.path_label.grid(row=0, column=1, sticky="w")
-
-        self.drone_no_entry = tk.Entry(master)
-        self.drone_no_entry.insert(tk.END, "3")
-        self.drone_no_entry.grid(row=2, column=2, sticky="w")
+        self.path_label.grid(row=1, column=1, sticky="w")
 
         tk.Button(
             self.relaunch_frame,
@@ -181,11 +189,13 @@ class App:
         ).grid(row=0, column=1, sticky="nesw")
 
         # begin communications with default swarm size
-        self.swarm_size = 3
+        self.real_swarm_size = 0
+        self.sitl_swarm_size = 3
+        self.swarm_size = self.real_swarm_size + self.sitl_swarm_size
         self.comms_thread = None
         self.start_comms_thread()
 
-        self.drone_ids = range(101, 101 + self.swarm_size)
+        # self.sitl_drone_ids = range(101, 101 + self.swarm_size)
 
         # create default status elements
         self.status_element_frame = {}
@@ -219,7 +229,9 @@ class App:
         self.send_command("arm")
 
     def on_click_return(self):
-        self.create_alt_dict()
+        self.alt_dict = gtools.create_swarm_dict(
+            self.real_swarm_size, self.sitl_swarm_size
+        )
         for key in self.alt_dict:
             self.alt_dict[key] = self.comms.swarm_telemetry[key].geodetic[2]
             print(self.comms.swarm_telemetry[key].geodetic[0])
@@ -233,6 +245,10 @@ class App:
 
     def on_click_launch(self):
         print("launch")
+        if self.validate_int(self.sitl_drones_entry.get()) is True:
+            self.sitl_swarm_size = int(self.sitl_drones_entry.get())
+        else:
+            tk.messagebox.showinfo("Error", "Please enter an Int")
         self.start_gazebo()
         self.start_mavsdk_servers()
         self.start_scripts()
@@ -270,11 +286,16 @@ class App:
 
     def on_click_confirm(self):
         # set new swarm size and then restart comms thread
-        if self.validate_int(self.drone_no_entry.get()) is True:
-            self.swarm_size = int(self.drone_no_entry.get())
-            drone_ids = range(101, 101 + self.swarm_size)
+        if self.validate_int(self.real_drones_entry.get()) and self.validate_int(
+            self.sitl_drones_entry.get()
+        ):
+            self.real_swarm_size = int(self.real_drones_entry.get())
+            self.sitl_swarm_size = int(self.sitl_drones_entry.get())
+            self.swarm_size = self.real_swarm_size + self.sitl_swarm_size
+            # drone_ids = range(101, 101 + self.swarm_size)
         else:
             tk.messagebox.showinfo("Error", "Please enter an Int")
+
         if self.comms_thread != None:
             self.comms.close()
         self.start_comms_thread()
@@ -283,7 +304,7 @@ class App:
 
     # Start the MQTT communication class in a new thread
     def start_comms_thread(self):
-        self.comms = GroundCommunication(self.swarm_size)
+        self.comms = GroundCommunication(self.real_swarm_size, self.sitl_swarm_size)
         self.comms_thread = threading.Thread(
             target=asyncio.run, args=(self.comms.run_comms(),), daemon=True
         )
@@ -294,18 +315,13 @@ class App:
     def add_comms_callbacks(self):
         self.comms.bind_callback(self.on_arm_status_update)
 
-    def create_alt_dict(self):
-        self.alt_dict = {}
-        for i in self.drone_ids:
-            self.alt_dict["P" + str(i)] = 0
-
     def start_gazebo(self):
         self.gazebo_process = subprocess.Popen(
             [
                 "bash",
                 "gazebo_sitl_multiple_run.sh",
                 "-n",
-                str(self.swarm_size),
+                str(self.sitl_swarm_size),
                 "-w",
                 "baylands",
             ],
@@ -317,8 +333,8 @@ class App:
         )  # last argument important to allow process to be killed
 
     def start_mavsdk_servers(self):
-        self.mavsdk_process = [None] * self.swarm_size
-        for i in range(0, self.swarm_size):
+        self.mavsdk_process = [None] * self.sitl_swarm_size
+        for i in range(0, self.sitl_swarm_size):
             self.mavsdk_process[i] = subprocess.Popen(
                 [
                     "./mavsdk_server",
@@ -334,14 +350,15 @@ class App:
             )
 
     def start_scripts(self):
-        self.script_process = [None] * self.swarm_size
-        for i in range(0, self.swarm_size):
+        self.script_process = [None] * self.sitl_swarm_size
+        for i in range(0, self.sitl_swarm_size):
             self.script_process[i] = subprocess.Popen(
                 [
                     sys.executable,
                     "onboard.py",
-                    str(101 + i),
-                    str(self.swarm_size),
+                    "S" + str(1 + i).zfill(3),
+                    str(self.real_swarm_size),
+                    str(self.sitl_swarm_size),
                     str(50041 + i),
                 ],
                 cwd=os.getcwd(),
@@ -354,14 +371,23 @@ class App:
                 element.destroy()
 
         # Build dictionaries of status elements
-        self.status_element_frame = {}
-        self.status_button = {}
-        self.status_label = {}
+        self.status_element_frame = gtools.create_swarm_dict(
+            self.real_swarm_size, self.sitl_swarm_size
+        )
+        self.status_button = gtools.create_swarm_dict(
+            self.real_swarm_size, self.sitl_swarm_size
+        )
+        self.status_label = gtools.create_swarm_dict(
+            self.real_swarm_size, self.sitl_swarm_size
+        )
 
-        for i in range(self.swarm_size):
-            key = "P" + str(101 + i)
+        print(self.status_element_frame)
+
+        row = 0  # row iterator
+
+        for key in self.status_element_frame.keys():
             self.status_element_frame[key] = tk.Frame(self.status_frame)
-            self.status_element_frame[key].grid(row=i, column=0, sticky="ew")
+            self.status_element_frame[key].grid(row=row, column=0, sticky="ew")
 
             self.status_button[key] = tk.Button(
                 self.status_element_frame[key],
@@ -375,6 +401,7 @@ class App:
                 self.status_element_frame[key], text="STATUS"
             )
             self.status_label[key].grid(row=1, column=0, sticky="ew")
+            row += 1
 
     # Callback triggered when arm status is updated
     def on_arm_status_update(self, agent, status):

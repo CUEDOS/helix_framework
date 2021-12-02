@@ -26,7 +26,9 @@ class Agent:
                 print(f"Drone discovered!")
                 break
 
-        self.comms = DroneCommunication(CONST_SWARM_SIZE, CONST_DRONE_ID)
+        self.comms = DroneCommunication(
+            CONST_REAL_SWARM_SIZE, CONST_SITL_SWARM_SIZE, CONST_DRONE_ID
+        )
         asyncio.ensure_future(self.comms.run_comms())
         await asyncio.sleep(1)
         asyncio.ensure_future(self.get_position(self.drone))
@@ -40,20 +42,13 @@ class Agent:
 
             if self.comms.current_command == "arm":
                 print("ARMING")
-
-                try:
-                    await self.drone.action.arm()
-                    self.home_lat = self.my_telem.geodetic[0]
-                    self.home_long = self.my_telem.geodetic[1]
-                except ActionError as error:
-                    print("Arming failed: ", error._result.result_str)
-                    self.report_error(error._result.result_str)
-
+                await self.catch_action_error(self.arm(self.drone))
                 self.comms.current_command = "none"
 
             elif self.comms.current_command == "takeoff":
                 print("Taking Off")
-                await self.takeoff(self.drone)
+                await self.catch_action_error(self.takeoff(self.drone))
+                # await self.takeoff(self.drone)
                 self.comms.current_command = "none"
 
             elif self.comms.current_command == "Simple Flocking":
@@ -64,27 +59,42 @@ class Agent:
 
             elif self.comms.current_command == "hold":
                 print("Stopping Flocking")
-                await self.drone.action.hold()
+                await self.catch_action_error(self.drone.action.hold())
                 self.comms.current_command = "none"
 
             elif self.comms.current_command == "return":
                 print("Returning to home")
                 await self.drone.action.hold()
                 await asyncio.sleep(1)
-                await self.return_to_home(
-                    self.my_telem.geodetic[0], self.my_telem.geodetic[1]
+                await self.catch_action_error(
+                    self.return_to_home(
+                        self.my_telem.geodetic[0], self.my_telem.geodetic[1]
+                    )
                 )
                 self.comms.current_command = "none"
 
             elif self.comms.current_command == "land":
                 print("Landing")
-                await self.drone.action.land()
+                await self.catch_action_error(self.drone.action.land())
                 self.comms.current_command = "none"
 
             # Checking frequency of the loop
             await asyncio.sleep(
                 cmd_loop_duration - (time.time() - command_loop_start_time)
             )
+
+    async def catch_action_error(self, command):
+        # Attempts to perform the action and if the command fails the error is reported through MQTT
+        try:
+            await command
+        except ActionError as error:
+            print("Action Failed: ", error._result.result_str)
+            self.report_error(error._result.result_str)
+
+    async def arm(self, drone):
+        await drone.action.arm()
+        self.home_lat = self.my_telem.geodetic[0]
+        self.home_long = self.my_telem.geodetic[1]
 
     async def takeoff(self, drone):
         await drone.action.set_takeoff_altitude(20)
@@ -102,6 +112,7 @@ class Agent:
                 {error._result.result}"
             )
             print("-- Disarming")
+            self.report_error(error._result.result_str)
             await drone.action.land()
             await drone.action.disarm()
             return
@@ -270,9 +281,11 @@ class Agent:
 if __name__ == "__main__":
 
     # Takes command line arguments
-    CONST_DRONE_ID = "P" + str(sys.argv[1])
-    CONST_SWARM_SIZE = int(sys.argv[2])
-    CONST_PORT = int(sys.argv[3])
+    CONST_DRONE_ID = str(sys.argv[1])
+    CONST_REAL_SWARM_SIZE = int(sys.argv[2])
+    CONST_SITL_SWARM_SIZE = int(sys.argv[3])
+    CONST_SWARM_SIZE = CONST_REAL_SWARM_SIZE + CONST_SITL_SWARM_SIZE
+    CONST_PORT = int(sys.argv[4])
     CONST_MAX_SPEED = 5
 
     # below are reference GPS coordinates used as the origin of the NED coordinate system

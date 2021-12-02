@@ -45,3 +45,22 @@ def alt_calc(alt_dict):
         alt_return_dict[idx] = alts[i]
 
     return alt_return_dict
+
+
+def create_swarm_dict(real_swarm_size, sitl_swarm_size):
+    # Create dict for real drones with IDs as keys
+    real_dict = {}
+    if real_swarm_size != 0:
+        real_drone_ids = range(101, 101 + real_swarm_size)
+        for i in real_drone_ids:
+            real_dict["P" + str(i)] = None
+
+    # Create dict for SITL drones with IDs as keys
+    sitl_dict = {}
+    if sitl_swarm_size != 0:
+        sitl_drone_ids = range(1, 1 + sitl_swarm_size)
+        for i in sitl_drone_ids:
+            sitl_dict["S" + str(i).zfill(3)] = None
+
+    swarm_dict = {**real_dict, **sitl_dict}
+    return swarm_dict
