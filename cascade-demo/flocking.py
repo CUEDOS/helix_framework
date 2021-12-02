@@ -90,7 +90,7 @@ def migration_test(migrated):
 
 
 def velocity_to_point(my_pos_vel, desired_pos):
-    k = 5
+    k = 40
     desired_pos = np.array(desired_pos)
     current_pos = np.array(my_pos_vel.position_ned)
     unit_vector = (desired_pos - current_pos) / np.linalg.norm(
