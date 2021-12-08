@@ -35,53 +35,38 @@ class Agent:
         asyncio.ensure_future(self.get_velocity(self.drone))
         asyncio.ensure_future(self.get_arm_status(self.drone))
 
-        cmd_loop_duration = 1
+        # Put command callback functions in a dict with command as key
+        command_functions = {
+            "arm": self.arm,
+            "takeoff": self.takeoff,
+            "Simple Flocking": self.simple_flocking,
+            "Migration_Test": self.migration_test,
+            "hold": self.hold,
+            "return": self.return_to_home,
+            "land": self.land,
+        }
 
-        while True:
-            command_loop_start_time = time.time()
+        # Bind the callbacks
+        self.comms.bind_command_functions(command_functions, event_loop)
 
-            if self.comms.current_command == "arm":
-                print("ARMING")
-                await self.catch_action_error(self.arm(self.drone))
-                self.comms.current_command = "none"
+    async def arm(self):
+        print("ARMING")
+        await self.catch_action_error(self.drone.action.arm())
+        self.home_lat = self.my_telem.geodetic[0]
+        self.home_long = self.my_telem.geodetic[1]
 
-            elif self.comms.current_command == "takeoff":
-                print("Taking Off")
-                await self.catch_action_error(self.takeoff(self.drone))
-                # await self.takeoff(self.drone)
-                self.comms.current_command = "none"
+    async def takeoff(self):
+        print("Taking Off")
+        await self.catch_action_error(self.drone.action.set_takeoff_altitude(20))
+        await self.catch_action_error(self.drone.action.takeoff())
 
-            elif self.comms.current_command == "Simple Flocking":
-                await self.simple_flocking(self.drone)
+    async def hold(self):
+        print("Hold")
+        await self.catch_action_error(self.drone.action.hold())
 
-            elif self.comms.current_command == "Migration Test":
-                await self.migration_test(self.drone)
-
-            elif self.comms.current_command == "hold":
-                print("Stopping Flocking")
-                await self.catch_action_error(self.drone.action.hold())
-                self.comms.current_command = "none"
-
-            elif self.comms.current_command == "return":
-                print("Returning to home")
-                await self.drone.action.hold()
-                await asyncio.sleep(1)
-                await self.catch_action_error(
-                    self.return_to_home(
-                        self.my_telem.geodetic[0], self.my_telem.geodetic[1]
-                    )
-                )
-                self.comms.current_command = "none"
-
-            elif self.comms.current_command == "land":
-                print("Landing")
-                await self.catch_action_error(self.drone.action.land())
-                self.comms.current_command = "none"
-
-            # Checking frequency of the loop
-            await asyncio.sleep(
-                cmd_loop_duration - (time.time() - command_loop_start_time)
-            )
+    async def land(self):
+        print("Landing")
+        await self.catch_action_error(self.drone.action.land())
 
     async def catch_action_error(self, command):
         # Attempts to perform the action and if the command fails the error is reported through MQTT
@@ -91,14 +76,14 @@ class Agent:
             print("Action Failed: ", error._result.result_str)
             self.report_error(error._result.result_str)
 
-    async def arm(self, drone):
-        await drone.action.arm()
-        self.home_lat = self.my_telem.geodetic[0]
-        self.home_long = self.my_telem.geodetic[1]
+    # async def arm(self, drone):
+    #     await drone.action.arm()
+    #     self.home_lat = self.my_telem.geodetic[0]
+    #     self.home_long = self.my_telem.geodetic[1]
 
-    async def takeoff(self, drone):
-        await drone.action.set_takeoff_altitude(20)
-        await drone.action.takeoff()
+    # async def takeoff(self, drone):
+    #     await drone.action.set_takeoff_altitude(20)
+    #     await drone.action.takeoff()
 
     async def start_offboard(self, drone):
         print("-- Setting initial setpoint")
@@ -117,8 +102,8 @@ class Agent:
             await drone.action.disarm()
             return
 
-    async def simple_flocking(self, drone):
-        await self.start_offboard(drone)
+    async def simple_flocking(self):
+        await self.start_offboard(self.drone)
 
         # End of Init the drone
         offboard_loop_duration = 0.1  # duration of each loop
@@ -137,7 +122,7 @@ class Agent:
             )
 
             # Sending the target velocities to the quadrotor
-            await drone.offboard.set_velocity_ned(
+            await self.drone.offboard.set_velocity_ned(
                 flocking.check_velocity(
                     output_vel,
                     self.my_telem,
@@ -153,8 +138,8 @@ class Agent:
                 offboard_loop_duration - (time.time() - offboard_loop_start_time)
             )
 
-    async def migration_test(self, drone):
-        await self.start_offboard(drone)
+    async def migration_test(self):
+        await self.start_offboard(self.drone)
 
         # End of Init the drone
         offboard_loop_duration = 0.1  # duration of each loop
@@ -188,7 +173,7 @@ class Agent:
                 output_vel = flocking_vel + migration_vel
 
                 # Sending the target velocities to the quadrotor
-                await drone.offboard.set_velocity_ned(
+                await self.drone.offboard.set_velocity_ned(
                     flocking.check_velocity(
                         output_vel,
                         self.my_telem,
@@ -205,18 +190,33 @@ class Agent:
                 )
             Migrated = not Migrated
 
-    async def return_to_home(self, rtl_start_lat, rtl_start_long):
-        print("send goto")
+    async def return_to_home(self):
+        rtl_start_lat = self.my_telem.geodetic[0]
+        rtl_start_long = self.my_telem.geodetic[1]
+
+        print("Returning to home")
+        await self.drone.action.hold()
+        await asyncio.sleep(1)
+
+        await self.catch_action_error(
+            self.return_to_home(self.my_telem.geodetic[0], self.my_telem.geodetic[1])
+        )
+
         print(self.comms.return_alt)
-        await self.drone.action.goto_location(
-            rtl_start_lat, rtl_start_long, self.comms.return_alt, 0
+
+        await self.catch_action_error(
+            self.drone.action.goto_location(
+                rtl_start_lat, rtl_start_long, self.comms.return_alt, 0
+            )
         )
 
         while abs(self.my_telem.geodetic[2] - self.comms.return_alt) > 0.5:
             await asyncio.sleep(1)
 
-        await self.drone.action.goto_location(
-            self.home_lat, self.home_long, self.comms.return_alt, 0
+        await self.catch_action_error(
+            self.drone.action.goto_location(
+                self.home_lat, self.home_long, self.comms.return_alt, 0
+            )
         )
 
     # runs in background and upates state class with latest telemetry
@@ -301,4 +301,5 @@ if __name__ == "__main__":
     agent = Agent()
     asyncio.ensure_future(agent.run())
     # Runs the event loop until the program is canceled with e.g. CTRL-C
-    asyncio.get_event_loop().run_forever()
+    event_loop = asyncio.get_event_loop()
+    event_loop.run_forever()

@@ -72,11 +72,19 @@ class Communication:
         # time.sleep(1)  # simulating comm latency
         self.swarm_telemetry[msg.topic[0:4]].velocity_ned = velocity
 
+    def bind_callback(self, callback):
+        self.observers.append(callback)
+
+    def activate_callback(self, agent, data):
+        for callback in self.observers:
+            callback(agent, data)
+
 
 # Inherits from Communication class, overriding methods specific to drones.
 class DroneCommunication(Communication):
     def __init__(self, real_swarm_size, sitl_swarm_size, id):
         self.id = id
+        self.command_functions = {}
         self.current_command = "none"
         # self.return_alt = 10
         self.create_dict(real_swarm_size, sitl_swarm_size)
@@ -110,11 +118,22 @@ class DroneCommunication(Communication):
     def on_message_command(self, mosq, obj, msg):
         print("received command")
         self.current_command = msg.payload.decode()
+        self.activate_callback(msg.payload.decode())
 
     def on_message_home(self, mosq, obj, msg):
         # agent.return_alt = msg.payload.decode()
         print("received new home altitude")
         self.return_alt = float(msg.payload.decode())
+
+    def bind_command_functions(self, command_functions, event_loop):
+        self.command_functions = command_functions
+        self.event_loop = event_loop
+
+    def activate_callback(self, command):
+        print("activating callback")
+        # asyncio.run(self.command_functions[command]())
+        # self.command_functions[command]()
+        asyncio.ensure_future(self.command_functions[command](), loop=self.event_loop)
 
 
 class GroundCommunication(Communication):
@@ -145,10 +164,3 @@ class GroundCommunication(Communication):
         agent = msg.topic[0:4]
         self.swarm_telemetry[agent].arm_status = msg.payload.decode()
         self.activate_callback(agent, self.swarm_telemetry[agent].arm_status)
-
-    def bind_callback(self, callback):
-        self.observers.append(callback)
-
-    def activate_callback(self, agent, data):
-        for callback in self.observers:
-            callback(agent, data)
