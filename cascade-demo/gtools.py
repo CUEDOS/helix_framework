@@ -12,10 +12,8 @@ def alt_calc(alt_dict):
     output_dict: Dict(key:drone_index (string), value: altitude (float))
     """
     # print("alt_dict=", alt_dict)
-    site_elevation = 488
-    alt_lims = np.array(
-        [10, 100]
-    )  # in meters - min return altitude above launch altitude
+    site_elevation = 0# 488
+    alt_lims = np.array([10, 100])  # in meters - min return altitude above launch altitude
     alt_lims += site_elevation
     alt_step = 1  # in meters - the alt difference between return alts
 
@@ -32,12 +30,12 @@ def alt_calc(alt_dict):
     alts += mean  # Adds to mean
 
     # Checking minimum and maximum alt -----------------------------------------------------------------------------------------------
-    #if alts[0] < alt_lims[0]:
-    #    difference = alt_lims[0] - alts[0]
-    #    alts += difference  # Increase altitude so greater than min
-    #if alts[-1] > alt_lims[1]:
-    #    difference = alts[-1] - alt_lims[1]
-    #    alts -= difference  # Reduce altitude so less than max
+    if alts[0] < alt_lims[0]:
+        difference = alt_lims[0] - alts[0]
+        alts += difference  # Increase altitude so greater than min
+    if alts[-1] > alt_lims[1]:
+        difference = alts[-1] - alt_lims[1]
+        alts -= difference  # Reduce altitude so less than max
 
     # Assigning alts to ordered index  -----------------------------------------------
     alt_return_dict = {}
