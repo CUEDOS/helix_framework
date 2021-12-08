@@ -40,7 +40,7 @@ class Agent:
             "arm": self.arm,
             "takeoff": self.takeoff,
             "Simple Flocking": self.simple_flocking,
-            "Migration_Test": self.migration_test,
+            "Migration Test": self.migration_test,
             "hold": self.hold,
             "return": self.return_to_home,
             "land": self.land,
@@ -188,10 +188,6 @@ class Agent:
         print("Returning to home")
         await self.drone.action.hold()
         await asyncio.sleep(1)
-
-        await self.catch_action_error(
-            self.return_to_home(self.my_telem.geodetic[0], self.my_telem.geodetic[1])
-        )
 
         print(self.comms.return_alt)
 
