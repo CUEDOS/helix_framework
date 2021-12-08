@@ -32,12 +32,12 @@ def alt_calc(alt_dict):
     alts += mean  # Adds to mean
 
     # Checking minimum and maximum alt -----------------------------------------------------------------------------------------------
-    # if alts[0] < alt_lims[0]:
-    #     difference = alt_lims[0] - alts[0]
-    #     alts += difference  # Increase altitude so greater than min
-    # if alts[-1] > alt_lims[1]:
-    #     difference = alts[-1] - alt_lims[1]
-    #     alts -= difference  # Reduce altitude so less than max
+    #if alts[0] < alt_lims[0]:
+    #    difference = alt_lims[0] - alts[0]
+    #    alts += difference  # Increase altitude so greater than min
+    #if alts[-1] > alt_lims[1]:
+    #    difference = alts[-1] - alt_lims[1]
+    #    alts -= difference  # Reduce altitude so less than max
 
     # Assigning alts to ordered index  -----------------------------------------------
     alt_return_dict = {}
