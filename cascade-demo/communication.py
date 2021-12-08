@@ -1,8 +1,10 @@
 import asyncio
+import gtools
 import paho.mqtt.client as mqtt
 
 
-class PosVelNED:
+class AgentTelemetry:
+    arm_status = False
     geodetic = [0, 0, 0]
     position_ned = [0, 0, 0]
     velocity_ned = [0, 0, 0]
@@ -11,15 +13,15 @@ class PosVelNED:
 class Communication:
     client = mqtt.Client()
 
-    def __init__(self, swarm_size):
-        self.swarm_size = swarm_size
-        self.create_dict()
+    def __init__(self, real_swarm_size, sitl_swarm_size):
+        self.create_dict(real_swarm_size, sitl_swarm_size)
 
-    def create_dict(self):
-        self.drone_ids = range(101, 101 + self.swarm_size)
-        self.swarm_pos_vel = {}
-        for i in self.drone_ids:
-            self.swarm_pos_vel["P" + str(i)] = PosVelNED()
+    def create_dict(self, real_swarm_size, sitl_swarm_size):
+        self.swarm_telemetry = gtools.create_swarm_dict(
+            real_swarm_size, sitl_swarm_size
+        )
+        for key in self.swarm_telemetry.keys():
+            self.swarm_telemetry[key] = AgentTelemetry()
 
     async def run_comms(self):
         self.client.message_callback_add(
@@ -52,7 +54,7 @@ class Communication:
         string_list = received_string.split(", ")
         geodetic = [float(i) for i in string_list]
         # time.sleep(1)  # simulating comm latency
-        self.swarm_pos_vel[msg.topic[0:4]].geodetic = geodetic
+        self.swarm_telemetry[msg.topic[0:4]].geodetic = geodetic
 
     def on_message_position(self, mosq, obj, msg):
         # Remove none numeric parts of string and then split into north east and down
@@ -60,7 +62,7 @@ class Communication:
         string_list = received_string.split(", ")
         position = [float(i) for i in string_list]
         # time.sleep(1)  # simulating comm latency
-        self.swarm_pos_vel[msg.topic[0:4]].position_ned = position
+        self.swarm_telemetry[msg.topic[0:4]].position_ned = position
 
     def on_message_velocity(self, mosq, obj, msg):
         # Remove none numeric parts of string and then split into north east and down
@@ -68,17 +70,24 @@ class Communication:
         string_list = received_string.split(", ")
         velocity = [float(i) for i in string_list]
         # time.sleep(1)  # simulating comm latency
-        self.swarm_pos_vel[msg.topic[0:4]].velocity_ned = velocity
+        self.swarm_telemetry[msg.topic[0:4]].velocity_ned = velocity
+
+    def bind_callback(self, callback):
+        self.observers.append(callback)
+
+    def activate_callback(self, agent, data):
+        for callback in self.observers:
+            callback(agent, data)
 
 
 # Inherits from Communication class, overriding methods specific to drones.
 class DroneCommunication(Communication):
-    def __init__(self, swarm_size, id):
+    def __init__(self, real_swarm_size, sitl_swarm_size, id):
         self.id = id
-        self.swarm_size = swarm_size
+        self.command_functions = {}
         self.current_command = "none"
         # self.return_alt = 10
-        self.create_dict()
+        self.create_dict(real_swarm_size, sitl_swarm_size)
 
     async def run_comms(self):
         self.client.message_callback_add(
@@ -109,8 +118,49 @@ class DroneCommunication(Communication):
     def on_message_command(self, mosq, obj, msg):
         print("received command")
         self.current_command = msg.payload.decode()
+        self.activate_callback(msg.payload.decode())
 
     def on_message_home(self, mosq, obj, msg):
         # agent.return_alt = msg.payload.decode()
         print("received new home altitude")
         self.return_alt = float(msg.payload.decode())
+
+    def bind_command_functions(self, command_functions, event_loop):
+        self.command_functions = command_functions
+        self.event_loop = event_loop
+
+    def activate_callback(self, command):
+        print("activating callback")
+        # asyncio.run(self.command_functions[command]())
+        # self.command_functions[command]()
+        asyncio.ensure_future(self.command_functions[command](), loop=self.event_loop)
+
+
+class GroundCommunication(Communication):
+    def __init__(self, real_swarm_size, sitl_swarm_size):
+        self.observers = []
+        self.create_dict(real_swarm_size, sitl_swarm_size)
+
+    async def run_comms(self):
+        self.client.message_callback_add(
+            "+/telemetry/geodetic", self.on_message_geodetic
+        )
+        self.client.message_callback_add(
+            "+/telemetry/position_ned", self.on_message_position
+        )
+        self.client.message_callback_add(
+            "+/telemetry/velocity_ned", self.on_message_velocity
+        )
+        self.client.message_callback_add(
+            "+/telemetry/arm_status", self.on_message_arm_status
+        )
+        self.client.connect_async(
+            "localhost", 1883, 60
+        )  # change localhost to IP of broker
+        self.client.on_connect = self.on_connect
+        self.client.loop_start()
+
+    def on_message_arm_status(self, mosq, obj, msg):
+        agent = msg.topic[0:4]
+        self.swarm_telemetry[agent].arm_status = msg.payload.decode()
+        self.activate_callback(agent, self.swarm_telemetry[agent].arm_status)
