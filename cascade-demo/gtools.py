@@ -11,7 +11,7 @@ def alt_calc(alt_dict):
     -----------
     output_dict: Dict(key:drone_index (string), value: altitude (float))
     """
-    print("alt_dict=", alt_dict)
+    # print("alt_dict=", alt_dict)
     site_elevation = 488
     alt_lims = np.array(
         [10, 100]
