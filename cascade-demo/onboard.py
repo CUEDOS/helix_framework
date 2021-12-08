@@ -76,15 +76,6 @@ class Agent:
             print("Action Failed: ", error._result.result_str)
             self.report_error(error._result.result_str)
 
-    # async def arm(self, drone):
-    #     await drone.action.arm()
-    #     self.home_lat = self.my_telem.geodetic[0]
-    #     self.home_long = self.my_telem.geodetic[1]
-
-    # async def takeoff(self, drone):
-    #     await drone.action.set_takeoff_altitude(20)
-    #     await drone.action.takeoff()
-
     async def start_offboard(self, drone):
         print("-- Setting initial setpoint")
         await drone.offboard.set_velocity_ned(VelocityNedYaw(0.0, 0.0, 0.0, 0.0))
