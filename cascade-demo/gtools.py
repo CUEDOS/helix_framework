@@ -5,15 +5,17 @@ def alt_calc(alt_dict):
     """
     Parameters
     ------------
-    alt_dict: Dict(key drone_index (string): value altitude (float), ...)
+    alt_dict: Dict{key drone_index (string): value altitude (float), ...}
 
     Returns
     -----------
     output_dict: Dict(key:drone_index (string), value: altitude (float))
     """
     # print("alt_dict=", alt_dict)
-    site_elevation = 0# 488
-    alt_lims = np.array([10, 100])  # in meters - min return altitude above launch altitude
+    site_elevation = 0  # 488
+    alt_lims = np.array(
+        [10, 100]
+    )  # in meters - min return altitude above launch altitude
     alt_lims += site_elevation
     alt_step = 1  # in meters - the alt difference between return alts
 
@@ -43,6 +45,18 @@ def alt_calc(alt_dict):
         alt_return_dict[idx] = alts[i]
 
     return alt_return_dict
+
+
+def proximity_check(swarm_telemetry):
+    """
+    Parameters
+    ------------
+    swarm_telemetry: Dict{key drone_index (string): AgentTelemetry (object), ...}
+
+    Returns
+    -----------
+    output_dict: List[[drone_index (string), drone_index (string), distance],[...]
+    """
 
 
 def create_swarm_dict(real_swarm_size, sitl_swarm_size):
