@@ -24,6 +24,7 @@ class App:
     def __init__(self, master):
 
         self.master = master
+        self.experiment_running = False
         self.normal_button_colour = "grey"
         self.activated_button_colour = "#4E73ED"
         self.check_var = tk.IntVar(value=1)
@@ -40,16 +41,20 @@ class App:
 
         # This is the section of code which creates the main window
         master.rowconfigure(tuple(range(2)), minsize=100)
-        master.grid_columnconfigure(tuple(range(1, 4)), uniform="button", minsize=146)
+        master.grid_columnconfigure(tuple(range(2, 5)), uniform="button", minsize=146)
+
+        # Create the frame with warnings
+        self.warning_frame = tk.Frame(master)
+        self.warning_frame.grid(row=5, column=2, columnspan=3, sticky="ew")
 
         # Create the frame with the status of the agents
         self.status_frame = tk.Frame(master)
-        self.status_frame.grid(row=0, column=0, rowspan=5, sticky="nesw")
+        self.status_frame.grid(row=0, column=1, rowspan=5, sticky="nesw")
 
         # Create the frame containing sitl controls
         self.sitl_frame = tk.Frame(master)
         self.sitl_frame.columnconfigure(tuple(range(3)), weight=1)
-        self.sitl_frame.grid(row=4, column=1, columnspan=3, sticky="ew")
+        self.sitl_frame.grid(row=4, column=2, columnspan=3, sticky="ew")
 
         # Create the frame containing relaunch controls
         self.relaunch_frame = tk.Frame(self.sitl_frame)
@@ -83,7 +88,7 @@ class App:
         )
         self.start_button.grid(
             row=0,
-            column=3,
+            column=4,
             sticky="nesw",
         )
 
@@ -94,7 +99,7 @@ class App:
             font=("arial", 12, "normal"),
             command=self.on_click_hold,
         )
-        self.hold_button.grid(row=1, column=1, sticky="nesw")
+        self.hold_button.grid(row=1, column=2, sticky="nesw")
 
         self.takeoff_button = tk.Button(
             master,
@@ -103,7 +108,7 @@ class App:
             font=("arial", 12, "normal"),
             command=self.on_click_takeoff,
         )
-        self.takeoff_button.grid(row=0, column=2, sticky="nesw")
+        self.takeoff_button.grid(row=0, column=3, sticky="nesw")
 
         self.land_button = tk.Button(
             master,
@@ -112,7 +117,7 @@ class App:
             font=("arial", 12, "normal"),
             command=self.on_click_land,
         )
-        self.land_button.grid(row=1, column=2, sticky="nesw")
+        self.land_button.grid(row=1, column=3, sticky="nesw")
 
         tk.Button(
             master,
@@ -120,7 +125,7 @@ class App:
             bg="#CD4F39",
             font=("arial", 12, "normal"),
             command=self.on_click_arm,
-        ).grid(row=0, column=1, sticky="nesw")
+        ).grid(row=0, column=2, sticky="nesw")
 
         self.return_button = tk.Button(
             master,
@@ -129,12 +134,12 @@ class App:
             font=("arial", 12, "normal"),
             command=self.on_click_return,
         )
-        self.return_button.grid(row=1, column=3, sticky="nesw")
+        self.return_button.grid(row=1, column=4, sticky="nesw")
 
         self.flocking_menu = tk.OptionMenu(
             master, self.flocking_type, *self.flocking_options
         )
-        self.flocking_menu.grid(row=3, column=1, columnspan=2, sticky="w")
+        self.flocking_menu.grid(row=3, column=2, columnspan=2, sticky="w")
 
         self.sitl_check = tk.Checkbutton(
             master,
@@ -144,20 +149,20 @@ class App:
             offvalue=0,
             command=self.sitl_check,
         )
-        self.sitl_check.grid(row=3, column=3, sticky="e")
+        self.sitl_check.grid(row=3, column=4, sticky="e")
 
         tk.Button(
             master,
             text="Confirm",
             command=self.on_click_confirm,
-        ).grid(row=2, column=3, sticky="nesw")
+        ).grid(row=2, column=4, sticky="nesw")
 
         self.real_drones_label = tk.Label(master, text="Real Drones:")
-        self.real_drones_label.grid(row=2, column=1, sticky="w")
+        self.real_drones_label.grid(row=2, column=2, sticky="w")
 
         self.real_drones_entry = tk.Entry(master)
         self.real_drones_entry.insert(tk.END, "0")
-        self.real_drones_entry.grid(row=2, column=2, sticky="w")
+        self.real_drones_entry.grid(row=2, column=3, sticky="w")
 
         self.sitl_drones_label = tk.Label(self.sitl_frame, text="SITL Drones:")
         self.sitl_drones_label.grid(row=0, column=0, sticky="w")
@@ -188,6 +193,15 @@ class App:
             command=self.on_click_relaunch_scripts,
         ).grid(row=0, column=1, sticky="nesw")
 
+        self.warning_title = tk.Label(
+            self.warning_frame, text="WARNING", bg="red", font=("arial", 20, "normal")
+        )
+        self.warning_title.grid(row=0, column=0, sticky="nsw")
+
+        self.warning_label = tk.Label(self.warning_frame, text="")
+        self.warning_label.grid(row=0, column=1, sticky="w")
+        self.warning_frame.grid_remove()
+
         # begin communications with default swarm size
         self.real_swarm_size = 0
         self.sitl_swarm_size = 3
@@ -212,12 +226,15 @@ class App:
         # self.send_command("start")
         if self.flocking_type.get() != "Select a flocking type":
             self.send_command(self.flocking_type.get())
+            self.experiment_running = True
+            self.start_ensure_sep_thread()
         else:
             messagebox.showinfo("Error", "Please select a flocking type")
 
     # this is the function called when the button is clicked
     def on_click_hold(self):
         self.send_command("hold")
+        self.experiment_running = False
 
     def on_click_takeoff(self):
         self.send_command("takeoff")
@@ -434,6 +451,39 @@ class App:
                 return False
         else:
             return False
+
+    def start_ensure_sep_thread(self):
+        self.ensure_sep_thread = threading.Thread(
+            target=asyncio.run, args=(self.ensure_seperation(),), daemon=True
+        )
+        self.ensure_sep_thread.start()
+
+    async def ensure_seperation(self):
+        print("task started")
+        while self.experiment_running:
+            proximity_list = gtools.proximity_check(
+                self.comms.swarm_telemetry, min_proximity=10
+            )
+
+            if proximity_list:
+                warning_string = ""
+                for i in range(0, len(proximity_list)):
+                    warning_string = (
+                        warning_string
+                        + proximity_list[i][0]
+                        + " is "
+                        + str(round(proximity_list[i][2], 2))
+                        + "m from "
+                        + proximity_list[i][1]
+                    )
+                    if i != len(proximity_list) - 1:
+                        warning_string = warning_string + "\n"
+                self.warning_frame.grid()
+                self.warning_label.config(text=warning_string)
+            else:
+                self.warning_frame.grid_remove()
+
+            await asyncio.sleep(1)
 
     def on_closing(self):
         if self.gazebo_process != None:
