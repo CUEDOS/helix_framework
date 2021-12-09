@@ -44,6 +44,19 @@ def alt_calc(alt_dict):
 
     return alt_return_dict
 
+def proximity_check(swarm_telemetry):
+    """
+    Parameters
+    ------------
+    swarm_telemetry: Dict{key drone_index (string): AgentTelemetry (object), ...}
+
+    Returns
+    -----------
+    output_dict: List[[drone_index (string), drone_index (string), distance],[...]
+    """
+    
+    return
+
 
 def create_swarm_dict(real_swarm_size, sitl_swarm_size):
     # Create dict for real drones with IDs as keys
