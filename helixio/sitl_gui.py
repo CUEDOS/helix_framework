@@ -340,7 +340,7 @@ class App:
                 "-n",
                 str(self.sitl_swarm_size),
                 "-w",
-                "baylands",
+                "hough_end",
             ],
             cwd=self.path_label.cget("text") + "/Tools/",
             stdin=None,

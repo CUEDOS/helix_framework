@@ -276,13 +276,21 @@ if __name__ == "__main__":
     CONST_MAX_SPEED = 5
 
     # below are reference GPS coordinates used as the origin of the NED coordinate system
+
+    # For Zurich
     # CONST_REF_LAT = 47.39796
     # CONST_REF_LON = 8.5443076
     # CONST_REF_ALT = 488
 
-    CONST_REF_LAT = 37.413534
-    CONST_REF_LON = -121.996561
-    CONST_REF_ALT = 1.3
+    # For Baylands
+    # CONST_REF_LAT = 37.413534
+    # CONST_REF_LON = -121.996561
+    # CONST_REF_ALT = 1.3
+
+    # For Hough End
+    CONST_REF_LAT = 53.43578053111544
+    CONST_REF_LON = -2.250343561172483
+    CONST_REF_ALT = 31
 
     # Start the main function
     agent = Agent()

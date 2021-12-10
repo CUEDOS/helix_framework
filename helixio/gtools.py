@@ -47,27 +47,54 @@ def alt_calc(alt_dict):
     return alt_return_dict
 
 
+# def proximity_check(swarm_telemetry, min_proximity):
+#     """
+#     Parameters
+#     ------------
+#     swarm_telemetry: Dict{key drone_index (string): AgentTelemetry (object), ...}
+
+#     min_proximity: float
+#         Minimum distance between agents before warning proximity is returned
+
+#     Returns
+#     -----------
+#     output_list: List[[drone_index (string), drone_index (string), distance],[...]]
+#         Example: [["P101", "P103", 9.56],["P102", "P103", 8.653]]
+#         List of drones with distance less than min_proximity
+#     """
+
+#     for agentx in swarm_telemetry.values():
+#         n1 = agentx.postion_ned[0]
+
+
+#     return ouput_list
+
+
 def proximity_check(swarm_telemetry, min_proximity):
     """
     Parameters
     ------------
     swarm_telemetry: Dict{key drone_index (string): AgentTelemetry (object), ...}
-    
-    min_proximity: float 
-        Minimum distance between agents before warning proximity is returned
 
     Returns
     -----------
-    output_list: List[[drone_index (string), drone_index (string), distance],[...]]
-        Example: [["P101", "P103", 9.56],["P102", "P103", 8.653]]
-        List of drones with distance less than min_proximity
+    output_dict: List[[drone_index (string), drone_index (string), distance],[...]
     """
-    
-    for agentx in swarm_telemetry.values():
-        n1 = agentx.postion_ned[0]
+    swarm_positions = {}
+    output = []
+    for key in swarm_telemetry.keys():
+        swarm_positions[key] = np.array(swarm_telemetry[key].position_ned)
 
-        
-    return ouput_list
+    for key_1 in swarm_positions.keys():
+        for key_2 in swarm_positions.keys():
+            if key_1 == key_2:
+                continue
+            seperation = np.linalg.norm(swarm_positions[key_2] - swarm_positions[key_1])
+            if seperation < min_proximity and [key_2, key_1, seperation] not in output:
+                output.append([key_1, key_2, seperation])
+
+    return output
+
 
 def create_swarm_dict(real_swarm_size, sitl_swarm_size):
     # Create dict for real drones with IDs as keys
