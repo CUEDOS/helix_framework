@@ -46,30 +46,6 @@ def alt_calc(alt_dict):
 
     return alt_return_dict
 
-
-# def proximity_check(swarm_telemetry, min_proximity):
-#     """
-#     Parameters
-#     ------------
-#     swarm_telemetry: Dict{key drone_index (string): AgentTelemetry (object), ...}
-
-#     min_proximity: float
-#         Minimum distance between agents before warning proximity is returned
-
-#     Returns
-#     -----------
-#     output_list: List[[drone_index (string), drone_index (string), distance],[...]]
-#         Example: [["P101", "P103", 9.56],["P102", "P103", 8.653]]
-#         List of drones with distance less than min_proximity
-#     """
-
-#     for agentx in swarm_telemetry.values():
-#         n1 = agentx.postion_ned[0]
-
-
-#     return ouput_list
-
-
 def proximity_check(swarm_telemetry, min_proximity):
     """
     Parameters
