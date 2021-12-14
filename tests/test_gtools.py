@@ -125,7 +125,7 @@ swarm_telemetry_4["P103"].position_ned = [2.2, 2.7, 3.2]
 swarm_telemetry_4["P104"].position_ned = [-2.2, -2.7, -3.2]
 swarm_telemetry_4["P105"].position_ned = [3.4, 3.9, 4.4]
 swarm_telemetry_4["P106"].position_ned = [-3.4, -3.9, -4.4]
-swarm_telemetry_4["P106"].position_ned = [0, 0, 0]
+swarm_telemetry_4["P107"].position_ned = [0, 0, 0]
 output_4 = []
 
 @pytest.mark.parametrize(
