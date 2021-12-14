@@ -43,8 +43,7 @@ swarm_telemetry_2["P102"].position_ned= [10,7.2,8]
 swarm_telemetry_2["P103"].position_ned= [12,7.2,5]
 swarm_telemetry_2["P104"].position_ned= [-1,-1.5,-0.5]
 swarm_telemetry_2["P105"].position_ned= [5.3,5,4.9]
-#output_2=[["P101", "P105", np.linalg.norm([0.2, 0.5, 0.1])]]
-output_2=[["P101", "P105", sqrt(0.3)]]
+output_2=[["P101", "P105", np.linalg.norm([0.2, 0.5, 0.1])]] #output_2=[["P101", "P105", sqrt(0.3)]]
 	
 @pytest.mark.parametrize('swarm_telemetry, output',[
 	(swarm_telemetry_1,output_1),
