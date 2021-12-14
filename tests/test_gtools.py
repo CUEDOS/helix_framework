@@ -12,3 +12,28 @@ import pytest
 ])
 def test_alt_calc (dict_in, dict_out):
 	assert alt_calc(dict_in)==dict_out
+
+# -------------------------------------------------------------------------------------
+
+class AgentTelemetry:
+    arm_status = False
+    geodetic = [0, 0, 0]
+    position_ned = [0, 0, 0]
+    velocity_ned = [0, 0, 0]
+
+swarm_telemetry{"P101": None, "P102": None, "P103": None, "P104": None}
+for key in swarm_telemetry.keys():
+    swarm_telemetry[key] = AgentTelemetry()
+
+swarm_telemetry["P101"].position_ned= [5,5,5]
+swarm_telemetry["P102"].position_ned= [5,5,5]
+swarm_telemetry["P103"].position_ned= [5,5,5]
+swarm_telemetry["P104"].position_ned= [5,5,5]
+output=swarm_telemetry
+	
+@pytest.mark.parametrize('swarm_telem, output_dict',[
+	(swarm_telemetry,output)
+])
+def test_proximity_check (swarm_telem, output_dict):
+	min_proximity=2
+	assert proximity_check(swarm_teleme, min_proximity)==output_dict
