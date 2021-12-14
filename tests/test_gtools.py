@@ -21,19 +21,19 @@ class AgentTelemetry:
     position_ned = [0, 0, 0]
     velocity_ned = [0, 0, 0]
 
-swarm_telemetry={"P101": None, "P102": None, "P103": None, "P104": None}
-for key in swarm_telemetry.keys():
-    swarm_telemetry[key] = AgentTelemetry()
+swarm_telemetry_1={"P101": None, "P102": None, "P103": None, "P104": None}
+for key in swarm_telemetry_1.keys():
+    swarm_telemetry_1[key] = AgentTelemetry()
 
-swarm_telemetry["P101"].position_ned= [5,5,5]
-swarm_telemetry["P102"].position_ned= [5,5,5]
-swarm_telemetry["P103"].position_ned= [5,5,5]
-swarm_telemetry["P104"].position_ned= [5,5,5]
-output=[["P101", "P102", 0], ["P101", "P103", 0], ["P101", "P104", 0], ["P102", "P103", 0], ["P102", "P104", 0], ["P103", "P104", 0]]
+swarm_telemetry_1["P101"].position_ned= [5,5,5]
+swarm_telemetry_1["P102"].position_ned= [5,5,5]
+swarm_telemetry_1["P103"].position_ned= [5,5,5]
+swarm_telemetry_1["P104"].position_ned= [5,5,5]
+output_1=[["P101", "P102", 0], ["P101", "P103", 0], ["P101", "P104", 0], ["P102", "P103", 0], ["P102", "P104", 0], ["P103", "P104", 0]]
 	
-@pytest.mark.parametrize('swarm_telem, output_dict',[
-	(swarm_telemetry,output)
+@pytest.mark.parametrize('swarm_telemetry, output',[
+	(swarm_telemetry_1,output_1)
 ])
-def test_proximity_check (swarm_telem, output_dict):
+def test_proximity_check (swarm_telemtry, output):
 	min_proximity=2
-	assert proximity_check(swarm_teleme, min_proximity)==output_dict
+	assert proximity_check(swarm_telemetry, min_proximity)==output
