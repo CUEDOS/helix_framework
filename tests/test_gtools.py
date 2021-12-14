@@ -71,13 +71,14 @@ for key in alt_dict_7.keys():
      (alt_dict_4,alt_return_dict_4),
      (alt_dict_5,alt_return_dict_5),
      (alt_dict_6,alt_return_dict_6),
-     (alt_dict_7,alt_return_dict_7)],
+     (alt_dict_7,alt_return_dict_7)]
 )
 def test_alt_calc(dict_in, dict_out):
     assert alt_calc(dict_in,site_elevation) == dict_out
 
-#test of proximity_check function -------------------------------------------------------------------------------------------
-# Set1: ------------------------
+#test of proximity_check function -----------------------------------------------------------------------------------------------------------------------------
+
+# Set1: 4 drones with the same position------------------------
 swarm_telemetry_1 = {"P101": None,"P102": None, "P103": None, "P104": None} 
 for key in swarm_telemetry_1.keys():
     swarm_telemetry_1[key] = AgentTelemetry()
@@ -88,22 +89,37 @@ swarm_telemetry_1["P103"].position_ned = [5, 5, 5]
 swarm_telemetry_1["P104"].position_ned = [5, 5, 5]
 output_1 = [["P101", "P102", 0],["P101", "P103", 0],["P101", "P104", 0],["P102", "P103", 0],["P102", "P104", 0],["P103", "P104", 0]]
 
-# Set2: ---------------------------
+# Set2: 5 drones---------------------------
 swarm_telemetry_2 = {"P101": None, "P102": None, "P103": None,"P104": None,"P105": None}  
 for key in swarm_telemetry_2.keys():
     swarm_telemetry_2[key] = AgentTelemetry()
 
 swarm_telemetry_2["P101"].position_ned = [5.5, 4.5, 5]
-swarm_telemetry_2["P102"].position_ned = [10, 7.2, 8]
-swarm_telemetry_2["P103"].position_ned = [12, 7.2, 5]
+swarm_telemetry_2["P102"].position_ned = [6, 7.2, 8]
+swarm_telemetry_2["P103"].position_ned = [10, 7.2, 5]
 swarm_telemetry_2["P104"].position_ned = [-1, -1.5, -0.5]
 swarm_telemetry_2["P105"].position_ned = [5.3, 5, 4.9]
 output_2 = [["P101", "P105", np.linalg.norm([0.2, 0.5, 0.1])]]  # output_2=[["P101", "P105", sqrt(0.3)]]
 
+# Set3: 6 drones---------------------------
+swarm_telemetry_3 = {"P101": None, "P102": None, "P103": None,"P104": None,"P105": None, "P106": None}  
+for key in swarm_telemetry_3.keys():
+    swarm_telemetry_3[key] = AgentTelemetry()
+
+swarm_telemetry_3["P101"].position_ned = [-5.5, -4.5, -5]
+swarm_telemetry_3["P102"].position_ned = [-6, -7.2, -8]
+swarm_telemetry_3["P103"].position_ned = [-10, -7.2, -5]
+swarm_telemetry_3["P104"].position_ned = [-11, -8.2, -6]
+swarm_telemetry_3["P105"].position_ned = [5.3, 5, 4.9]
+swarm_telemetry_3["P105"].position_ned = [-5.3, -5, -4.9]
+output_3 = [["P101", "P106", np.linalg.norm([0.2, 0.5, 0.1])],["P103", "P104", np.linalg.norm([1, 1, 1])]]
 
 @pytest.mark.parametrize(
     "swarm_telemetry, output",
-    [(swarm_telemetry_1, output_1), (swarm_telemetry_2, output_2)],
+    [(swarm_telemetry_1, output_1), 
+     (swarm_telemetry_2, output_2),
+     (swarm_telemetry_3, output_3)]
+    
 )
 def test_proximity_check(swarm_telemetry, output):
     min_proximity = 2
