@@ -138,6 +138,6 @@ output_4 = []
 )
 def test_proximity_check(swarm_telemetry, output):
     min_proximity = 2
-    x=proximity_check(swarm_telemetry, min_proximity
+    x=proximity_check(swarm_telemetry, min_proximity)
     x=round(x)
     assert  x== output
