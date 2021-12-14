@@ -203,9 +203,13 @@ class App:
         self.warning_frame.grid_remove()
 
         # begin communications with default swarm size
-        self.real_swarm_size = 0
-        self.sitl_swarm_size = 3
-        self.swarm_size = self.real_swarm_size + self.sitl_swarm_size
+        # self.real_swarm_size = 0
+        # self.sitl_swarm_size = 3
+        # self.swarm_size = self.real_swarm_size + self.sitl_swarm_size
+        # self.empty_swarm_dict = gtools.create_swarm_dict(
+        #     self.real_swarm_size, self.sitl_swarm_size
+        # )
+        self.initialise_swarm()
         self.comms_thread = None
         self.start_comms_thread()
 
@@ -306,10 +310,14 @@ class App:
         if self.validate_int(self.real_drones_entry.get()) and self.validate_int(
             self.sitl_drones_entry.get()
         ):
-            self.real_swarm_size = int(self.real_drones_entry.get())
-            self.sitl_swarm_size = int(self.sitl_drones_entry.get())
-            self.swarm_size = self.real_swarm_size + self.sitl_swarm_size
-            # drone_ids = range(101, 101 + self.swarm_size)
+            # self.real_swarm_size = int(self.real_drones_entry.get())
+            # self.sitl_swarm_size = int(self.sitl_drones_entry.get())
+            # self.swarm_size = self.real_swarm_size + self.sitl_swarm_size
+            # self.empty_swarm_dict = gtools.create_swarm_dict(
+            #     self.real_swarm_size, self.sitl_swarm_size
+            # )
+            # self.arm_status = {}  # Arm status of each drone in swarm
+            self.initialise_swarm()
         else:
             tk.messagebox.showinfo("Error", "Please enter an Int")
 
@@ -318,6 +326,16 @@ class App:
         self.start_comms_thread()
 
         self.generate_status_elements()
+
+    def initialise_swarm(self):
+        self.real_swarm_size = int(self.real_drones_entry.get())
+        self.sitl_swarm_size = int(self.sitl_drones_entry.get())
+        self.swarm_size = self.real_swarm_size + self.sitl_swarm_size
+        self.arm_status = gtools.create_swarm_dict(
+            self.real_swarm_size, self.sitl_swarm_size
+        )
+        for key in self.arm_status.keys():
+            self.arm_status[key] = False
 
     # Start the MQTT communication class in a new thread
     def start_comms_thread(self):
@@ -377,6 +395,7 @@ class App:
                     str(self.real_swarm_size),
                     str(self.sitl_swarm_size),
                     str(50041 + i),
+                    "L",
                 ],
                 cwd=os.getcwd(),
                 preexec_fn=os.setsid,
@@ -424,9 +443,13 @@ class App:
     def on_arm_status_update(self, agent, status):
         # messagebox.showinfo("Arm Status", status)
         if status == "True":
+            self.arm_status[agent] = True
             self.status_label[agent].config(text="ARMED")
             self.change_button_colour(self.activated_button_colour)
+            if all(self.arm_status.values()):
+                self.set_site_elevation()
         else:
+            self.arm_status[agent] = False
             self.status_label[agent].config(text="DISARMED")
             self.change_button_colour(self.normal_button_colour)
 
@@ -436,6 +459,15 @@ class App:
         self.hold_button.config(bg=colour)
         self.land_button.config(bg=colour)
         self.return_button.config(bg=colour)
+
+    def set_site_elevation(self):
+        altitudes_dict = {}
+        for key in self.comms.swarm_telemetry.keys():
+            altitudes_dict[key] = self.comms.swarm_telemetry[key].geodetic[2]
+
+        altitudes_list = list(altitudes_dict.values())
+        self.site_elevation = min(altitudes_list)
+        print(self.site_elevation)
 
     # sends mqtt commands to broker
     def send_command(self, command):
