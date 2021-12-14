@@ -34,6 +34,6 @@ output_1=[["P101", "P102", 0], ["P101", "P103", 0], ["P101", "P104", 0], ["P102"
 @pytest.mark.parametrize('swarm_telemetry, output',[
 	(swarm_telemetry_1,output_1)
 ])
-def test_proximity_check (swarm_telemtry, output):
+def test_proximity_check (swarm_telemetry, output):
 	min_proximity=2
 	assert proximity_check(swarm_telemetry, min_proximity)==output
