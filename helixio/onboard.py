@@ -1,5 +1,6 @@
 import sys
 import time
+import logging
 import numpy as np
 import asyncio
 import flocking
@@ -16,6 +17,8 @@ class Agent:
     def __init__(self):
         self.my_telem = AgentTelemetry()
         self.return_alt = 10
+        if CONST_LOGGING == True:
+            self.logger = setup_logger()
 
     async def run(self):
         self.drone = System(mavsdk_server_address="localhost", port=CONST_PORT)
@@ -51,30 +54,38 @@ class Agent:
 
     async def arm(self):
         print("ARMING")
-        await self.catch_action_error(self.drone.action.arm())
-        self.home_lat = self.my_telem.geodetic[0]
-        self.home_long = self.my_telem.geodetic[1]
+        self.logger.info("arming")
+        # if await self.catch_action_error(self.drone.action.arm()):
+        if await self.catch_action_error(self.drone.action.arm()):
+            self.home_lat = self.my_telem.geodetic[0]
+            self.home_long = self.my_telem.geodetic[1]
 
     async def takeoff(self):
         print("Taking Off")
         await self.catch_action_error(self.drone.action.set_takeoff_altitude(20))
+        self.logger.info("taking-off")
         await self.catch_action_error(self.drone.action.takeoff())
 
     async def hold(self):
         print("Hold")
+        self.logger.info("holding")
         await self.catch_action_error(self.drone.action.hold())
 
     async def land(self):
         print("Landing")
+        self.logger.info("landing")
         await self.catch_action_error(self.drone.action.land())
 
     async def catch_action_error(self, command):
         # Attempts to perform the action and if the command fails the error is reported through MQTT
         try:
             await command
+            return True
         except ActionError as error:
             print("Action Failed: ", error._result.result_str)
             self.report_error(error._result.result_str)
+            self.logger.error("Action Failed: ", error._result.result_str)
+            return False
 
     async def start_offboard(self, drone):
         print("-- Setting initial setpoint")
@@ -89,8 +100,9 @@ class Agent:
             )
             print("-- Disarming")
             self.report_error(error._result.result_str)
-            await drone.action.land()
-            await drone.action.disarm()
+            self.logger.error("Offboard failed to start: ", error._result.result_str)
+            await drone.action.hold()
+            print("could not start offboard")
             return
 
     async def simple_flocking(self):
@@ -99,7 +111,8 @@ class Agent:
         # End of Init the drone
         offboard_loop_duration = 0.1  # duration of each loop
 
-        await asyncio.sleep(2)
+        # commandting out to see result
+        # await asyncio.sleep(2)
         # Endless loop (Mission)
         while self.comms.current_command == "Simple Flocking":
             offboard_loop_start_time = time.time()
@@ -123,7 +136,18 @@ class Agent:
                     1,
                 )
             )
-
+            self.logger.info(
+                str(
+                    flocking.check_velocity(
+                        output_vel,
+                        self.my_telem,
+                        CONST_MAX_SPEED,
+                        0.0,
+                        offboard_loop_duration,
+                        1,
+                    )
+                )
+            )
             # Checking frequency of the loop
             await asyncio.sleep(
                 offboard_loop_duration - (time.time() - offboard_loop_start_time)
@@ -208,7 +232,7 @@ class Agent:
 
     # runs in background and upates state class with latest telemetry
     async def get_position(self, drone):
-        # set the rate of telemetry updates to 10Hz
+        # set the rate of telemetry updates to 50Hz
         await drone.telemetry.set_rate_position(50)
         async for position in drone.telemetry.position():
 
@@ -265,6 +289,17 @@ class Agent:
         self.comms.client.publish("errors", CONST_DRONE_ID + ": " + error)
 
 
+def setup_logger():
+    log_format = "%(levelname)s %(asctime)s - %(message)s"
+
+    logging.basicConfig(
+        filename="logfile.log", filemode="w", format=log_format, level=logging.INFO
+    )
+
+    logger = logging.getLogger()
+    return logger
+
+
 if __name__ == "__main__":
 
     # Takes command line arguments
@@ -273,6 +308,9 @@ if __name__ == "__main__":
     CONST_SITL_SWARM_SIZE = int(sys.argv[3])
     CONST_SWARM_SIZE = CONST_REAL_SWARM_SIZE + CONST_SITL_SWARM_SIZE
     CONST_PORT = int(sys.argv[4])
+    CONST_LOGGING = bool(
+        sys.argv[5]
+    )  # 5th argument should be empty for no logging and 'L' for logging enabled
     CONST_MAX_SPEED = 5
 
     # below are reference GPS coordinates used as the origin of the NED coordinate system
