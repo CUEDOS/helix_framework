@@ -1,4 +1,4 @@
-from helixio.gtools import alt_calc # importing the module we want to test its function (the test file should be in the same directory as module file)
+from helixio.gtools import alt_calc, proximity_check # importing the module we want to test its function (the test file should be in the same directory as module file)
 import pytest
 
 @pytest.mark.parametrize('dict_in, dict_out',[
@@ -29,7 +29,7 @@ swarm_telemetry["P101"].position_ned= [5,5,5]
 swarm_telemetry["P102"].position_ned= [5,5,5]
 swarm_telemetry["P103"].position_ned= [5,5,5]
 swarm_telemetry["P104"].position_ned= [5,5,5]
-output=swarm_telemetry
+output=[["P101", "P102", 0], ["P101", "P103", 0], ["P101", "P104", 0], ["P102", "P103", 0], ["P102", "P104", 0], ["P103", "P104", 0]]
 	
 @pytest.mark.parametrize('swarm_telem, output_dict',[
 	(swarm_telemetry,output)
