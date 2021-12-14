@@ -20,8 +20,8 @@ class AgentTelemetry:
     geodetic = [0, 0, 0]
     position_ned = [0, 0, 0]
     velocity_ned = [0, 0, 0]
-
-swarm_telemetry_1={"P101": None, "P102": None, "P103": None, "P104": None}
+# -------------Set1
+swarm_telemetry_1={"P101": None, "P102": None, "P103": None, "P104": None} #Set1: 4 drones, all at the same position
 for key in swarm_telemetry_1.keys():
     swarm_telemetry_1[key] = AgentTelemetry()
 
@@ -30,9 +30,22 @@ swarm_telemetry_1["P102"].position_ned= [5,5,5]
 swarm_telemetry_1["P103"].position_ned= [5,5,5]
 swarm_telemetry_1["P104"].position_ned= [5,5,5]
 output_1=[["P101", "P102", 0], ["P101", "P103", 0], ["P101", "P104", 0], ["P102", "P103", 0], ["P102", "P104", 0], ["P103", "P104", 0]]
+
+# --------------Set2
+swarm_telemetry_2={"P101": None, "P102": None, "P103": None, "P104": None, "P105": None} #Set2: 5 drones, different positions
+for key in swarm_telemetry_2.keys():
+    swarm_telemetry_2[key] = AgentTelemetry()
+
+swarm_telemetry_2["P101"].position_ned= [5.5,4.5,5]
+swarm_telemetry_2["P102"].position_ned= [10,7.2,8]
+swarm_telemetry_2["P103"].position_ned= [12,7.2,5]
+swarm_telemetry_2["P104"].position_ned= [-1,-1.5,-0.5]
+swarm_telemetry_2["P105"].position_ned= [5.3,5,4.9]
+output_1=[["P101", "P105", 0.3]]
 	
 @pytest.mark.parametrize('swarm_telemetry, output',[
-	(swarm_telemetry_1,output_1)
+	(swarm_telemetry_1,output_1),
+	(swarm_telemetry_2,output_2)
 ])
 def test_proximity_check (swarm_telemetry, output):
 	min_proximity=2
