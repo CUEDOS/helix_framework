@@ -89,8 +89,8 @@ class Agent:
             )
             print("-- Disarming")
             self.report_error(error._result.result_str)
-            await drone.action.land()
-            await drone.action.disarm()
+            await drone.action.hold()
+            print("could not start offboard")
             return
 
     async def simple_flocking(self):
@@ -99,7 +99,8 @@ class Agent:
         # End of Init the drone
         offboard_loop_duration = 0.1  # duration of each loop
 
-        await asyncio.sleep(2)
+        # commandting out to see result
+        # await asyncio.sleep(2)
         # Endless loop (Mission)
         while self.comms.current_command == "Simple Flocking":
             offboard_loop_start_time = time.time()
