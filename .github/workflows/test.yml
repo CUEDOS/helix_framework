@@ -2,7 +2,7 @@ on: push
 name: Continuous Integration On Pull
 jobs:
   build:
-    name: GitHub Action for pytest
+    name: PyTests
     runs-on: ubuntu-latest
     
     steps:
