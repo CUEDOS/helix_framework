@@ -1,5 +1,6 @@
 from helixio.gtools import alt_calc, proximity_check # importing the module we want to test its function (the test file should be in the same directory as module file)
 import pytest
+import numpy as np
 
 @pytest.mark.parametrize('dict_in, dict_out',[
 	({"P101":12, "P102":10, "P103":16, "P104":14, "P105":20, "P106":18}, {"P101":13.5, "P102":12.5, "P103":15.5, "P104":14.5, "P105":17.5, "P106":16.5}), # Set1: even number of drones
@@ -41,7 +42,7 @@ swarm_telemetry_2["P102"].position_ned= [10,7.2,8]
 swarm_telemetry_2["P103"].position_ned= [12,7.2,5]
 swarm_telemetry_2["P104"].position_ned= [-1,-1.5,-0.5]
 swarm_telemetry_2["P105"].position_ned= [5.3,5,4.9]
-output_1=[["P101", "P105", 0.3]]
+output_2=[["P101", "P105", np.linalg.norm([0.2, 0.5, 0.1])]]
 	
 @pytest.mark.parametrize('swarm_telemetry, output',[
 	(swarm_telemetry_1,output_1),
