@@ -1,7 +1,7 @@
 from helixio.gtools import alt_calc, proximity_check # importing the module we want to test its function (the test file should be in the same directory as module file)
 import pytest
 import numpy as np
-import math
+from math import sqrt
 
 @pytest.mark.parametrize('dict_in, dict_out',[
 	({"P101":12, "P102":10, "P103":16, "P104":14, "P105":20, "P106":18}, {"P101":13.5, "P102":12.5, "P103":15.5, "P104":14.5, "P105":17.5, "P106":16.5}), # Set1: even number of drones
