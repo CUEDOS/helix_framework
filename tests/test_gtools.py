@@ -111,14 +111,29 @@ swarm_telemetry_3["P102"].position_ned = [-6, -7.2, -8]
 swarm_telemetry_3["P103"].position_ned = [-10, -7.2, -5]
 swarm_telemetry_3["P104"].position_ned = [-11, -8.2, -6]
 swarm_telemetry_3["P105"].position_ned = [5.3, 5, 4.9]
-swarm_telemetry_3["P105"].position_ned = [-5.3, -5, -4.9]
+swarm_telemetry_3["P106"].position_ned = [-5.3, -5, -4.9]
 output_3 = [["P101", "P106", np.linalg.norm([0.2, 0.5, 0.1])],["P103", "P104", np.linalg.norm([1, 1, 1])]]
+
+# Set4: 7 drones---------------------------
+swarm_telemetry_4 = {"P101": None, "P102": None, "P103": None,"P104": None,"P105": None, "P106": None, "P107": None}  
+for key in swarm_telemetry_4.keys():
+    swarm_telemetry_4[key] = AgentTelemetry()
+
+swarm_telemetry_4["P101"].position_ned = [1, 1.5, 2]
+swarm_telemetry_4["P102"].position_ned = [-1, -1.5, 2]
+swarm_telemetry_4["P103"].position_ned = [2.2, 2.7, 3.2]
+swarm_telemetry_4["P104"].position_ned = [-2.2, -2.7, -3.2]
+swarm_telemetry_4["P105"].position_ned = [3.4, 3.9, 4.4]
+swarm_telemetry_4["P106"].position_ned = [-3.4, -3.9, -4.4]
+swarm_telemetry_4["P106"].position_ned = [0, 0, 0]
+output_4 = []
 
 @pytest.mark.parametrize(
     "swarm_telemetry, output",
     [(swarm_telemetry_1, output_1), 
      (swarm_telemetry_2, output_2),
-     (swarm_telemetry_3, output_3)]
+     (swarm_telemetry_3, output_3),
+     (swarm_telemetry_4, output_4)]
     
 )
 def test_proximity_check(swarm_telemetry, output):
