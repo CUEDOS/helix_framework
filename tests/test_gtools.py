@@ -109,10 +109,10 @@ for key in swarm_telemetry_3.keys():
 swarm_telemetry_3["P101"].position_ned = [-5.5, -4.5, -5]
 swarm_telemetry_3["P102"].position_ned = [-6, -7.2, -8]
 swarm_telemetry_3["P103"].position_ned = [-10, -7.2, -5]
-swarm_telemetry_3["P104"].position_ned = [-11, -8.2, -6]
+swarm_telemetry_3["P104"].position_ned = [-11.1, -8.3, -6.1]
 swarm_telemetry_3["P105"].position_ned = [5.3, 5, 4.9]
 swarm_telemetry_3["P106"].position_ned = [-5.3, -5, -4.9]
-output_3 = [["P101", "P106", np.linalg.norm([0.2, 0.5, 0.1])],["P103", "P104", np.linalg.norm(np.array([-1.0, -1.0, -1.0]))]]
+output_3 = [["P101", "P106", np.linalg.norm([0.2, 0.5, 0.1])],["P103", "P104", np.linalg.norm(np.array([1.1, 1.1, 1.1]))]]
 
 # Set4: 7 drones---------------------------
 swarm_telemetry_4 = {"P101": None, "P102": None, "P103": None,"P104": None,"P105": None, "P106": None, "P107": None}  
