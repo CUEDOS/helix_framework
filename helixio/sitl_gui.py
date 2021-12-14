@@ -257,7 +257,7 @@ class App:
             self.alt_dict[key] = self.comms.swarm_telemetry[key].geodetic[2]
             print(self.comms.swarm_telemetry[key].geodetic[0])
 
-        output_alt_dict = gtools.alt_calc(self.alt_dict)
+        output_alt_dict = gtools.alt_calc(self.alt_dict, self.site_elevation)
         print(output_alt_dict)
         for key in output_alt_dict:
             self.comms.client.publish(key + "/home/altitude", str(output_alt_dict[key]))

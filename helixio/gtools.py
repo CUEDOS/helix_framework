@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def alt_calc(alt_dict):
+def alt_calc(alt_dict, site_elevation):
     """
     Parameters
     ------------
@@ -12,7 +12,6 @@ def alt_calc(alt_dict):
     output_dict: Dict(key:drone_index (string), value: altitude (float))
     """
     # print("alt_dict=", alt_dict)
-    site_elevation = 0  # 488
     alt_lims = np.array(
         [10, 100]
     )  # in meters - min return altitude above launch altitude
@@ -45,6 +44,7 @@ def alt_calc(alt_dict):
         alt_return_dict[idx] = alts[i]
 
     return alt_return_dict
+
 
 def proximity_check(swarm_telemetry, min_proximity):
     """
