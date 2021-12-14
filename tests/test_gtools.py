@@ -1,7 +1,4 @@
-from helixio.gtools import (
-    alt_calc,
-    proximity_check,
-)  # importing the module we want to test its function (the test file should be in the same directory as module file)
+from helixio.gtools import (alt_calc,proximity_check,)  # importing the module we want to test its function (the test file should be in the same directory as module file)
 import pytest
 import numpy as np
 from helixio.communication import AgentTelemetry
