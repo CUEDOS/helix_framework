@@ -21,7 +21,7 @@ class AgentTelemetry:
     position_ned = [0, 0, 0]
     velocity_ned = [0, 0, 0]
 
-swarm_telemetry{"P101": None, "P102": None, "P103": None, "P104": None}
+swarm_telemetry={"P101": None, "P102": None, "P103": None, "P104": None}
 for key in swarm_telemetry.keys():
     swarm_telemetry[key] = AgentTelemetry()
 
