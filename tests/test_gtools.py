@@ -123,7 +123,6 @@ for key in alt_return_dict_2.keys():
     ],
 )
 def test_alt_calc(dict_in, dict_out):
-    site_elevation=480
     assert alt_calc(dict_in,site_elevation) == dict_out
 
 
