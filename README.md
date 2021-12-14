@@ -1,5 +1,6 @@
-<img src="https://github.com/CUEDOS/cascade-demo/blob/main/img/HelixioLogoFinal.svg" alt="" />
+[![CI On Pull](https://github.com/CUEDOS/helixio/actions/workflows/test.yml/badge.svg)](https://github.com/CUEDOS/helixio/actions/workflows/test.yml)
 
+<img src="https://github.com/CUEDOS/cascade-demo/blob/main/img/HelixioLogoFinal.svg" alt="" />
 
 <!-- TABLE OF CONTENTS -->
 <details>
