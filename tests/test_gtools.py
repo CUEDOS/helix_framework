@@ -3,16 +3,17 @@ import pytest
 import numpy as np
 from helixio.communication import AgentTelemetry
 from math import sqrt
-
+# Set1 (even number of drones)----------------------------------------------
+alt_dict_1={"P101":12, "P102":10, "P103":16, "P104":14, "P105":20, "P106":18}
+alt_return_dict_1={"P101":13.5, "P102":12.5, "P103":15.5, "P104":14.5, "P105":17.5, "P106":16.5}
+#Set2 (even number of drones, two same altitudes) --------------------------
+alt_dict_2={"P101":12, "P102":10, "P103":15, "P104":15, "P105":20, "P106":18}
+alt_return_dict_2={"P101":13.5, "P102":12.5, "P103":14.5, "P104":15.5, "P105":17.5, "P106":16.5}
 
 @pytest.mark.parametrize(
     "dict_in, dict_out",
-    [
-        ({"P101": 12, "P102": 10, "P103": 16, "P104": 14, "P105": 20, "P106": 18},
-            {"P101": 13.5, "P102": 12.5,"P103": 15.5, "P104": 14.5,"P105": 17.5, "P106": 16.5},),  # Set1: even number of drones
-        ({"P101": 12, "P102": 10, "P103": 15, "P104": 15, "P105": 20, "P106": 18},
-            {"P101": 13.5,"P102": 12.5,"P103": 14.5, "P104": 15.5,"P105": 17.5,"P106": 16.5},
-        ),  # Set2: even number of drones, two same altitudes
+    [(alt_dict_1,alt_return_dict_1),
+     (alt_dict_2,alt_return_dict_2),
         (
             {
                 "P101": 3,
