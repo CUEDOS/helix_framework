@@ -47,8 +47,12 @@ def test_alt_calc(dict_in, site_elevation, dict_out):
 @pytest.mark.parametrize(
     "positions, min_proximity, output",
     [([[5, 5, 5], [5, 5, 5], [5, 5, 5], [5, 5, 5]], # input Set1: 4 drones with the same position
-      2, # min_proximity
+      2, # min_proximity Set1
       [["P101", "P102", 0],["P101", "P103", 0],["P101", "P104", 0],["P102", "P103", 0],["P102", "P104", 0],["P103", "P104", 0]]), # output Set1
+     
+     ([[5.5, 4.5, 5], [6, 7.2, 8], [10, 7.2, 5],[-1, -1.5, -0.5],[5.3, 5, 4.9]], # input Set2: 5 drones
+      2,# min_proximity Set2
+      [["P101", "P105",0.548]]),# output Set2
 ]   
 )
 
