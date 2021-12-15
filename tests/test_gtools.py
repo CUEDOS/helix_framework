@@ -100,7 +100,7 @@ swarm_telemetry_2["P102"].position_ned = [6, 7.2, 8]
 swarm_telemetry_2["P103"].position_ned = [10, 7.2, 5]
 swarm_telemetry_2["P104"].position_ned = [-1, -1.5, -0.5]
 swarm_telemetry_2["P105"].position_ned = [5.3, 5, 4.9]
-output_2 = [["P101", "P105",0.547]]
+output_2 = [["P101", "P105",0.548]]
 
 # Set3: 6 drones---------------------------
 swarm_telemetry_3 = {"P101": None, "P102": None, "P103": None,"P104": None,"P105": None, "P106": None}  
@@ -113,7 +113,7 @@ swarm_telemetry_3["P103"].position_ned = [-10, -7.2, -5]
 swarm_telemetry_3["P104"].position_ned = [-11.1, -8.3, -6.1]
 swarm_telemetry_3["P105"].position_ned = [5.3, 5, 4.9]
 swarm_telemetry_3["P106"].position_ned = [-5.3, -5, -4.9]
-output_3 = [["P101", "P106",0.5480],["P103", "P104", 1.9050]]
+output_3 = [["P101", "P106",0.548],["P103", "P104", 1.905]]
 
 # Set4: 7 drones---------------------------
 swarm_telemetry_4 = {"P101": None, "P102": None, "P103": None,"P104": None,"P105": None, "P106": None, "P107": None}  
@@ -142,6 +142,5 @@ def test_proximity_check(swarm_telemetry, output):
     Function_output=proximity_check(swarm_telemetry, min_proximity)
     for value in Function_output:
         value[2]=round(value[2],3)
-    print(Function_output)
     
     assert  Function_output== output
