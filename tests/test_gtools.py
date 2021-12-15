@@ -58,7 +58,7 @@ def test_proximity_check(positions, min_proximity, output):
     for i in range(1, n):
         agent = AgentTelemetry();
         agent.ned = positions[i]
-        swarm_telem[i] = agent 
+        swarm_telem["P" + str(100+ i)] = agent 
         
     Function_output=proximity_check(swarm_telem, min_proximity)
     for value in Function_output:
