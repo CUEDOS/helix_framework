@@ -60,7 +60,7 @@ def test_proximity_check(positions, min_proximity, output):
         agent.ned = positions[i]
         swarm_telem[i] = agent 
         
-    Function_output=proximity_check(swarm_telemetry, min_proximity)
+    Function_output=proximity_check(swarm_telem, min_proximity)
     for value in Function_output:
         value[2]=round(value[2],3)
     
