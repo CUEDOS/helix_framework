@@ -55,12 +55,12 @@ def test_alt_calc(dict_in, site_elevation, dict_out):
       [["P101", "P105",0.548]]),# output Set2
      
      ([[-5.5, -4.5, -5],[-6, -7.2, -8], [-10, -7.2, -5], [-11.1, -8.3, -6.1], [5.3, 5, 4.9], [-5.3, -5, -4.9]],# input Set3: 6 drones
-     2,# min_proximity Set3
+      2,# min_proximity Set3
       [["P101", "P106",0.548],["P103", "P104", 1.905]])
      
      ([[1, 1.5, 2], [-1, -1.5, 2], [2.2, 2.7, 3.2], [-2.2, -2.7, -3.2], [3.4, 3.9, 4.4], [-3.4, -3.9, -4.4], [0, 0, 0]],
-     2, # min_proximity Set4
-     []) #output Set4
+      2, # min_proximity Set4
+      []) #output Set4
 ]   
 )
 
