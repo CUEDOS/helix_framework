@@ -113,7 +113,7 @@ swarm_telemetry_3["P103"].position_ned = [-10, -7.2, -5]
 swarm_telemetry_3["P104"].position_ned = [-11.1, -8.3, -6.1]
 swarm_telemetry_3["P105"].position_ned = [5.3, 5, 4.9]
 swarm_telemetry_3["P106"].position_ned = [-5.3, -5, -4.9]
-output_3 = [["P101", "P106",0.547],["P103", "P104", 1.905]]
+output_3 = [["P101", "P106",0.548],["P103", "P104", 1.906]]
 
 # Set4: 7 drones---------------------------
 swarm_telemetry_4 = {"P101": None, "P102": None, "P103": None,"P104": None,"P105": None, "P106": None, "P107": None}  
