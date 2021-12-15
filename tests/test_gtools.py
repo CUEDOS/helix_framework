@@ -4,16 +4,7 @@ import numpy as np
 from helixio.communication import AgentTelemetry
 from math import sqrt
 
-# test of alt_dict function ----------------------------------------------------------------------------------------------------------------------------------
-   
-# Set6: 7 drones, three & two same altitudes, huge differences -----------------
-alt_dict_6={"P101":1000, "P102":0, "P103":1, "P104":1, "P105":1, "P106":20000, "P107":0}
-alt_return_dict_6={"P101":99, "P102":94, "P103":96, "P104":97, "P105":98, "P106":100, "P107":95}
-
- 
-#Set7:# 10 drones, four & two same altitudes  ----------------------------------
-alt_dict_7={"P101":3, "P102":2, "P103":4, "P104":3, "P105":3, "P106":3, "P107":9.5, "P108":3, "P109":11, "P110":2}
-alt_return_dict_7={"P101":12, "P102":10, "P103":17, "P104":13, "P105":14, "P106":15, "P107":18, "P108":16, "P109":19, "P110":11}
+# test of alt_dict function ------------------------------------------------------------------------------------------------------------------------------------
 
 @pytest.mark.parametrize(
     "dict_in, site_elevation, dict_out",
@@ -34,15 +25,16 @@ alt_return_dict_7={"P101":12, "P102":10, "P103":17, "P104":13, "P105":14, "P106"
       {"P101": 8, "P102": 7, "P103": 10, "P104": 9, "P105": 6}), # output Set4
      
      ({"P101": 0, "P102": 0, "P103": 0, "P104": 0, "P105": 0, "P106": 0, "P107": 0, "P108": 0}, # input Set5: 8 drones, all same altitudes
-      -20, 
+      -20, # site_elevation Set5
       {"P101": -3.5, "P102": -2.5, "P103": -1.5, "P104": -0.5, "P105": 0.5, "P106": 1.5, "P107": 2.5, "P108": 3.5}), # output Set5
      
-     (alt_dict_6, 
-      30, 
-      alt_return_dict_6),
-     (alt_dict_7, 
-      1000, 
-      alt_return_dict_7)]
+     ({"P101": 1030, "P102": 30, "P103": 31, "P104": 31, "P105": 31, "P106": 20030, "P107": 30}, # input Set6: 7 drones, three & two same altitudes, huge differences
+      30, # site_elevation Set6
+      {"P101": 129, "P102": 124, "P103": 126, "P104": 127, "P105": 128, "P106": 130, "P107": 125}),
+     
+     ({"P101": 1003, "P102": 1002, "P103": 1004, "P104": 1003, "P105": 1003, "P106": 1003, "P107": 1009.5, "P108": 1003, "P109": 1011, "P110": 1002}, #input Set7:# 10 drones, four & two same altitudes
+      1000, # site_elevation Set7
+      {"P101": 1012, "P102": 1010, "P103": 1017, "P104": 1013, "P105": 1014, "P106": 1015, "P107": 1018, "P108": 1016, "P109": 1019, "P110": 1011})]
 )
 
 def test_alt_calc(dict_in, site_elevation, dict_out):
@@ -115,74 +107,4 @@ def test_proximity_check(swarm_telemetry, output):
         value[2]=round(value[2],3)
     
     assert  Function_output== output
-    
-    
-    
-    # New code lots of errors, need fixing
-
-
-# -------------Set1
-
-swarm_telemetry_1 = {
-    "P101": None,
-    "P102": None,
-    "P103": None,
-    "P104": None,
-}  # Set1: 4 drones, all at the same position
-for key in swarm_telemetry_1.keys():
-    swarm_telemetry_1[key] = AgentTelemetry()
-
-swarm_telemetry_1["P101"].position_ned = [5, 5, 5]
-swarm_telemetry_1["P102"].position_ned = [5, 5, 5]
-swarm_telemetry_1["P103"].position_ned = [5, 5, 5]
-swarm_telemetry_1["P104"].position_ned = [5, 5, 5]
-output_1 = [
-    ["P101", "P102", 0],
-    ["P101", "P103", 0],
-    ["P101", "P104", 0],
-    ["P102", "P103", 0],
-    ["P102", "P104", 0],
-    ["P103", "P104", 0],
-]
-
-# --------------Set2
-swarm_telemetry_2 = {
-    "P101": None,
-    "P102": None,
-    "P103": None,
-    "P104": None,
-    "P105": None,
-}  # Set2: 5 drones, different positions
-for key in swarm_telemetry_2.keys():
-    swarm_telemetry_2[key] = AgentTelemetry()
-
-
-output_2 = [
-    ["P101", "P105", np.linalg.norm([0.2, 0.5, 0.1])]
-]  # output_2=[["P101", "P105", sqrt(0.3)]]
-
-
-@pytest.mark.parametrize(
-    "positions, min_proximity, output",
-    [
-        (
-            [[5.5, 4.5, 5]
-            [10, 7.2, 8]
-            [12, 7.2, 5]
-            [-1, -1.5, -0.5]
-            [5.3, 5, 4.9]],
-            2,
-            
-        )
-    ],
-)
-def test_proximity_check(positions, min_proximity, output):
-    n = len(posiitons)
-    swarm_telem = {}
-    for i in range(1, n):
-        agent = AgentTelemetry();
-        agent.ned = position(i)
-        swarm_telem[i] = agent 
-    
-    assert proximity_check(swarm_telemetry, min_proximity) == output
 
