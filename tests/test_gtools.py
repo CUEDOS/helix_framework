@@ -53,7 +53,7 @@ def test_alt_calc(dict_in, site_elevation, dict_out):
 )
 
 def test_proximity_check(positions, min_proximity, output):
-    n = len(posiitons)
+    n = len(positions)
     swarm_telem = {}
     for i in range(1, n):
         agent = AgentTelemetry();
