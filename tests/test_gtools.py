@@ -73,6 +73,7 @@ for key in alt_dict_7.keys():
      (alt_dict_6,alt_return_dict_6),
      (alt_dict_7,alt_return_dict_7)]
 )
+
 def test_alt_calc(dict_in, dict_out):
     assert alt_calc(dict_in,site_elevation) == dict_out
 
@@ -133,9 +134,13 @@ output_4 = []
     [(swarm_telemetry_1, output_1), 
      (swarm_telemetry_2, output_2),
      (swarm_telemetry_3, output_3),
-     (swarm_telemetry_4, output_4)]
-    
+     (swarm_telemetry_4, output_4)]   
 )
+
 def test_proximity_check(swarm_telemetry, output):
     min_proximity = 2
-    assert  proximity_check(swarm_telemetry, min_proximity)== output
+    Function_output=proximity_check(swarm_telemetry, min_proximity)
+    for value in Function_output:
+        value[2]=round(value[2],3)
+    
+    assert  Function_output== output
