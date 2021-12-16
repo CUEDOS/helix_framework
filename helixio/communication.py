@@ -124,8 +124,12 @@ class DroneCommunication(Communication):
         client.subscribe("+/telemetry/+")
         client.subscribe("commands")
         client.subscribe("+/home/altitude")
+        client.publish(self.id + "/connection_status", 1, retain=True)
+        # set message to be sent when connection is lost
+        client.will_set(self.id + "/connection_status", 0, qos=0, retain=True)
 
     def on_disconnect(self, client, userdata, rc):
+        client.publish(self.id + "/connection_status", 0, retain=True)
         self.connected = False
         self.activate_callback("disconnect")
 
