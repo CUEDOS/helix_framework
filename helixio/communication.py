@@ -52,6 +52,7 @@ class Communication:
         print("MQTT connected to broker with result code " + str(rc))
         self.connected = True
         client.subscribe("+/telemetry/+")
+        client.subscribe("+/connection_status")
 
     def on_disconnect(self, client, userdata, rc):
         self.connected = False
@@ -113,7 +114,7 @@ class DroneCommunication(Communication):
         )
         self.client.message_callback_add("commands", self.on_message_command)
         self.client.connect_async(
-            "localhost", 1883, 60
+            "localhost", 1883, keepalive=1
         )  # change localhost to IP of broker
         self.client.on_connect = self.on_connect
         self.client.on_disconnect = self.on_disconnect
@@ -171,11 +172,19 @@ class GroundCommunication(Communication):
         self.client.message_callback_add(
             "+/telemetry/arm_status", self.on_message_arm_status
         )
+        self.client.message_callback_add(
+            "+/connection_status", self.on_message_connection_status
+        )
         self.client.connect_async(
             "localhost", 1883, 60
         )  # change localhost to IP of broker
         self.client.on_connect = self.on_connect
         self.client.loop_start()
+
+    def on_message_connection_status(self, mosq, obj, msg):
+        print("connection lost")
+        # if msg.payload.decode() == 0:
+        #     print("connection lost")
 
     def on_message_arm_status(self, mosq, obj, msg):
         agent = msg.topic[0:4]

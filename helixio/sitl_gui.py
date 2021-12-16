@@ -310,13 +310,6 @@ class App:
         if self.validate_int(self.real_drones_entry.get()) and self.validate_int(
             self.sitl_drones_entry.get()
         ):
-            # self.real_swarm_size = int(self.real_drones_entry.get())
-            # self.sitl_swarm_size = int(self.sitl_drones_entry.get())
-            # self.swarm_size = self.real_swarm_size + self.sitl_swarm_size
-            # self.empty_swarm_dict = gtools.create_swarm_dict(
-            #     self.real_swarm_size, self.sitl_swarm_size
-            # )
-            # self.arm_status = {}  # Arm status of each drone in swarm
             self.initialise_swarm()
         else:
             tk.messagebox.showinfo("Error", "Please enter an Int")
