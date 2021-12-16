@@ -18,3 +18,4 @@ helixio/config.txt
 helixio/__pycache__/communication.cpython-37.pyc
 helixio/__pycache__/flocking.cpython-37.pyc
 helixio/__pycache__/gtools.cpython-37.pyc
+*.txt
