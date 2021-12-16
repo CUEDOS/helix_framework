@@ -114,6 +114,7 @@ class DroneCommunication(Communication):
             "localhost", 1883, 60
         )  # change localhost to IP of broker
         self.client.on_connect = self.on_connect
+        self.client.on_disconnect = self.on_disconnect
         self.client.loop_start()
 
     def on_connect(self, client, userdata, flags, rc):
@@ -121,6 +122,10 @@ class DroneCommunication(Communication):
         client.subscribe("+/telemetry/+")
         client.subscribe("commands")
         client.subscribe("+/home/altitude")
+
+    def on_disconnect(self, client, userdata, rc):
+        self.connected = False
+        self.activate_callback("disconnect")
 
     def on_message_command(self, mosq, obj, msg):
         print("received command")
@@ -138,8 +143,6 @@ class DroneCommunication(Communication):
 
     def activate_callback(self, command):
         print("activating callback")
-        # asyncio.run(self.command_functions[command]())
-        # self.command_functions[command]()
         asyncio.ensure_future(self.command_functions[command](), loop=self.event_loop)
 
 
