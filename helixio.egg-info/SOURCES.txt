@@ -1,0 +1,13 @@
+README.md
+setup.py
+helixio/__init__.py
+helixio/communication.py
+helixio/flocking.py
+helixio/gtools.py
+helixio/onboard.py
+helixio/sitl_gui.py
+helixio.egg-info/PKG-INFO
+helixio.egg-info/SOURCES.txt
+helixio.egg-info/dependency_links.txt
+helixio.egg-info/requires.txt
+helixio.egg-info/top_level.txt
