@@ -81,12 +81,12 @@ class Communication:
         # time.sleep(1)  # simulating comm latency
         self.swarm_telemetry[msg.topic[0:4]].velocity_ned = velocity
 
-    def bind_callback(self, callback):
-        self.observers.append(callback)
+    # def bind_callback(self, callback):
+    #     self.observers.append(callback)
 
-    def activate_callback(self, agent, data):
-        for callback in self.observers:
-            callback(agent, data)
+    # def activate_callback(self, agent, data):
+    #     for callback in self.observers:
+    #         callback(agent, data)
 
 
 # Inherits from Communication class, overriding methods specific to drones.
@@ -113,6 +113,8 @@ class DroneCommunication(Communication):
             self.id + "/home/altitude", self.on_message_home
         )
         self.client.message_callback_add("commands", self.on_message_command)
+        # set message to be sent when connection is lost
+        self.client.will_set(self.id + "/connection_status", 0, qos=0, retain=True)
         self.client.connect_async(
             "localhost", 1883, keepalive=1
         )  # change localhost to IP of broker
@@ -126,8 +128,6 @@ class DroneCommunication(Communication):
         client.subscribe("commands")
         client.subscribe("+/home/altitude")
         client.publish(self.id + "/connection_status", 1, retain=True)
-        # set message to be sent when connection is lost
-        client.will_set(self.id + "/connection_status", 0, qos=0, retain=True)
 
     def on_disconnect(self, client, userdata, rc):
         client.publish(self.id + "/connection_status", 0, retain=True)
@@ -182,11 +182,23 @@ class GroundCommunication(Communication):
         self.client.loop_start()
 
     def on_message_connection_status(self, mosq, obj, msg):
-        print("connection lost")
-        # if msg.payload.decode() == 0:
-        #     print("connection lost")
+        print("connection status updated")
+        agent = msg.topic[0:4]
+        if msg.payload.decode() == "0":
+            print(agent, " lost connection")
+            self.activate_callback("connection_status", agent, False)
+        else:
+            self.activate_callback("connection_status", agent, True)
 
     def on_message_arm_status(self, mosq, obj, msg):
         agent = msg.topic[0:4]
         self.swarm_telemetry[agent].arm_status = msg.payload.decode()
-        self.activate_callback(agent, self.swarm_telemetry[agent].arm_status)
+        self.activate_callback(
+            "arm_status", agent, self.swarm_telemetry[agent].arm_status
+        )
+
+    def bind_callback_functions(self, callback_functions):
+        self.callback_functions = callback_functions
+
+    def activate_callback(self, callback, agent, status):
+        self.callback_functions[callback](agent, status)

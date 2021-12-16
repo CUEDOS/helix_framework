@@ -337,11 +337,13 @@ class App:
             target=asyncio.run, args=(self.comms.run_comms(),), daemon=True
         )
         self.comms_thread.start()
-        self.add_comms_callbacks()
+        callback_functions = {
+            "arm_status": self.on_arm_status_update,
+            "connection_status": self.on_connection_status_update,
+        }
 
-    # Bind callback methods to comms updates
-    def add_comms_callbacks(self):
-        self.comms.bind_callback(self.on_arm_status_update)
+        # Bind the callbacks
+        self.comms.bind_callback_functions(callback_functions)
 
     def start_gazebo(self):
         self.gazebo_process = subprocess.Popen(
@@ -445,6 +447,12 @@ class App:
             self.arm_status[agent] = False
             self.status_label[agent].config(text="DISARMED")
             self.change_button_colour(self.normal_button_colour)
+
+    def on_connection_status_update(self, agent, status):
+        if status == False:
+            self.send_command("hold")
+            self.experiment_running = False
+            print(agent, " lost connection: holding")
 
     def change_button_colour(self, colour):
         self.takeoff_button.config(bg=colour)
