@@ -15,6 +15,7 @@ class Communication:
 
     def __init__(self, real_swarm_size, sitl_swarm_size):
         self.create_dict(real_swarm_size, sitl_swarm_size)
+        self.connected = False
 
     def create_dict(self, real_swarm_size, sitl_swarm_size):
         self.swarm_telemetry = gtools.create_swarm_dict(
@@ -37,6 +38,7 @@ class Communication:
             "localhost", 1883, 60
         )  # change localhost to IP of broker
         self.client.on_connect = self.on_connect
+        self.client.on_disconnect = self.on_disconnect
         self.client.loop_start()
 
     def close(self):
@@ -46,7 +48,11 @@ class Communication:
     # callback triggeed on connection to MQTT
     def on_connect(self, client, userdata, flags, rc):
         print("MQTT connected to broker with result code " + str(rc))
+        self.connected = True
         client.subscribe("+/telemetry/+")
+
+    def on_disconnect(self, client, userdata, rc):
+        self.connected = False
 
     def on_message_geodetic(self, mosq, obj, msg):
         # Remove none numeric parts of string and then split into north east and down
@@ -83,6 +89,7 @@ class Communication:
 # Inherits from Communication class, overriding methods specific to drones.
 class DroneCommunication(Communication):
     def __init__(self, real_swarm_size, sitl_swarm_size, id):
+        self.connected = False
         self.id = id
         self.command_functions = {}
         self.current_command = "none"
@@ -138,6 +145,7 @@ class DroneCommunication(Communication):
 
 class GroundCommunication(Communication):
     def __init__(self, real_swarm_size, sitl_swarm_size):
+        self.connected = False
         self.observers = []
         self.create_dict(real_swarm_size, sitl_swarm_size)
 
