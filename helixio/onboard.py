@@ -54,8 +54,8 @@ class Agent:
         self.comms.bind_command_functions(command_functions, event_loop)
 
     async def on_disconnect(self):
-        print("connection lost, timeout in 5s")
-        await asyncio.sleep(5)
+        print("connection lost, timeout in 1s")
+        await asyncio.sleep(1)
         if self.comms.connected == False:
             await self.catch_action_error(self.drone.action.hold())
             print("connection lost: holding")
