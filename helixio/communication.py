@@ -1,5 +1,4 @@
 import asyncio
-import helixio.gtools as gtools
 import paho.mqtt.client as mqtt
 
 
@@ -8,6 +7,9 @@ class AgentTelemetry:
     geodetic = [0, 0, 0]
     position_ned = [0, 0, 0]
     velocity_ned = [0, 0, 0]
+
+
+import gtools  # Imported after defining AgentTelemetry to avoid cyclical import when testing
 
 
 class Communication:
