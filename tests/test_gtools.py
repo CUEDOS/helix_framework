@@ -224,7 +224,7 @@ def test_alt_calc(dict_in, site_elevation, dict_out):
             ],
             2,  # min_proximity Set4
             [],
-        ),  # output Set4
+        ),  # output Set 4
     ],
 )
 def test_proximity_check(positions, min_proximity, output):
