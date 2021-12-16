@@ -47,10 +47,18 @@ class Agent:
             "hold": self.hold,
             "return": self.return_to_home,
             "land": self.land,
+            "disconnect": self.on_disconnect,
         }
 
         # Bind the callbacks
         self.comms.bind_command_functions(command_functions, event_loop)
+
+    async def on_disconnect(self):
+        print("connection lost, timeout in 1s")
+        await asyncio.sleep(1)
+        if self.comms.connected == False:
+            await self.catch_action_error(self.drone.action.hold())
+            print("connection lost: holding")
 
     async def arm(self):
         print("ARMING")

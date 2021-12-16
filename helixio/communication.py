@@ -1,6 +1,6 @@
 import asyncio
-import helixio.gtools as gtools
 import paho.mqtt.client as mqtt
+import helixio.gtools as gtools
 
 
 class AgentTelemetry:
@@ -15,6 +15,7 @@ class Communication:
 
     def __init__(self, real_swarm_size, sitl_swarm_size):
         self.create_dict(real_swarm_size, sitl_swarm_size)
+        self.connected = False
 
     def create_dict(self, real_swarm_size, sitl_swarm_size):
         self.swarm_telemetry = gtools.create_swarm_dict(
@@ -37,6 +38,7 @@ class Communication:
             "localhost", 1883, 60
         )  # change localhost to IP of broker
         self.client.on_connect = self.on_connect
+        self.client.on_disconnect = self.on_disconnect
         self.client.loop_start()
 
     def close(self):
@@ -46,7 +48,12 @@ class Communication:
     # callback triggeed on connection to MQTT
     def on_connect(self, client, userdata, flags, rc):
         print("MQTT connected to broker with result code " + str(rc))
+        self.connected = True
         client.subscribe("+/telemetry/+")
+        client.subscribe("+/connection_status")
+
+    def on_disconnect(self, client, userdata, rc):
+        self.connected = False
 
     def on_message_geodetic(self, mosq, obj, msg):
         # Remove none numeric parts of string and then split into north east and down
@@ -72,17 +79,18 @@ class Communication:
         # time.sleep(1)  # simulating comm latency
         self.swarm_telemetry[msg.topic[0:4]].velocity_ned = velocity
 
-    def bind_callback(self, callback):
-        self.observers.append(callback)
+    # def bind_callback(self, callback):
+    #     self.observers.append(callback)
 
-    def activate_callback(self, agent, data):
-        for callback in self.observers:
-            callback(agent, data)
+    # def activate_callback(self, agent, data):
+    #     for callback in self.observers:
+    #         callback(agent, data)
 
 
 # Inherits from Communication class, overriding methods specific to drones.
 class DroneCommunication(Communication):
     def __init__(self, real_swarm_size, sitl_swarm_size, id):
+        self.connected = False
         self.id = id
         self.command_functions = {}
         self.current_command = "none"
@@ -103,10 +111,13 @@ class DroneCommunication(Communication):
             self.id + "/home/altitude", self.on_message_home
         )
         self.client.message_callback_add("commands", self.on_message_command)
+        # set message to be sent when connection is lost
+        self.client.will_set(self.id + "/connection_status", 0, qos=0, retain=True)
         self.client.connect_async(
-            "localhost", 1883, 60
+            "localhost", 1883, keepalive=1
         )  # change localhost to IP of broker
         self.client.on_connect = self.on_connect
+        self.client.on_disconnect = self.on_disconnect
         self.client.loop_start()
 
     def on_connect(self, client, userdata, flags, rc):
@@ -114,6 +125,12 @@ class DroneCommunication(Communication):
         client.subscribe("+/telemetry/+")
         client.subscribe("commands")
         client.subscribe("+/home/altitude")
+        client.publish(self.id + "/connection_status", 1, retain=True)
+
+    def on_disconnect(self, client, userdata, rc):
+        client.publish(self.id + "/connection_status", 0, retain=True)
+        self.connected = False
+        self.activate_callback("disconnect")
 
     def on_message_command(self, mosq, obj, msg):
         print("received command")
@@ -131,13 +148,12 @@ class DroneCommunication(Communication):
 
     def activate_callback(self, command):
         print("activating callback")
-        # asyncio.run(self.command_functions[command]())
-        # self.command_functions[command]()
         asyncio.ensure_future(self.command_functions[command](), loop=self.event_loop)
 
 
 class GroundCommunication(Communication):
     def __init__(self, real_swarm_size, sitl_swarm_size):
+        self.connected = False
         self.observers = []
         self.create_dict(real_swarm_size, sitl_swarm_size)
 
@@ -154,13 +170,33 @@ class GroundCommunication(Communication):
         self.client.message_callback_add(
             "+/telemetry/arm_status", self.on_message_arm_status
         )
+        self.client.message_callback_add(
+            "+/connection_status", self.on_message_connection_status
+        )
         self.client.connect_async(
             "localhost", 1883, 60
         )  # change localhost to IP of broker
         self.client.on_connect = self.on_connect
         self.client.loop_start()
 
+    def on_message_connection_status(self, mosq, obj, msg):
+        print("connection status updated")
+        agent = msg.topic[0:4]
+        if msg.payload.decode() == "0":
+            print(agent, " lost connection")
+            self.activate_callback("connection_status", agent, False)
+        else:
+            self.activate_callback("connection_status", agent, True)
+
     def on_message_arm_status(self, mosq, obj, msg):
         agent = msg.topic[0:4]
         self.swarm_telemetry[agent].arm_status = msg.payload.decode()
-        self.activate_callback(agent, self.swarm_telemetry[agent].arm_status)
+        self.activate_callback(
+            "arm_status", agent, self.swarm_telemetry[agent].arm_status
+        )
+
+    def bind_callback_functions(self, callback_functions):
+        self.callback_functions = callback_functions
+
+    def activate_callback(self, callback, agent, status):
+        self.callback_functions[callback](agent, status)
