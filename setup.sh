@@ -81,10 +81,10 @@ clear
 USER_HOME=$(getent passwd $SUDO_USER | cut -d: -f6)
 
 # Delete old installations
-rm -f $USER_HOME/cascade-demo/cascade-demo.desktop
-rm -f $USER_HOME/.local/share/applications/cascade-demo.desktop
-rm -f $USER_HOME/Desktop/cascade-demo.desktop
-rm -f /usr/share/applications/cascade-demo.desktop
+rm -f $USER_HOME/helixio/helixio.desktop
+rm -f $USER_HOME/.local/share/applications/helixio.desktop
+rm -f $USER_HOME/Desktop/helixio.desktop
+rm -f /usr/share/applications/helixio.desktop
 
 
 # Create .desktop file
@@ -92,24 +92,24 @@ echo "
 [Desktop Entry]
 Version=1.0
 Name=Cascade Demo
-Icon=`echo $USER_HOME`/cascade-demo/img/cascade-logo.png
-Exec=`echo $USER_HOME`/cascade-demo/cascade-demo/sitl_gui.py
-Path=`echo $USER_HOME`/cascade-demo/cascade-demo/
+Icon=`echo $USER_HOME`/helixio/img/HelixioLogoFinalSmall.png
+Exec=`echo $USER_HOME`/helixio/helixio/sitl_gui.py
+Path=`echo $USER_HOME`/helixio/helixio/
 Terminal=false
 Type=Application
-" > `echo $USER_HOME`/cascade-demo/cascade-demo.desktop
+" > `echo $USER_HOME`/helixio/helixio.desktop
 
 # give permissions for .desktop file
-chown -R $USER: `echo $USER_HOME`/cascade-demo/cascade-demo.desktop
+chown -R $USER: `echo $USER_HOME`/helixio/helixio.desktop
 
 chown -R $USER: `echo $USER_HOME`/PX4-Autopilot
 
 # give read and write access to everyone
 chmod 755 `echo $USER_HOME`/cascade-demo/cascade-demo.desktop
 
-ln -s `echo $USER_HOME`/cascade-demo/cascade-demo.desktop $USER_HOME/.local/share/applications/cascade-demo.desktop
-ln -s `echo $USER_HOME`/cascade-demo/cascade-demo.desktop $USER_HOME/Desktop/cascade-demo.desktop
-ln -s `echo $USER_HOME`/cascade-demo/cascade-demo.desktop /usr/share/applications/cascade-demo.desktop
+ln -s `echo $USER_HOME`/helixio/helixio.desktop $USER_HOME/.local/share/applications/helixio.desktop
+ln -s `echo $USER_HOME`/helixio/helixio.desktop $USER_HOME/Desktop/helixio.desktop
+ln -s `echo $USER_HOME`/helixio/helixio.desktop /usr/share/applications/helixio.desktop
 
 
 clear
@@ -118,7 +118,7 @@ clear
 echo ''
 echo ''
 echo '#------------------------------------------------------------------#'
-echo '# THANKS FOR INSTALLING CASCADE-DEMO #'
+echo '# THANKS FOR INSTALLING HELIX.IO #'
 echo '#------------------------------------------------------------------#'
 echo ''
 echo ''
