@@ -4,7 +4,7 @@ from helixio.gtools import (
 )  # importing the module we want to test its function (the test file should be in the same directory as module file)
 import pytest
 import numpy as np
-from helixio.communication import AgentTelemetry
+from helixio.data_structures import AgentTelemetry
 from math import sqrt
 
 # test of alt_dict function ------------------------------------------------------------------------------------------------------------------------------------
