@@ -1,13 +1,7 @@
 import asyncio
 import paho.mqtt.client as mqtt
-import helixio.gtools as gtools
-
-
-class AgentTelemetry:
-    arm_status = False
-    geodetic = [0, 0, 0]
-    position_ned = [0, 0, 0]
-    velocity_ned = [0, 0, 0]
+import gtools
+from data_structures import AgentTelemetry
 
 
 class Communication:

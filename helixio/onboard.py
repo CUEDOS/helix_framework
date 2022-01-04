@@ -1,15 +1,14 @@
 import sys
 import time
 import logging
-import numpy as np
 import asyncio
 import flocking
 from mavsdk import System
 from mavsdk.action import ActionError
 from mavsdk.offboard import OffboardError, VelocityNedYaw
 import pymap3d as pm
-import paho.mqtt.client as mqtt
-from communication import AgentTelemetry, DroneCommunication
+from communication import DroneCommunication
+from data_structures import AgentTelemetry
 
 
 # Class containing all methods for the drones.
