@@ -53,11 +53,12 @@ class Agent:
         self.comms.bind_command_functions(command_functions, event_loop)
 
     async def on_disconnect(self):
-        print("connection lost, timeout in 1s")
-        await asyncio.sleep(1)
+        print("connection lost, timeout in 5s")
+        await asyncio.sleep(5)
         if self.comms.connected == False:
-            await self.catch_action_error(self.drone.action.hold())
-            print("connection lost: holding")
+            # await self.catch_action_error(self.drone.action.hold())
+            print("connection lost: logging")
+            self.logger.warning("connection lost")
 
     async def arm(self):
         print("ARMING")
@@ -298,9 +299,13 @@ class Agent:
 
 def setup_logger():
     log_format = "%(levelname)s %(asctime)s - %(message)s"
+    log_date = time.strftime("%d-%m-%y_%H-%M")
 
     logging.basicConfig(
-        filename="logfile.log", filemode="w", format=log_format, level=logging.INFO
+        filename="logs/" + log_date + ".log",
+        filemode="w",
+        format=log_format,
+        level=logging.INFO,
     )
 
     logger = logging.getLogger()

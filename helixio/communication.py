@@ -108,7 +108,7 @@ class DroneCommunication(Communication):
         # set message to be sent when connection is lost
         self.client.will_set(self.id + "/connection_status", 0, qos=0, retain=True)
         self.client.connect_async(
-            "localhost", 1883, keepalive=1
+            "localhost", 1883, keepalive=5
         )  # change localhost to IP of broker
         self.client.on_connect = self.on_connect
         self.client.on_disconnect = self.on_disconnect
