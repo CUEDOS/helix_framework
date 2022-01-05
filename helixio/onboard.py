@@ -144,6 +144,14 @@ class Agent:
                     1,
                 )
             )
+
+            # logging the position of each drone in the swarm that this drone has
+            for key in self.swarm_telemetry.keys():
+                self.logger.info(
+                    key + ": " + str(self.comms.swarm_telemetry[key].position_ned)
+                )
+
+            # logging the velocity commands sent to the pixhawk
             self.logger.info(
                 str(
                     flocking.check_velocity(
@@ -302,7 +310,7 @@ def setup_logger():
     log_date = time.strftime("%d-%m-%y_%H-%M")
 
     logging.basicConfig(
-        filename="logs/" + log_date + ".log",
+        filename="logs/" + CONST_DRONE_ID + "_" + log_date + ".log",
         filemode="w",
         format=log_format,
         level=logging.INFO,
