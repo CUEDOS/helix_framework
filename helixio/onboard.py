@@ -119,9 +119,7 @@ class Agent:
         # End of Init the drone
         offboard_loop_duration = 0.1  # duration of each loop
 
-        # commandting out to see result
-        # await asyncio.sleep(2)
-        # Endless loop (Mission)
+        # Loop in which the velocity command outputs are generated
         while self.comms.current_command == "Simple Flocking":
             offboard_loop_start_time = time.time()
 
@@ -130,7 +128,7 @@ class Agent:
                 self.comms.swarm_telemetry,
                 self.my_telem,
                 offboard_loop_duration,
-                1,
+                5,
             )
 
             # Sending the target velocities to the quadrotor
@@ -141,12 +139,12 @@ class Agent:
                     CONST_MAX_SPEED,
                     0.0,
                     offboard_loop_duration,
-                    1,
+                    5,
                 )
             )
 
             # logging the position of each drone in the swarm that this drone has
-            for key in self.swarm_telemetry.keys():
+            for key in self.comms.swarm_telemetry.keys():
                 self.logger.info(
                     key + ": " + str(self.comms.swarm_telemetry[key].position_ned)
                 )
@@ -160,7 +158,7 @@ class Agent:
                         CONST_MAX_SPEED,
                         0.0,
                         offboard_loop_duration,
-                        1,
+                        5,
                     )
                 )
             )
@@ -248,8 +246,8 @@ class Agent:
 
     # runs in background and upates state class with latest telemetry
     async def get_position(self, drone):
-        # set the rate of telemetry updates to 50Hz
-        await drone.telemetry.set_rate_position(50)
+        # set the rate of telemetry updates to 10Hz
+        await drone.telemetry.set_rate_position(10)
         async for position in drone.telemetry.position():
 
             self.my_telem.geodetic = (
@@ -279,7 +277,7 @@ class Agent:
 
     async def get_velocity(self, drone):
         # set the rate of telemetry updates to 10Hz
-        # await drone.telemetry.set_rate_position_velocity_ned(10)
+        await drone.telemetry.set_rate_position_velocity_ned(10)
         async for position_velocity_ned in drone.telemetry.position_velocity_ned():
             self.my_telem.velocity_ned = [
                 position_velocity_ned.velocity.north_m_s,
