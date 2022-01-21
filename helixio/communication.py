@@ -104,9 +104,11 @@ class DroneCommunication(Communication):
         self.client.message_callback_add(
             self.id + "/home/altitude", self.on_message_home
         )
-        self.client.message_callback_add("commands", self.on_message_command)
+        self.client.message_callback_add("commands/" + self.id, self.on_message_command)
         # set message to be sent when connection is lost
-        self.client.will_set(self.id + "/connection_status", 0, qos=0, retain=True)
+        self.client.will_set(
+            self.id + "/connection_status", "Disconnected", qos=0, retain=True
+        )
         self.client.connect_async(
             "localhost", 1883, keepalive=5
         )  # change localhost to IP of broker
@@ -117,9 +119,13 @@ class DroneCommunication(Communication):
     def on_connect(self, client, userdata, flags, rc):
         print("MQTT connected to broker with result code " + str(rc))
         client.subscribe("+/telemetry/+")
-        client.subscribe("commands")
+        client.subscribe("commands/" + self.id)
         client.subscribe("+/home/altitude")
-        client.publish(self.id + "/connection_status", 1, retain=True)
+        client.publish(
+            "detection",
+            self.id,
+        )
+        client.publish(self.id + "/connection_status", "Connected", retain=True)
 
     def on_disconnect(self, client, userdata, rc):
         client.publish(self.id + "/connection_status", 0, retain=True)

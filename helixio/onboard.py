@@ -37,6 +37,7 @@ class Agent:
         asyncio.ensure_future(self.get_velocity(self.drone))
         asyncio.ensure_future(self.get_arm_status(self.drone))
         asyncio.ensure_future(self.get_battery_level(self.drone))
+        asyncio.ensure_future(self.get_flight_mode(self.drone))
 
         # Put command callback functions in a dict with command as key
         command_functions = {
@@ -307,6 +308,17 @@ class Agent:
                 CONST_DRONE_ID + "/battery_level",
                 str(round(battery_level.remaining_percent * 100)),
             )
+
+    async def get_flight_mode(self, drone):
+        previous_flight_mode = "NONE"
+        async for flight_mode in drone.telemetry.flight_mode():
+            if flight_mode != previous_flight_mode:
+                previous_flight_mode = flight_mode
+                print(flight_mode)
+                self.comms.client.publish(
+                    CONST_DRONE_ID + "/flight_mode",
+                    str(flight_mode),
+                )
 
     def report_error(self, error):
         self.comms.client.publish("errors", CONST_DRONE_ID + ": " + error)
