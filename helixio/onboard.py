@@ -303,10 +303,9 @@ class Agent:
     async def get_battery_level(self, drone):
         await drone.telemetry.set_rate_battery(0.1)
         async for battery_level in drone.telemetry.battery():
-            print(battery_level.remaining_percent)
             self.comms.client.publish(
                 CONST_DRONE_ID + "/battery_level",
-                str(battery_level),
+                str(round(battery_level.remaining_percent * 100)),
             )
 
     def report_error(self, error):
