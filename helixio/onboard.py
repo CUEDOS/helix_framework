@@ -36,6 +36,7 @@ class Agent:
         asyncio.ensure_future(self.get_position(self.drone))
         asyncio.ensure_future(self.get_velocity(self.drone))
         asyncio.ensure_future(self.get_arm_status(self.drone))
+        asyncio.ensure_future(self.get_battery_level(self.drone))
 
         # Put command callback functions in a dict with command as key
         command_functions = {
@@ -298,6 +299,15 @@ class Agent:
                     CONST_DRONE_ID + "/telemetry/arm_status",
                     str(self.my_telem.arm_status),
                 )
+
+    async def get_battery_level(self, drone):
+        await drone.telemetry.set_rate_battery(0.1)
+        async for battery_level in drone.telemetry.battery():
+            print(battery_level.remaining_percent)
+            self.comms.client.publish(
+                CONST_DRONE_ID + "/battery_level",
+                str(battery_level),
+            )
 
     def report_error(self, error):
         self.comms.client.publish("errors", CONST_DRONE_ID + ": " + error)
