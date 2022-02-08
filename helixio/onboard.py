@@ -66,37 +66,49 @@ class Agent:
     async def arm(self):
         print("ARMING")
         self.logger.info("arming")
-        # if await self.catch_action_error(self.drone.action.arm()):
-        if await self.catch_action_error(self.drone.action.arm()):
+
+        try:
+            await self.drone.action.arm()
             self.home_lat = self.my_telem.geodetic[0]
             self.home_long = self.my_telem.geodetic[1]
+        except ActionError as error:
+            self.report_error(error._result.result_str)
 
     async def takeoff(self):
         print("Taking Off")
-        await self.catch_action_error(self.drone.action.set_takeoff_altitude(20))
         self.logger.info("taking-off")
-        await self.catch_action_error(self.drone.action.takeoff())
+        try:
+            await self.drone.action.set_takeoff_altitude(20)
+            await self.drone.action.takeoff()
+        except ActionError as error:
+            self.report_error(error._result.result_str)
 
     async def hold(self):
         print("Hold")
         self.logger.info("holding")
-        await self.catch_action_error(self.drone.action.hold())
+        try:
+            await self.drone.action.hold()
+        except ActionError as error:
+            self.report_error(error._result.result_str)
 
     async def land(self):
         print("Landing")
         self.logger.info("landing")
-        await self.catch_action_error(self.drone.action.land())
-
-    async def catch_action_error(self, command):
-        # Attempts to perform the action and if the command fails the error is reported through MQTT
         try:
-            await command
-            return True
+            await self.drone.action.land()
         except ActionError as error:
-            print("Action Failed: ", error._result.result_str)
             self.report_error(error._result.result_str)
-            self.logger.error("Action Failed: ", error._result.result_str)
-            return False
+
+    # async def catch_action_error(self, command):
+    #     # Attempts to perform the action and if the command fails the error is reported through MQTT
+    #     try:
+    #         await command
+    #         return True
+    #     except ActionError as error:
+    #         print("Action Failed: ", error._result.result_str)
+    #         self.report_error(error._result.result_str)
+    #         self.logger.error("Action Failed: ", error._result.result_str)
+    #         return False
 
     async def start_offboard(self, drone):
         print("-- Setting initial setpoint")
@@ -336,6 +348,8 @@ class Agent:
                 )
 
     def report_error(self, error):
+        print("Action Failed: ", error)
+        self.logger.error("Action Failed: ", error)
         self.comms.client.publish("errors", CONST_DRONE_ID + ": " + error)
 
 
