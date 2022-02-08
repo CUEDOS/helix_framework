@@ -34,6 +34,7 @@ class Agent:
         asyncio.ensure_future(self.comms.run_comms())
         await asyncio.sleep(1)
         asyncio.ensure_future(self.get_position(self.drone))
+        asyncio.ensure_future(self.get_heading(self.drone))
         asyncio.ensure_future(self.get_velocity(self.drone))
         asyncio.ensure_future(self.get_arm_status(self.drone))
         asyncio.ensure_future(self.get_battery_level(self.drone))
@@ -229,6 +230,7 @@ class Agent:
         await self.drone.action.hold()
         await asyncio.sleep(1)
 
+        print("RETURN ALTITUDE:")
         print(self.comms.return_alt)
 
         await self.catch_action_error(
@@ -269,26 +271,39 @@ class Agent:
 
             self.comms.client.publish(
                 CONST_DRONE_ID + "/telemetry/position_ned",
-                str(self.my_telem.position_ned),
+                str(self.my_telem.position_ned).strip("()"),
             )
 
             self.comms.client.publish(
                 CONST_DRONE_ID + "/telemetry/geodetic",
-                str(self.my_telem.geodetic),
+                str(self.my_telem.geodetic).strip("()"),
+            )
+
+    async def get_heading(self, drone):
+        # set the rate of telemetry updates to 10Hz
+        # await drone.telemetry.set_rate_heading(10)
+        async for heading in drone.telemetry.heading():
+
+            self.my_telem.heading = heading
+
+            self.comms.client.publish(
+                CONST_DRONE_ID + "/telemetry/heading",
+                str(self.my_telem.heading.heading_deg).strip("()"),
             )
 
     async def get_velocity(self, drone):
         # set the rate of telemetry updates to 10Hz
         await drone.telemetry.set_rate_position_velocity_ned(10)
         async for position_velocity_ned in drone.telemetry.position_velocity_ned():
-            self.my_telem.velocity_ned = [
+            # changed from list to tuple so formatting for all messages is the same
+            self.my_telem.velocity_ned = (
                 position_velocity_ned.velocity.north_m_s,
                 position_velocity_ned.velocity.east_m_s,
                 position_velocity_ned.velocity.down_m_s,
-            ]
+            )
             self.comms.client.publish(
                 CONST_DRONE_ID + "/telemetry/velocity_ned",
-                str(self.my_telem.velocity_ned),
+                str(self.my_telem.velocity_ned).strip("()"),
             )
 
     async def get_arm_status(self, drone):

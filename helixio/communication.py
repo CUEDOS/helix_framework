@@ -3,6 +3,9 @@ import paho.mqtt.client as mqtt
 import gtools
 from data_structures import AgentTelemetry
 
+CONST_BROKER_ADDRESS = "localhost"
+# CONST_BROKER_ADDRESS = "broker.hivemq.com"
+
 
 class Communication:
     client = mqtt.Client()
@@ -29,7 +32,7 @@ class Communication:
             "+/telemetry/velocity_ned", self.on_message_velocity
         )
         self.client.connect_async(
-            "localhost", 1883, 60
+            CONST_BROKER_ADDRESS, 1883, 60
         )  # change localhost to IP of broker
         self.client.on_connect = self.on_connect
         self.client.on_disconnect = self.on_disconnect
@@ -55,6 +58,7 @@ class Communication:
         string_list = received_string.split(", ")
         geodetic = [float(i) for i in string_list]
         # time.sleep(1)  # simulating comm latency
+        # replace reference to first 4 characters of topic with splitting topic at /
         self.swarm_telemetry[msg.topic[0:4]].geodetic = geodetic
 
     def on_message_position(self, mosq, obj, msg):
@@ -110,7 +114,7 @@ class DroneCommunication(Communication):
             self.id + "/connection_status", "Disconnected", qos=0, retain=True
         )
         self.client.connect_async(
-            "localhost", 1883, keepalive=5
+            CONST_BROKER_ADDRESS, 1883, keepalive=5
         )  # change localhost to IP of broker
         self.client.on_connect = self.on_connect
         self.client.on_disconnect = self.on_disconnect
@@ -174,7 +178,7 @@ class GroundCommunication(Communication):
             "+/connection_status", self.on_message_connection_status
         )
         self.client.connect_async(
-            "localhost", 1883, 60
+            CONST_BROKER_ADDRESS, 1883, 60
         )  # change localhost to IP of broker
         self.client.on_connect = self.on_connect
         self.client.loop_start()
