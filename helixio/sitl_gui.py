@@ -449,10 +449,11 @@ class App:
             self.change_button_colour(self.normal_button_colour)
 
     def on_connection_status_update(self, agent, status):
-        if status == False:
-            self.send_command("hold")
-            self.experiment_running = False
-            print(agent, " lost connection: holding")
+        # if status == False:
+        #     self.send_command("hold")
+        #     self.experiment_running = False
+        #     print(agent, " lost connection: holding")
+        print(agent + "connection status: " + str(status))
 
     def change_button_colour(self, colour):
         self.takeoff_button.config(bg=colour)

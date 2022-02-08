@@ -36,6 +36,8 @@ class Agent:
         asyncio.ensure_future(self.get_position(self.drone))
         asyncio.ensure_future(self.get_velocity(self.drone))
         asyncio.ensure_future(self.get_arm_status(self.drone))
+        asyncio.ensure_future(self.get_battery_level(self.drone))
+        asyncio.ensure_future(self.get_flight_mode(self.drone))
 
         # Put command callback functions in a dict with command as key
         command_functions = {
@@ -53,11 +55,12 @@ class Agent:
         self.comms.bind_command_functions(command_functions, event_loop)
 
     async def on_disconnect(self):
-        print("connection lost, timeout in 1s")
-        await asyncio.sleep(1)
+        print("connection lost, timeout in 5s")
+        await asyncio.sleep(5)
         if self.comms.connected == False:
-            await self.catch_action_error(self.drone.action.hold())
-            print("connection lost: holding")
+            # await self.catch_action_error(self.drone.action.hold())
+            print("connection lost: logging")
+            self.logger.warning("connection lost")
 
     async def arm(self):
         print("ARMING")
@@ -118,9 +121,7 @@ class Agent:
         # End of Init the drone
         offboard_loop_duration = 0.1  # duration of each loop
 
-        # commandting out to see result
-        # await asyncio.sleep(2)
-        # Endless loop (Mission)
+        # Loop in which the velocity command outputs are generated
         while self.comms.current_command == "Simple Flocking":
             offboard_loop_start_time = time.time()
 
@@ -129,7 +130,7 @@ class Agent:
                 self.comms.swarm_telemetry,
                 self.my_telem,
                 offboard_loop_duration,
-                1,
+                5,
             )
 
             # Sending the target velocities to the quadrotor
@@ -140,9 +141,17 @@ class Agent:
                     CONST_MAX_SPEED,
                     0.0,
                     offboard_loop_duration,
-                    1,
+                    5,
                 )
             )
+
+            # logging the position of each drone in the swarm that this drone has
+            for key in self.comms.swarm_telemetry.keys():
+                self.logger.info(
+                    key + ": " + str(self.comms.swarm_telemetry[key].position_ned)
+                )
+
+            # logging the velocity commands sent to the pixhawk
             self.logger.info(
                 str(
                     flocking.check_velocity(
@@ -151,7 +160,7 @@ class Agent:
                         CONST_MAX_SPEED,
                         0.0,
                         offboard_loop_duration,
-                        1,
+                        5,
                     )
                 )
             )
@@ -239,8 +248,8 @@ class Agent:
 
     # runs in background and upates state class with latest telemetry
     async def get_position(self, drone):
-        # set the rate of telemetry updates to 50Hz
-        await drone.telemetry.set_rate_position(50)
+        # set the rate of telemetry updates to 10Hz
+        await drone.telemetry.set_rate_position(10)
         async for position in drone.telemetry.position():
 
             self.my_telem.geodetic = (
@@ -270,7 +279,7 @@ class Agent:
 
     async def get_velocity(self, drone):
         # set the rate of telemetry updates to 10Hz
-        # await drone.telemetry.set_rate_position_velocity_ned(10)
+        await drone.telemetry.set_rate_position_velocity_ned(10)
         async for position_velocity_ned in drone.telemetry.position_velocity_ned():
             self.my_telem.velocity_ned = [
                 position_velocity_ned.velocity.north_m_s,
@@ -292,15 +301,38 @@ class Agent:
                     str(self.my_telem.arm_status),
                 )
 
+    async def get_battery_level(self, drone):
+        await drone.telemetry.set_rate_battery(0.1)
+        async for battery_level in drone.telemetry.battery():
+            self.comms.client.publish(
+                CONST_DRONE_ID + "/battery_level",
+                str(round(battery_level.remaining_percent * 100)),
+            )
+
+    async def get_flight_mode(self, drone):
+        previous_flight_mode = "NONE"
+        async for flight_mode in drone.telemetry.flight_mode():
+            if flight_mode != previous_flight_mode:
+                previous_flight_mode = flight_mode
+                print(flight_mode)
+                self.comms.client.publish(
+                    CONST_DRONE_ID + "/flight_mode",
+                    str(flight_mode),
+                )
+
     def report_error(self, error):
         self.comms.client.publish("errors", CONST_DRONE_ID + ": " + error)
 
 
 def setup_logger():
     log_format = "%(levelname)s %(asctime)s - %(message)s"
+    log_date = time.strftime("%d-%m-%y_%H-%M")
 
     logging.basicConfig(
-        filename="logfile.log", filemode="w", format=log_format, level=logging.INFO
+        filename="logs/" + CONST_DRONE_ID + "_" + log_date + ".log",
+        filemode="w",
+        format=log_format,
+        level=logging.INFO,
     )
 
     logger = logging.getLogger()

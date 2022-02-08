@@ -5,6 +5,7 @@ cascade-demo/config.txt
 nohup.out
 Firmware
 PX4-Autopilot
+logs
 cascade-demo/__pycache__/flocking.cpython-38.pyc
 .vscode/launch.json
 __pycache__/flocking.cpython-37.pyc
