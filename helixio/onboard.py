@@ -343,8 +343,7 @@ class Agent:
                 previous_flight_mode = flight_mode
                 print(flight_mode)
                 self.comms.client.publish(
-                    CONST_DRONE_ID + "/flight_mode",
-                    str(flight_mode),
+                    CONST_DRONE_ID + "/flight_mode", str(flight_mode), qos=2
                 )
 
     def report_error(self, error):
