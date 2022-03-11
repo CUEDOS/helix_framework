@@ -108,7 +108,7 @@ def single_torus_swarming(drone_id, swarm_pos_vel, my_pos_vel, time_step, max_ac
     limit_v_migration=1
     v_migration = targetDirection/np.linalg.norm(targetDirection)
     if np.linalg.norm(v_migration)> limit_v_migration:
-    v_migration=v_migration*limit_v_migration/np.linalg.norm(v_migration)
+        v_migration=v_migration*limit_v_migration/np.linalg.norm(v_migration)
     
     #Calculating lane Cohesion Velocity ---------------
     k_laneCohesion=3
@@ -125,13 +125,13 @@ def single_torus_swarming(drone_id, swarm_pos_vel, my_pos_vel, time_step, max_ac
     k_rotation=2
     limit_v_rotation=1
     if (laneCohesionPositionError_magnitude<laneRadius):
-		v_rotation_magnitude=laneCohesionPositionError_magnitude/laneRadius
+        v_rotation_magnitude=laneCohesionPositionError_magnitude/laneRadius
     else:
 	v_rotation_magnitude=laneRadius/laneCohesionPositionError_magnitude
 		
     v_rotation=v_rotation_magnitude*np.cross(v_laneCohesion, targetDirection)/np.linalg.norm(np.cross(v_laneCohesion, targetDirection))
     if np.linalg.norm(v_rotation)> limit_v_rotation:
-    v_rotation=v_rotation*limit_v_rotation/np.linalg.norm(v_rotation)
+        v_rotation=v_rotation*limit_v_rotation/np.linalg.norm(v_rotation)
 		
     #Calculating v_separation (normalized) -----------------------------
     k_separation=2
