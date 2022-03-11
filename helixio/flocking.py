@@ -85,7 +85,7 @@ def single_torus_swarming(drone_id, swarm_pos_vel, my_pos_vel, time_step, max_ac
     
     #Creating Torus points -----------------------------------------------
     for i in range(Torus_points_num):
-        redTorusPoints.append(np.array([a_ellipse*math.sin(i*6.28/1000), b_ellipse*math.cos(i*6.28/1000),5]))
+        redTorusPoints.append(np.array([a_ellipse*math.sin(i*6.28/Torus_points_num), b_ellipse*math.cos(i*6.28/Torus_points_num),5]))
     
     #Creating Torus directions -----------------------------------------
     for i in range(Torus_points_num):
