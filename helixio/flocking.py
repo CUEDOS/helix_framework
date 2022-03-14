@@ -51,7 +51,8 @@ def simple_flocking(drone_id, swarm_pos_vel, my_pos_vel, time_step, max_accel):
         / np.linalg.norm(com - np.array(my_pos_vel.position_ned))
     )
 
-    r_0 = 10
+    # changing from 10
+    r_0 = 20
     v_separation = np.array([0, 0, 0])
     for key in swarm_pos_vel:
         if key == drone_id:

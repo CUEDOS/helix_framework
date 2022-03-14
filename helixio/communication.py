@@ -1,10 +1,11 @@
 import asyncio
+import time
 import paho.mqtt.client as mqtt
 import gtools
 from data_structures import AgentTelemetry
 
-CONST_BROKER_ADDRESS = "localhost"
-# CONST_BROKER_ADDRESS = "broker.hivemq.com"
+# CONST_BROKER_ADDRESS = "localhost"
+CONST_BROKER_ADDRESS = "broker.hivemq.com"
 
 
 class Communication:
@@ -88,6 +89,7 @@ class Communication:
 # Inherits from Communication class, overriding methods specific to drones.
 class DroneCommunication(Communication):
     def __init__(self, real_swarm_size, sitl_swarm_size, id):
+        self.first_connection = True
         self.connected = False
         self.id = id
         self.command_functions = {}
@@ -111,7 +113,7 @@ class DroneCommunication(Communication):
         self.client.message_callback_add("commands/" + self.id, self.on_message_command)
         # set message to be sent when connection is lost
         self.client.will_set(
-            self.id + "/connection_status", "Disconnected", qos=0, retain=True
+            self.id + "/connection_status", "Disconnected", qos=2, retain=True
         )
         self.client.connect_async(
             CONST_BROKER_ADDRESS, 1883, keepalive=5
@@ -121,18 +123,23 @@ class DroneCommunication(Communication):
         self.client.loop_start()
 
     def on_connect(self, client, userdata, flags, rc):
+        self.connected = True
         print("MQTT connected to broker with result code " + str(rc))
         client.subscribe("+/telemetry/+")
         client.subscribe("commands/" + self.id)
         client.subscribe("+/home/altitude")
-        client.publish(
-            "detection",
-            self.id,
-        )
-        client.publish(self.id + "/connection_status", "Connected", retain=True)
+        if self.first_connection:
+            client.publish(
+                "detection",
+                self.id,
+            )
+            self.first_connection = False
+        time.sleep(1)
+        client.publish(self.id + "/connection_status", "Connected", qos=2, retain=True)
 
     def on_disconnect(self, client, userdata, rc):
-        client.publish(self.id + "/connection_status", 0, retain=True)
+        print("disconnected from broker")
+        # client.publish(self.id + "/connection_status", "Disconnected", retain=True)
         self.connected = False
         self.activate_callback("disconnect")
 

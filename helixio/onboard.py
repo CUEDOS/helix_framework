@@ -245,20 +245,22 @@ class Agent:
         print("RETURN ALTITUDE:")
         print(self.comms.return_alt)
 
-        await self.catch_action_error(
-            self.drone.action.goto_location(
+        try:
+            await self.drone.action.goto_location(
                 rtl_start_lat, rtl_start_long, self.comms.return_alt, 0
             )
-        )
+        except ActionError as error:
+            self.report_error(error._result.result_str)
 
         while abs(self.my_telem.geodetic[2] - self.comms.return_alt) > 0.5:
             await asyncio.sleep(1)
 
-        await self.catch_action_error(
-            self.drone.action.goto_location(
+        try:
+            await self.drone.action.goto_location(
                 self.home_lat, self.home_long, self.comms.return_alt, 0
             )
-        )
+        except ActionError as error:
+            self.report_error(error._result.result_str)
 
     # runs in background and upates state class with latest telemetry
     async def get_position(self, drone):
@@ -343,8 +345,7 @@ class Agent:
                 previous_flight_mode = flight_mode
                 print(flight_mode)
                 self.comms.client.publish(
-                    CONST_DRONE_ID + "/flight_mode",
-                    str(flight_mode),
+                    CONST_DRONE_ID + "/flight_mode", str(flight_mode), qos=2
                 )
 
     def report_error(self, error):
