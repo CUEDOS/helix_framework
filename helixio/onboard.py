@@ -40,6 +40,17 @@ class Experiment:
         if range_to_point_i<=lnitial_least_distance:
             lnitial_least_distance=range_to_point_i
             self.current_Index=i
+    
+    def limit_accelleration(desired_vel, current_vel, time_step, max_accel):
+        delta_v = np.linalg.norm(desired_vel - current_vel)
+
+        accelleration = delta_v / time_step
+
+        # impose accelleration limit
+        if accelleration > max_accel:
+            desired_vel = (desired_vel/ np.linalg.norm(desired_vel)* (max_accel * time_step + np.linalg.norm(current_vel)))
+        
+        return desired_vel
 
     def path_following(self, drone_id, swarm_pos_vel, time_step, max_accel):
         targetPoint=self.points[self.current_Index]
@@ -116,7 +127,7 @@ class Experiment:
             if np.linalg.norm(v_separation)>limit_v_separation:
                 v_separation=v_separation*limit_v_separation/np.linalg.norm(v_separation)	
         output_vel =k_laneCohesion*v_laneCohesion + k_migration*v_migration+ k_rotation* v_rotation +k_separation*v_separation
-        output_vel = limit_accelleration(output_vel, np.array(agent.my_pos_vel.position_ned), time_step, max_accel)
+        output_vel = self.limit_accelleration(output_vel, np.array(agent.my_pos_vel.position_ned), time_step, max_accel)
         return output_vel
 # Class containing all methods for the drones.
 class Agent:
