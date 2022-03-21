@@ -9,8 +9,115 @@ from mavsdk.offboard import OffboardError, VelocityNedYaw
 import pymap3d as pm
 from communication import DroneCommunication
 from data_structures import AgentTelemetry
+import math
+import numpy as np
 
+class Experiment:
+    def __init__(self, drone, points, k_migration, k_lane_cohesion, k_rotation, k_seperation, laneRadius) -> None:
+        # Set up
+        self.drone = drone
+        self.points = points
+        self.k_migration = k_migration
+        self.k_lane_cohesion = k_lane_cohesion
+        self.k_rotation = k_rotation
+        self.k_seperation = k_seperation
+        self.laneRadius=laneRadius
+        self.directions=[]
+        self.Initial_nearest_point()
+        self.create_directions()
+        
+    def create_directions(self):
+        for i in range(len(self.points)):
+            if i==len(self.points)-1:
+                self.directions.append(self.points[0]-self.points[i])
+            else:
+                self.directions.append(self.points[i+1]-self.points[i])  
+  
+    def Initial_nearest_point(self):
+        lnitial_least_distance=math.inf
+        for i in range(len(self.points)):
+            range_to_point_i= np.linalg.norm(np.array(agent.my_pos_vel.position_ned)-np.array(self.points[i]))
+        if range_to_point_i<=lnitial_least_distance:
+            lnitial_least_distance=range_to_point_i
+            self.current_Index=i
 
+    def path_following(self, drone_id, swarm_pos_vel, time_step, max_accel):
+        targetPoint=self.points[self.current_Index]
+        targetDirection =self.directions[self.current_Index]
+        iterator=0
+        range_to_previous=np.linalg.norm(np.array(agent.my_pos_vel.position_ned)-np.array(self.points[self.current_Index]))
+        while(1):
+            iterator+=1
+            next_point=iterator+self.current_Index
+            if (next_point>=len(self.points)):
+                next_point=int(next_point%len(self.points))
+   
+            range_to_next= np.linalg.norm(np.array(agent.my_pos_vel.position_ned)-np.array(self.points[next_point]))
+            if range_to_next>=range_to_previous:
+                self.current_Index=next_point-1
+                targetPoint=self.points[self.current_Index]
+                targetDirection =self.directions[self.current_Index]
+                break
+
+            range_to_previous=range_to_next # for the next iteration
+                
+        #Calculating migration velocity (normalized)---------------------
+        k_migration=1
+        limit_v_migration=1
+        v_migration = targetDirection/np.linalg.norm(targetDirection)
+        if np.linalg.norm(v_migration)> limit_v_migration:
+            v_migration=v_migration*limit_v_migration/np.linalg.norm(v_migration)
+
+        #Calculating lane Cohesion Velocity ---------------
+        k_laneCohesion=3
+        limit_v_laneCohesion=1
+        laneCohesionPositionError=targetPoint-np.array(agent.my_pos_vel.position_ned)
+        laneCohesionPositionError_magnitude=np.linalg.norm(laneCohesionPositionError)
+        
+        if np.linalg.norm(laneCohesionPositionError) != 0:
+            v_laneCohesion=(laneCohesionPositionError_magnitude-self.laneRadius)*laneCohesionPositionError/np.linalg.norm(laneCohesionPositionError)
+        else:
+            v_laneCohesion=np.array([0.01, 0.01, 0.01]) 
+        
+        if np.linalg.norm(v_laneCohesion)> limit_v_laneCohesion:
+            v_laneCohesion=v_laneCohesion*limit_v_laneCohesion/np.linalg.norm(v_laneCohesion)
+    
+        #Calculating v_rotation (normalized)---------------------
+        k_rotation=2
+        limit_v_rotation=1
+        if (laneCohesionPositionError_magnitude<self.laneRadius):
+            v_rotation_magnitude=laneCohesionPositionError_magnitude/self.laneRadius
+        else:
+            v_rotation_magnitude=self.laneRadius/laneCohesionPositionError_magnitude
+        
+        if np.linalg.norm(np.cross(laneCohesionPositionError, targetDirection))!=0:
+            v_rotation=v_rotation_magnitude*np.cross(laneCohesionPositionError, targetDirection)/np.linalg.norm(np.cross(laneCohesionPositionError, targetDirection))
+        else:
+            v_rotation=0
+
+        if np.linalg.norm(v_rotation)> limit_v_rotation:
+            v_rotation=v_rotation*limit_v_rotation/np.linalg.norm(v_rotation)
+        
+        #Calculating v_separation (normalized) -----------------------------
+        k_separation=2
+        limit_v_separation=1
+        r_0 = 2
+        v_separation = np.array([0, 0, 0])
+        for key in swarm_pos_vel:
+            if key==drone_id:
+                continue
+            p=np.array(key.my_pos_vel.position_ned)
+            x = np.array(agent.my_pos_vel.position_ned) - p
+            d = np.linalg.norm(x)
+            if (least_distance>d):
+                least_distance=d
+            if d<=r_0 and d!=0:
+                v_separation = v_separation + ((x / d) * (r_0 - d/ r_0))
+            if np.linalg.norm(v_separation)>limit_v_separation:
+                v_separation=v_separation*limit_v_separation/np.linalg.norm(v_separation)	
+        output_vel =k_laneCohesion*v_laneCohesion + k_migration*v_migration+ k_rotation* v_rotation +k_separation*v_separation
+        output_vel = limit_accelleration(output_vel, np.array(agent.my_pos_vel.position_ned), time_step, max_accel)
+        return output_vel
 # Class containing all methods for the drones.
 class Agent:
     def __init__(self):
@@ -110,6 +217,7 @@ class Agent:
     #         self.logger.error("Action Failed: ", error._result.result_str)
     #         return False
 
+
     async def start_offboard(self, drone):
         print("-- Setting initial setpoint")
         await drone.offboard.set_velocity_ned(VelocityNedYaw(0.0, 0.0, 0.0, 0.0))
@@ -133,6 +241,15 @@ class Agent:
 
         # End of Init the drone
         offboard_loop_duration = 0.1  # duration of each loop
+
+        exp = Experiment(self.drone)
+
+        # Catch points, direction
+
+
+
+        # Then calculate nearest point
+
 
         # Loop in which the velocity command outputs are generated
         while self.comms.current_command == "Simple Flocking":
@@ -405,4 +522,3 @@ if __name__ == "__main__":
     # Runs the event loop until the program is canceled with e.g. CTRL-C
     event_loop = asyncio.get_event_loop()
     event_loop.run_forever()
-    
