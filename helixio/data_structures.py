@@ -1,6 +1,7 @@
 class AgentTelemetry:
-    arm_status = False
-    geodetic = [0, 0, 0]
-    heading = 0.0
-    position_ned = [0, 0, 0]
-    velocity_ned = [0, 0, 0]
+    def __init__ (self):
+        self.arm_status = False
+        self.geodetic = [0, 0, 0]
+        self.heading = 0.0
+        self.position_ned = [0, 0, 0]
+        self.velocity_ned = [0, 0, 0]
