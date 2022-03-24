@@ -4,8 +4,8 @@ import paho.mqtt.client as mqtt
 import gtools
 from data_structures import AgentTelemetry
 
-# CONST_BROKER_ADDRESS = "localhost"
-CONST_BROKER_ADDRESS = "broker.hivemq.com"
+CONST_BROKER_ADDRESS = "localhost"
+# CONST_BROKER_ADDRESS = "broker.hivemq.com"
 
 
 class Communication:
