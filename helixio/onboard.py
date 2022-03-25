@@ -29,8 +29,8 @@ class Experiment:
         self.laneRadius=laneRadius
         self.Directions=[]
         self.current_Index=0
-        self.targetPoint=np.array[0,0,0]
-        self.targetDirection=np.array[1,1,1]
+        self.targetPoint=np.array([0,0,0])
+        self.targetDirection=np.array([1,1,1])
         self.length=len(points)
         self.Initial_nearest_point()
         self.create_directions()
