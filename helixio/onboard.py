@@ -262,6 +262,36 @@ class Agent:
             return
 
     async def simple_flocking(self):
+        #pre-swarming process
+        swarming_start_lat = self.my_telem.geodetic[0]
+        swarming_start_long = self.my_telem.geodetic[1]
+
+        print("Preparing Swarming")
+        await self.drone.action.hold()
+        await asyncio.sleep(1)
+
+        print("START ALTITUDE:")
+        print(self.comms.return_alt)
+
+        try:
+            await self.drone.action.goto_location(
+                swarming_start_lat, swarming_start_long, self.comms.return_alt, 0
+            )
+        except ActionError as error:
+            self.report_error(error._result.result_str)
+
+        while abs(self.my_telem.geodetic[2] - self.comms.return_alt) > 0.5:
+            await asyncio.sleep(1)
+
+        try:
+            await self.drone.action.goto_location(
+                self.mission_lat, self.mission_long, self.comms.return_alt, 0
+            )
+        except ActionError as error:
+            self.report_error(error._result.result_str)
+
+
+
         await self.start_offboard(self.drone)
 
         # End of Init the drone
