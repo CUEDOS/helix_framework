@@ -18,7 +18,7 @@ import math
 import numpy as np
 
 
-def Index_checker(input_index, length) -> int:
+def index_checker(input_index, length) -> int:
     if input_index >= length:
         return int(input_index % length)
     return input_index
@@ -28,27 +28,29 @@ class Experiment:
     def __init__(self, drone) -> None:
         self.ready_flag = False
         self.drone = drone
+        self.least_distance = 2  # minimum allowed distance between two agents
         # Set up corridor variables
         self.points = []
         self.lane_radius = 0
 
         # Sensible defaults for gains
         self.k_migration = 1
-        self.k_lane_cohesion = 0.5
-        self.k_rotation = 0.1
-        self.k_seperation = 2
+        self.k_lane_cohesion = 2
+        # self.k_rotation = 0.1
+        self.k_rotation = 2
+        self.k_separation = 2
 
         self.directions = []
         self.current_index = 0
         self.target_point = np.array([0, 0, 0])
         self.target_direction = np.array([1, 1, 1])
-        self.length = len(self.points)
 
     def set_corridor(self, corridor_json):
         corridor = json.loads(corridor_json)
         self.lane_radius = corridor["corridor_radius"]
         self.points = corridor["corridor_points"]
-
+        print(self.points)
+        self.length = len(self.points)
         self.create_directions()
         self.initial_nearest_point()
         self.ready_flag = True
@@ -98,25 +100,35 @@ class Experiment:
     def path_following(
         self, drone_id, swarm_telem, my_telem, max_speed, time_step, max_accel
     ):
+        print(self.length)
         self.target_point = self.points[self.current_index]
         self.target_direction = self.directions[self.current_index]
         iterator = 0
+        print("looking for index")
         # Finding the next bigger Index ----------
+        print(self.current_index)
+        print(self.length)
         range_to_next = (
             np.array(my_telem.position_ned)
-            - self.points[Index_checker(self.current_index + 1, self.length)]
+            - self.points[index_checker(self.current_index + 1, self.length)]
         )
+        print("range_to_next")
+        print(range_to_next)
+        print("current index")
+        print(self.current_index)
+
         if (
             np.dot(range_to_next, self.directions[self.current_index]) > 0
         ):  # drone has passed the point next to current one
-            self.current_index = Index_checker(self.current_index + 1, len(self.points))
+            print("if activated")
+            self.current_index = index_checker(self.current_index + 1, len(self.points))
             self.target_point = self.points[self.current_index]
             self.target_direction = self.directions[self.current_index]
             iterator = 0
             dot_fartherpoints = 0
             while dot_fartherpoints >= 0:  # Searching for farther points
                 iterator += 1
-                farther_point = Index_checker(
+                farther_point = index_checker(
                     self.current_index + iterator, len(self.points)
                 )
                 range_to_farther_point = (
@@ -133,14 +145,15 @@ class Experiment:
             self.target_direction = self.directions[self.current_index]
 
         # Calculating migration velocity (normalized)---------------------
-        k_migration = 1
         limit_v_migration = 1
         v_migration = self.target_direction / np.linalg.norm(self.target_direction)
         if np.linalg.norm(v_migration) > limit_v_migration:
             v_migration = v_migration * limit_v_migration / np.linalg.norm(v_migration)
 
+        print("v_migration")
+        print(v_migration)
+
         # Calculating lane Cohesion Velocity ---------------
-        k_laneCohesion = 3
         limit_v_lane_cohesion = 1
         lane_cohesion_position_error = self.target_point - np.array(
             agent.my_telem.position_ned
@@ -152,10 +165,12 @@ class Experiment:
         lane_cohesion_position_error_magnitude = np.linalg.norm(
             lane_cohesion_position_error
         )
+        print("lane cohesion error magnitude")
+        print(lane_cohesion_position_error_magnitude)
 
         if np.linalg.norm(lane_cohesion_position_error) != 0:
             v_lane_cohesion = (
-                (lane_cohesion_position_error_magnitude - self.laneRadius)
+                (lane_cohesion_position_error_magnitude - self.lane_radius)
                 * lane_cohesion_position_error
                 / np.linalg.norm(lane_cohesion_position_error)
             )
@@ -169,8 +184,10 @@ class Experiment:
                 / np.linalg.norm(v_lane_cohesion)
             )
 
+        print("v_lane_cohesion")
+        print(v_lane_cohesion)
+
         # Calculating v_rotation (normalized)---------------------
-        k_rotation = 2
         limit_v_rotation = 1
         if lane_cohesion_position_error_magnitude < self.lane_radius:
             v_rotation_magnitude = (
@@ -200,8 +217,10 @@ class Experiment:
         if np.linalg.norm(v_rotation) > limit_v_rotation:
             v_rotation = v_rotation * limit_v_rotation / np.linalg.norm(v_rotation)
 
+        print("v_rotation")
+        print(v_rotation)
+
         # Calculating v_separation (normalized) -----------------------------
-        k_separation = 2
         limit_v_separation = 1
         r_0 = 2
         v_separation = np.array([0, 0, 0])
@@ -211,28 +230,39 @@ class Experiment:
             p = np.array(swarm_telem[key].position_ned)
             x = np.array(my_telem.position_ned) - p
             d = np.linalg.norm(x)
-            if least_distance > d:
-                least_distance = d
+            if self.least_distance > d:
+                self.least_distance = d
             if d <= r_0 and d != 0:
                 v_separation = v_separation + ((x / d) * (r_0 - d / r_0))
             if np.linalg.norm(v_separation) > limit_v_separation:
                 v_separation = (
                     v_separation * limit_v_separation / np.linalg.norm(v_separation)
                 )
+
+        print("v_separation")
+        print(v_separation)
+
         desired_vel = (
-            k_laneCohesion * v_lane_cohesion
-            + k_migration * v_migration
-            + k_rotation * v_rotation
-            + k_separation * v_separation
+            self.k_lane_cohesion * v_lane_cohesion
+            + self.k_migration * v_migration
+            + self.k_rotation * v_rotation
+            + self.k_separation * v_separation
         )
         # output_vel = self.limit_accelleration(
         #     output_vel, np.array(my_telem.velocity_ned), time_step, max_accel
         # )
 
+        print("my position")
+        print(my_telem.position_ned)
+        print(agent.my_telem.position_ned)
+        print("my current point position")
+        print(self.points[self.current_index])
+
         output_vel = flocking.check_velocity(
             desired_vel, my_telem, max_speed, 0.0, time_step, max_accel
         )
-
+        # print("output vel")
+        print(output_vel)
         return output_vel
 
 
@@ -372,11 +402,22 @@ class Agent:
 
         # Loop in which the velocity command outputs are generated
         while (
-            self.comms.current_command
-            == "Experiment" & self.experiment.ready_flag
-            == True
+            self.comms.current_command == "Experiment"
+            and self.experiment.ready_flag == True
         ):
+            print("generating velocity")
             offboard_loop_start_time = time.time()
+
+            # print(
+            #     self.experiment.path_following(
+            #         CONST_DRONE_ID,
+            #         self.comms.swarm_telemetry,
+            #         self.my_telem,
+            #         CONST_MAX_SPEED,
+            #         offboard_loop_duration,
+            #         5,
+            #     )
+            # )
 
             await self.drone.offboard.set_velocity_ned(
                 self.experiment.path_following(
