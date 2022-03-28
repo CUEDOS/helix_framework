@@ -5,6 +5,8 @@ import json
 import logging
 import asyncio
 
+from tables import Description
+
 # from tokenize import String
 # from typing import List
 import flocking
@@ -104,7 +106,6 @@ class Experiment:
         self.target_point = self.points[self.current_index]
         self.target_direction = self.directions[self.current_index]
         iterator = 0
-        print("looking for index")
         # Finding the next bigger Index ----------
         print(self.current_index)
         print(self.length)
@@ -112,15 +113,13 @@ class Experiment:
             np.array(my_telem.position_ned)
             - self.points[index_checker(self.current_index + 1, self.length)]
         )
-        print("range_to_next")
-        print(range_to_next)
+
         print("current index")
         print(self.current_index)
 
         if (
             np.dot(range_to_next, self.directions[self.current_index]) > 0
         ):  # drone has passed the point next to current one
-            print("if activated")
             self.current_index = index_checker(self.current_index + 1, len(self.points))
             self.target_point = self.points[self.current_index]
             self.target_direction = self.directions[self.current_index]
@@ -255,11 +254,11 @@ class Experiment:
         print("my position")
         print(my_telem.position_ned)
         print(agent.my_telem.position_ned)
-        print("my current point position")
-        print(self.points[self.current_index])
+
+        yaw = flocking.get_desired_yaw(v_migration[0], v_migration[1])
 
         output_vel = flocking.check_velocity(
-            desired_vel, my_telem, max_speed, 0.0, time_step, max_accel
+            desired_vel, my_telem, max_speed, yaw, time_step, max_accel
         )
         # print("output vel")
         print(output_vel)
