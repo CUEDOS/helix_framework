@@ -255,6 +255,7 @@ class Experiment:
         print(my_telem.position_ned)
         print(agent.my_telem.position_ned)
 
+        # NOTE maybe add lane cohesion as well so we point the right way when coming from far away
         yaw = flocking.get_desired_yaw(v_migration[0], v_migration[1])
 
         output_vel = flocking.check_velocity(
