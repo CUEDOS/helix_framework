@@ -52,6 +52,7 @@ class Experiment:
         self.create_directions()
         self.initial_nearest_point()
         self.ready_flag = True
+        print("ready")
 
     def create_directions(self) -> list:
         for i in range(len(self.points)):
@@ -79,28 +80,30 @@ class Experiment:
                 lnitial_least_distance = range_to_point_i
                 self.current_index = i
 
-    def limit_accelleration(self, desired_vel, current_vel, time_step, max_accel):
-        delta_v = np.linalg.norm(desired_vel - current_vel)
+    # def limit_accelleration(self, desired_vel, current_vel, time_step, max_accel):
+    #     delta_v = np.linalg.norm(desired_vel - current_vel)
 
-        accelleration = delta_v / time_step
+    #     accelleration = delta_v / time_step
 
-        # impose accelleration limit
-        if accelleration > max_accel:
-            desired_vel = (
-                desired_vel
-                / np.linalg.norm(desired_vel)
-                * (max_accel * time_step + np.linalg.norm(current_vel))
-            )
+    #     # impose accelleration limit
+    #     if accelleration > max_accel:
+    #         desired_vel = (
+    #             desired_vel
+    #             / np.linalg.norm(desired_vel)
+    #             * (max_accel * time_step + np.linalg.norm(current_vel))
+    #         )
 
-        return desired_vel
+    #     return desired_vel
 
-    def path_following(self, drone_id, swarm_pos_vel, time_step, max_accel):
+    def path_following(
+        self, drone_id, swarm_telem, my_telem, max_speed, time_step, max_accel
+    ):
         self.target_point = self.points[self.current_index]
         self.target_direction = self.directions[self.current_index]
         iterator = 0
         # Finding the next bigger Index ----------
         range_to_next = (
-            np.array(agent.my_telem.position_ned)
+            np.array(my_telem.position_ned)
             - self.points[Index_checker(self.current_index + 1, self.length)]
         )
         if (
@@ -117,7 +120,7 @@ class Experiment:
                     self.current_index + iterator, len(self.points)
                 )
                 range_to_farther_point = (
-                    np.array(agent.my_telem.position_ned) - self.points[farther_point]
+                    np.array(my_telem.position_ned) - self.points[farther_point]
                 )
                 dot_fartherpoints = np.dot(
                     range_to_farther_point, self.directions[farther_point - 1]
@@ -202,11 +205,11 @@ class Experiment:
         limit_v_separation = 1
         r_0 = 2
         v_separation = np.array([0, 0, 0])
-        for key in swarm_pos_vel:
+        for key in swarm_telem:
             if key == drone_id:
                 continue
-            p = np.array(key.my_telem.position_ned)
-            x = np.array(agent.my_telem.position_ned) - p
+            p = np.array(swarm_telem[key].position_ned)
+            x = np.array(my_telem.position_ned) - p
             d = np.linalg.norm(x)
             if least_distance > d:
                 least_distance = d
@@ -216,15 +219,20 @@ class Experiment:
                 v_separation = (
                     v_separation * limit_v_separation / np.linalg.norm(v_separation)
                 )
-        output_vel = (
+        desired_vel = (
             k_laneCohesion * v_lane_cohesion
             + k_migration * v_migration
             + k_rotation * v_rotation
             + k_separation * v_separation
         )
-        output_vel = self.limit_accelleration(
-            output_vel, np.array(agent.my_telem.position_ned), time_step, max_accel
+        # output_vel = self.limit_accelleration(
+        #     output_vel, np.array(my_telem.velocity_ned), time_step, max_accel
+        # )
+
+        output_vel = flocking.check_velocity(
+            desired_vel, my_telem, max_speed, 0.0, time_step, max_accel
         )
+
         return output_vel
 
 
@@ -271,11 +279,11 @@ class Agent:
             "arm": self.arm,
             "takeoff": self.takeoff,
             "Simple Flocking": self.simple_flocking,
+            "Experiment": self.run_experiment,
             "Migration Test": self.migration_test,
             "hold": self.hold,
             "return": self.return_to_home,
             "land": self.land,
-            # "set_corridor": experiment.set_corridor,
             "disconnect": self.on_disconnect,
         }
 
@@ -354,6 +362,37 @@ class Agent:
             await drone.action.hold()
             print("could not start offboard")
             return
+
+    async def run_experiment(self):
+        print("running experiment")
+        await self.start_offboard(self.drone)
+
+        # End of Init the drone
+        offboard_loop_duration = 0.1  # duration of each loop
+
+        # Loop in which the velocity command outputs are generated
+        while (
+            self.comms.current_command
+            == "Experiment" & self.experiment.ready_flag
+            == True
+        ):
+            offboard_loop_start_time = time.time()
+
+            await self.drone.offboard.set_velocity_ned(
+                self.experiment.path_following(
+                    CONST_DRONE_ID,
+                    self.comms.swarm_telemetry,
+                    self.my_telem,
+                    CONST_MAX_SPEED,
+                    offboard_loop_duration,
+                    5,
+                )
+            )
+
+            # Checking frequency of the loop
+            await asyncio.sleep(
+                offboard_loop_duration - (time.time() - offboard_loop_start_time)
+            )
 
     async def simple_flocking(self):
         # pre-swarming process
