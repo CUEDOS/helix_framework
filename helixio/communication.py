@@ -4,8 +4,8 @@ import paho.mqtt.client as mqtt
 import gtools
 from data_structures import AgentTelemetry
 
-# CONST_BROKER_ADDRESS = "localhost"
-CONST_BROKER_ADDRESS = "broker.hivemq.com"
+CONST_BROKER_ADDRESS = "localhost"
+# CONST_BROKER_ADDRESS = "broker.hivemq.com"
 
 
 class Communication:
@@ -88,7 +88,8 @@ class Communication:
 
 # Inherits from Communication class, overriding methods specific to drones.
 class DroneCommunication(Communication):
-    def __init__(self, real_swarm_size, sitl_swarm_size, id):
+    def __init__(self, real_swarm_size, sitl_swarm_size, id, experiment):
+        self.experiment = experiment
         self.first_connection = True
         self.connected = False
         self.id = id
@@ -110,6 +111,9 @@ class DroneCommunication(Communication):
         self.client.message_callback_add(
             self.id + "/home/altitude", self.on_message_home
         )
+        self.client.message_callback_add(
+            self.id + "/corridor_points", self.on_message_corridor
+        )
         self.client.message_callback_add("commands/" + self.id, self.on_message_command)
         # set message to be sent when connection is lost
         self.client.will_set(
@@ -128,6 +132,7 @@ class DroneCommunication(Communication):
         client.subscribe("+/telemetry/+")
         client.subscribe("commands/" + self.id)
         client.subscribe("+/home/altitude")
+        client.subscribe("+/corridor_points")
         if self.first_connection:
             client.publish(
                 "detection",
@@ -152,6 +157,12 @@ class DroneCommunication(Communication):
         # agent.return_alt = msg.payload.decode()
         print("received new home altitude")
         self.return_alt = float(msg.payload.decode())
+
+    def on_message_corridor(self, mosq, obj, msg):
+        # agent.return_alt = msg.payload.decode()
+        print("received new corridor")
+        self.experiment.set_corridor(msg.payload.decode())
+        # self.return_alt = float(msg.payload.decode())
 
     def bind_command_functions(self, command_functions, event_loop):
         self.command_functions = command_functions
