@@ -456,6 +456,60 @@ class Agent:
                 offboard_loop_duration - (time.time() - offboard_loop_start_time)
             )
 
+    async def single_torus(self):
+        await self.start_offboard(self.drone)
+
+        # End of Init the drone
+        offboard_loop_duration = 0.1  # duration of each loop
+
+        # Loop in which the velocity command outputs are generated
+        while self.comms.current_command == "Single Torus":
+            offboard_loop_start_time = time.time()
+
+            output_vel = flocking.single_torus_swarming(
+                CONST_DRONE_ID,
+                self.comms.swarm_telemetry,
+                self.my_telem,
+                offboard_loop_duration,
+                5,
+            )
+
+            # Sending the target velocities to the quadrotor
+            await self.drone.offboard.set_velocity_ned(
+                flocking.check_velocity(
+                    output_vel,
+                    self.my_telem,
+                    CONST_MAX_SPEED,
+                    0.0,
+                    offboard_loop_duration,
+                    5,
+                )
+            )
+
+            # logging the position of each drone in the swarm that this drone has
+            for key in self.comms.swarm_telemetry.keys():
+                self.logger.info(
+                    key + ": " + str(self.comms.swarm_telemetry[key].position_ned)
+                )
+
+            # logging the velocity commands sent to the pixhawk
+            self.logger.info(
+                str(
+                    flocking.check_velocity(
+                        output_vel,
+                        self.my_telem,
+                        CONST_MAX_SPEED,
+                        0.0,
+                        offboard_loop_duration,
+                        5,
+                    )
+                )
+            )
+            # Checking frequency of the loop
+            await asyncio.sleep(
+                offboard_loop_duration - (time.time() - offboard_loop_start_time)
+            )
+
     async def migration_test(self):
         await self.start_offboard(self.drone)
 
