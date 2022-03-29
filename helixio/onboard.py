@@ -4,11 +4,6 @@ import time
 import json
 import logging
 import asyncio
-
-from tables import Description
-
-# from tokenize import String
-# from typing import List
 import flocking
 from mavsdk import System
 from mavsdk.action import ActionError
@@ -51,7 +46,6 @@ class Experiment:
         corridor = json.loads(corridor_json)
         self.lane_radius = corridor["corridor_radius"]
         self.points = corridor["corridor_points"]
-        print(self.points)
         self.length = len(self.points)
         self.create_directions()
         self.initial_nearest_point()
@@ -84,31 +78,13 @@ class Experiment:
                 lnitial_least_distance = range_to_point_i
                 self.current_index = i
 
-    # def limit_accelleration(self, desired_vel, current_vel, time_step, max_accel):
-    #     delta_v = np.linalg.norm(desired_vel - current_vel)
-
-    #     accelleration = delta_v / time_step
-
-    #     # impose accelleration limit
-    #     if accelleration > max_accel:
-    #         desired_vel = (
-    #             desired_vel
-    #             / np.linalg.norm(desired_vel)
-    #             * (max_accel * time_step + np.linalg.norm(current_vel))
-    #         )
-
-    #     return desired_vel
-
     def path_following(
         self, drone_id, swarm_telem, my_telem, max_speed, time_step, max_accel
     ):
-        print(self.length)
         self.target_point = self.points[self.current_index]
         self.target_direction = self.directions[self.current_index]
         iterator = 0
         # Finding the next bigger Index ----------
-        print(self.current_index)
-        print(self.length)
         range_to_next = (
             np.array(my_telem.position_ned)
             - self.points[index_checker(self.current_index + 1, self.length)]
@@ -149,9 +125,6 @@ class Experiment:
         if np.linalg.norm(v_migration) > limit_v_migration:
             v_migration = v_migration * limit_v_migration / np.linalg.norm(v_migration)
 
-        print("v_migration")
-        print(v_migration)
-
         # Calculating lane Cohesion Velocity ---------------
         limit_v_lane_cohesion = 1
         lane_cohesion_position_error = self.target_point - np.array(
@@ -164,8 +137,6 @@ class Experiment:
         lane_cohesion_position_error_magnitude = np.linalg.norm(
             lane_cohesion_position_error
         )
-        print("lane cohesion error magnitude")
-        print(lane_cohesion_position_error_magnitude)
 
         if np.linalg.norm(lane_cohesion_position_error) != 0:
             v_lane_cohesion = (
@@ -182,9 +153,6 @@ class Experiment:
                 * limit_v_lane_cohesion
                 / np.linalg.norm(v_lane_cohesion)
             )
-
-        print("v_lane_cohesion")
-        print(v_lane_cohesion)
 
         # Calculating v_rotation (normalized)---------------------
         limit_v_rotation = 1
@@ -216,9 +184,6 @@ class Experiment:
         if np.linalg.norm(v_rotation) > limit_v_rotation:
             v_rotation = v_rotation * limit_v_rotation / np.linalg.norm(v_rotation)
 
-        print("v_rotation")
-        print(v_rotation)
-
         # Calculating v_separation (normalized) -----------------------------
         limit_v_separation = 1
         r_0 = 2
@@ -238,22 +203,12 @@ class Experiment:
                     v_separation * limit_v_separation / np.linalg.norm(v_separation)
                 )
 
-        print("v_separation")
-        print(v_separation)
-
         desired_vel = (
             self.k_lane_cohesion * v_lane_cohesion
             + self.k_migration * v_migration
             + self.k_rotation * v_rotation
             + self.k_separation * v_separation
         )
-        # output_vel = self.limit_accelleration(
-        #     output_vel, np.array(my_telem.velocity_ned), time_step, max_accel
-        # )
-
-        print("my position")
-        print(my_telem.position_ned)
-        print(agent.my_telem.position_ned)
 
         # NOTE maybe add lane cohesion as well so we point the right way when coming from far away
         yaw = flocking.get_desired_yaw(v_migration[0], v_migration[1])
@@ -364,17 +319,6 @@ class Agent:
         except ActionError as error:
             self.report_error(error._result.result_str)
 
-    # async def catch_action_error(self, command):
-    #     # Attempts to perform the action and if the command fails the error is reported through MQTT
-    #     try:
-    #         await command
-    #         return True
-    #     except ActionError as error:
-    #         print("Action Failed: ", error._result.result_str)
-    #         self.report_error(error._result.result_str)
-    #         self.logger.error("Action Failed: ", error._result.result_str)
-    #         return False
-
     async def start_offboard(self, drone):
         print("-- Setting initial setpoint")
         await drone.offboard.set_velocity_ned(VelocityNedYaw(0.0, 0.0, 0.0, 0.0))
@@ -407,17 +351,6 @@ class Agent:
         ):
             print("generating velocity")
             offboard_loop_start_time = time.time()
-
-            # print(
-            #     self.experiment.path_following(
-            #         CONST_DRONE_ID,
-            #         self.comms.swarm_telemetry,
-            #         self.my_telem,
-            #         CONST_MAX_SPEED,
-            #         offboard_loop_duration,
-            #         5,
-            #     )
-            # )
 
             await self.drone.offboard.set_velocity_ned(
                 self.experiment.path_following(
