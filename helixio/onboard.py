@@ -164,22 +164,20 @@ class Experiment:
             v_rotation_magnitude = (
                 self.lane_radius / lane_cohesion_position_error_magnitude
             )
-
+        cross_prod=np.cross(lane_cohesion_position_error, self.target_direction)
         if (
-            np.linalg.norm(
-                np.cross(lane_cohesion_position_error, self.target_direction)
+            np.linalg.norm(cross_prod
             )
             != 0
         ):
             v_rotation = (
                 v_rotation_magnitude
-                * np.cross(lane_cohesion_position_error, self.target_direction)
-                / np.linalg.norm(
-                    np.cross(lane_cohesion_position_error, self.target_direction)
+                * cross_prod
+                / np.linalg.norm(cross_prod)
                 )
             )
         else:
-            v_rotation = 0
+            v_rotation = np.array[0, 0, 0]
 
         if np.linalg.norm(v_rotation) > limit_v_rotation:
             v_rotation = v_rotation * limit_v_rotation / np.linalg.norm(v_rotation)
