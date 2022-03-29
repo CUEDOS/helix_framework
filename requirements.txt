@@ -1,5 +1,5 @@
 numpy == 1.21.4
 rssi == 1.0.2
 paho-mqtt == 1.6.1
-pymap3d == 2.7.2
+pymap3d > 2.6
 mavsdk == 0.22.0
