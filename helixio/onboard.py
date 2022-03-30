@@ -184,7 +184,8 @@ class Experiment:
 
         # Calculating v_separation (normalized) -----------------------------
         limit_v_separation = 1
-        r_0 = 2
+        r_conflict = 3
+        r_collision= 1.5
         v_separation = np.array([0, 0, 0])
         for key in swarm_telem:
             if key == drone_id:
@@ -194,8 +195,10 @@ class Experiment:
             d = np.linalg.norm(x)
             if self.least_distance > d:
                 self.least_distance = d
-            if d <= r_0 and d != 0:
-                v_separation = v_separation + ((x / d) * (r_0 - d / r_0))
+            if d <= r_conflict and d>r_collision and d != 0:
+                v_separation = v_separation + ((x / d) * (r_conflict - d / r_conflict-r_collision))
+            id d<= r_collision and d !=0:
+                v_separation+=1
             if np.linalg.norm(v_separation) > limit_v_separation:
                 v_separation = (
                     v_separation * limit_v_separation / np.linalg.norm(v_separation)
