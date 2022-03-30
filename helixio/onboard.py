@@ -198,7 +198,7 @@ class Experiment:
             if d <= r_conflict and d>r_collision and d != 0:
                 v_separation = v_separation + ((x / d) * (r_conflict - d / r_conflict-r_collision))
             id d<= r_collision and d !=0:
-                v_separation+=1
+                v_separation= v_separation+ 1*(x/d)
             if np.linalg.norm(v_separation) > limit_v_separation:
                 v_separation = (
                     v_separation * limit_v_separation / np.linalg.norm(v_separation)
