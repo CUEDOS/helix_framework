@@ -34,7 +34,7 @@ class Experiment:
         self.k_migration = 1
         self.k_lane_cohesion = 2
         # self.k_rotation = 0.1
-        self.k_rotation = 2
+        self.k_rotation = 0.5
         self.k_separation = 2
 
         self.directions = []
@@ -89,9 +89,6 @@ class Experiment:
             np.array(my_telem.position_ned)
             - self.points[index_checker(self.current_index + 1, self.length)]
         )
-
-        print("current index")
-        print(self.current_index)
 
         if (
             np.dot(range_to_next, self.directions[self.current_index]) > 0
@@ -164,18 +161,9 @@ class Experiment:
             v_rotation_magnitude = (
                 self.lane_radius / lane_cohesion_position_error_magnitude
             )
-        cross_prod=np.cross(lane_cohesion_position_error, self.target_direction)
-        if (
-            np.linalg.norm(cross_prod
-            )
-            != 0
-        ):
-            v_rotation = (
-                v_rotation_magnitude
-                * cross_prod
-                / np.linalg.norm(cross_prod)
-                )
-            )
+        cross_prod = np.cross(lane_cohesion_position_error, self.target_direction)
+        if np.linalg.norm(cross_prod) != 0:
+            v_rotation = v_rotation_magnitude * cross_prod / np.linalg.norm(cross_prod)
         else:
             v_rotation = np.array[0, 0, 0]
 
@@ -183,8 +171,9 @@ class Experiment:
             v_rotation = v_rotation * limit_v_rotation / np.linalg.norm(v_rotation)
 
         # Calculating v_separation (normalized) -----------------------------
-        limit_v_separation = 1
-        r_0 = 2
+        limit_v_separation = 5
+        r_conflict = 5
+        r_collision = 2.5
         v_separation = np.array([0, 0, 0])
         for key in swarm_telem:
             if key == drone_id:
@@ -194,8 +183,12 @@ class Experiment:
             d = np.linalg.norm(x)
             if self.least_distance > d:
                 self.least_distance = d
-            if d <= r_0 and d != 0:
-                v_separation = v_separation + ((x / d) * (r_0 - d / r_0))
+            if d <= r_conflict and d > r_collision and d != 0:
+                v_separation = v_separation + (
+                    (x / d) * (r_conflict - d / r_conflict - r_collision)
+                )
+            if d <= r_collision and d != 0:
+                v_separation = v_separation + 1 * (x / d)
             if np.linalg.norm(v_separation) > limit_v_separation:
                 v_separation = (
                     v_separation * limit_v_separation / np.linalg.norm(v_separation)
@@ -214,8 +207,6 @@ class Experiment:
         output_vel = flocking.check_velocity(
             desired_vel, my_telem, max_speed, yaw, time_step, max_accel
         )
-        # print("output vel")
-        print(output_vel)
         return output_vel
 
 
@@ -347,7 +338,6 @@ class Agent:
             self.comms.current_command == "Experiment"
             and self.experiment.ready_flag == True
         ):
-            print("generating velocity")
             offboard_loop_start_time = time.time()
 
             await self.drone.offboard.set_velocity_ned(
