@@ -1,10 +1,13 @@
 # from asyncio.windows_events import NULL
+from hashlib import new
 import sys
 import time
 import json
 import logging
 import asyncio
 import typing
+
+from pytest import param
 import flocking
 from mavsdk import System
 from mavsdk.action import ActionError
@@ -215,22 +218,16 @@ class Experiment:
 class Agent:
     def __init__(self):
         # Open the json file where the config parameters are stored and read them
-        with open("config.json", "r") as f:
-            config = json.load(f)
-        self.id: str = config["id"]
-        self.real_swarm_size: int = config["real_swarm_size"]
-        self.sitl_swarm_size: int = config["sitl_swarm_size"]
-        self.port: int = config["port"]
-        self.logging: bool = config["logging"]
-        self.max_speed: int = config["max_speed"]
-        self.ref_lat: float = config["ref_lat"]
-        self.ref_lon: float = config["ref_lon"]
-        self.ref_alt: float = config["ref_alt"]
+        print("opening json file")
+        with open(CONST_JSON_PATH, "r") as f:
+            parameters = json.load(f)
+        self.load_parameters(parameters)
 
         self.my_telem = AgentTelemetry()
         self.return_alt = 10
         if self.logging == True:
             self.logger = setup_logger(self.id)
+        print("setup done")
 
     async def run(self):
         self.drone = System(mavsdk_server_address="localhost", port=self.port)
@@ -244,6 +241,7 @@ class Agent:
         self.experiment = Experiment(self.drone)
 
         self.comms = DroneCommunication(
+            self,
             self.real_swarm_size,
             self.sitl_swarm_size,
             self.id,
@@ -282,6 +280,34 @@ class Agent:
             # await self.catch_action_error(self.drone.action.hold())
             print("connection lost: logging")
             self.logger.warning("connection lost")
+
+    def load_parameters(self, parameters):
+        # takes dict of parameters and loads them into variables
+        self.id: str = parameters["id"]
+        self.real_swarm_size: int = parameters["real_swarm_size"]
+        self.sitl_swarm_size: int = parameters["sitl_swarm_size"]
+        self.port: int = parameters["port"]
+        self.logging: bool = parameters["logging"]
+        self.max_speed: int = parameters["max_speed"]
+        self.ref_lat: float = parameters["ref_lat"]
+        self.ref_lon: float = parameters["ref_lon"]
+        self.ref_alt: float = parameters["ref_alt"]
+
+    def update_parameter(self, new_parameters_json):
+
+        new_parameters = json.loads(new_parameters_json)
+
+        # load old parameters and insert new ones
+        with open(CONST_JSON_PATH, "r") as f:
+            parameters = json.load(f)
+
+        for key in new_parameters.keys():
+            parameters[key] = new_parameters[key]
+        # write new parameters to file
+        with open(CONST_JSON_PATH, "w") as f:
+            json.dump(parameters, f)
+
+        self.load_parameters(parameters)
 
     async def arm(self):
         print("ARMING")
@@ -726,6 +752,7 @@ if __name__ == "__main__":
     # CONST_REF_LON = -2.250343561172483
     # CONST_REF_ALT = 31
 
+    CONST_JSON_PATH = "parameters.json"
     # Start the main function
     agent = Agent()
     asyncio.ensure_future(agent.run())

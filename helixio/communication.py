@@ -88,7 +88,8 @@ class Communication:
 
 # Inherits from Communication class, overriding methods specific to drones.
 class DroneCommunication(Communication):
-    def __init__(self, real_swarm_size, sitl_swarm_size, id, experiment):
+    def __init__(self, agent, real_swarm_size, sitl_swarm_size, id, experiment):
+        self.agent = agent
         self.experiment = experiment
         self.first_connection = True
         self.connected = False
@@ -114,6 +115,9 @@ class DroneCommunication(Communication):
         self.client.message_callback_add(
             self.id + "/corridor_points", self.on_message_corridor
         )
+        self.client.message_callback_add(
+            self.id + "/update_parameters", self.on_message_update_parameters
+        )
         self.client.message_callback_add("commands/" + self.id, self.on_message_command)
         # set message to be sent when connection is lost
         self.client.will_set(
@@ -133,6 +137,7 @@ class DroneCommunication(Communication):
         client.subscribe("commands/" + self.id)
         client.subscribe("+/home/altitude")
         client.subscribe("+/corridor_points")
+        client.subscribe(self.id + "/update_parameters")
         if self.first_connection:
             client.publish(
                 "detection",
@@ -159,10 +164,12 @@ class DroneCommunication(Communication):
         self.return_alt = float(msg.payload.decode())
 
     def on_message_corridor(self, mosq, obj, msg):
-        # agent.return_alt = msg.payload.decode()
         print("received new corridor")
         self.experiment.set_corridor(msg.payload.decode())
-        # self.return_alt = float(msg.payload.decode())
+
+    def on_message_update_parameters(self, mosq, obj, msg):
+        print("received updated parameter")
+        self.agent.update_parameter(msg.payload.decode())
 
     def bind_command_functions(self, command_functions, event_loop):
         self.command_functions = command_functions
