@@ -1,9 +1,13 @@
 # from asyncio.windows_events import NULL
+from hashlib import new
 import sys
 import time
 import json
 import logging
 import asyncio
+import typing
+
+from pytest import param
 import flocking
 from mavsdk import System
 from mavsdk.action import ActionError
@@ -213,13 +217,20 @@ class Experiment:
 # Class containing all methods for the drones.
 class Agent:
     def __init__(self):
+        # Open the json file where the config parameters are stored and read them
+        print("opening json file")
+        with open(CONST_JSON_PATH, "r") as f:
+            parameters = json.load(f)
+        self.load_parameters(parameters)
+
         self.my_telem = AgentTelemetry()
         self.return_alt = 10
-        if CONST_LOGGING == True:
-            self.logger = setup_logger()
+        if self.logging == True:
+            self.logger = setup_logger(self.id)
+        print("setup done")
 
     async def run(self):
-        self.drone = System(mavsdk_server_address="localhost", port=CONST_PORT)
+        self.drone = System(mavsdk_server_address="localhost", port=self.port)
         await self.drone.connect()
         print("Waiting for drone to connect...")
         async for state in self.drone.core.connection_state():
@@ -230,14 +241,12 @@ class Agent:
         self.experiment = Experiment(self.drone)
 
         self.comms = DroneCommunication(
-            CONST_REAL_SWARM_SIZE,
-            CONST_SITL_SWARM_SIZE,
-            CONST_DRONE_ID,
+            self,
+            self.real_swarm_size,
+            self.sitl_swarm_size,
+            self.id,
             self.experiment,
         )
-        # self.comms = DroneCommunication(
-        #     CONST_REAL_SWARM_SIZE, CONST_SITL_SWARM_SIZE, CONST_DRONE_ID
-        # )
         asyncio.ensure_future(self.comms.run_comms())
 
         await asyncio.sleep(1)
@@ -271,6 +280,34 @@ class Agent:
             # await self.catch_action_error(self.drone.action.hold())
             print("connection lost: logging")
             self.logger.warning("connection lost")
+
+    def load_parameters(self, parameters):
+        # takes dict of parameters and loads them into variables
+        self.id: str = parameters["id"]
+        self.real_swarm_size: int = parameters["real_swarm_size"]
+        self.sitl_swarm_size: int = parameters["sitl_swarm_size"]
+        self.port: int = parameters["port"]
+        self.logging: bool = parameters["logging"]
+        self.max_speed: int = parameters["max_speed"]
+        self.ref_lat: float = parameters["ref_lat"]
+        self.ref_lon: float = parameters["ref_lon"]
+        self.ref_alt: float = parameters["ref_alt"]
+
+    def update_parameter(self, new_parameters_json):
+
+        new_parameters = json.loads(new_parameters_json)
+
+        # load old parameters and insert new ones
+        with open(CONST_JSON_PATH, "r") as f:
+            parameters = json.load(f)
+
+        for key in new_parameters.keys():
+            parameters[key] = new_parameters[key]
+        # write new parameters to file
+        with open(CONST_JSON_PATH, "w") as f:
+            json.dump(parameters, f)
+
+        self.load_parameters(parameters)
 
     async def arm(self):
         print("ARMING")
@@ -342,10 +379,10 @@ class Agent:
 
             await self.drone.offboard.set_velocity_ned(
                 self.experiment.path_following(
-                    CONST_DRONE_ID,
+                    self.id,
                     self.comms.swarm_telemetry,
                     self.my_telem,
-                    CONST_MAX_SPEED,
+                    self.max_speed,
                     offboard_loop_duration,
                     5,
                 )
@@ -401,7 +438,7 @@ class Agent:
             offboard_loop_start_time = time.time()
 
             output_vel = flocking.simple_flocking(
-                CONST_DRONE_ID,
+                self.id,
                 self.comms.swarm_telemetry,
                 self.my_telem,
                 offboard_loop_duration,
@@ -413,7 +450,7 @@ class Agent:
                 flocking.check_velocity(
                     output_vel,
                     self.my_telem,
-                    CONST_MAX_SPEED,
+                    self.max_speed,
                     0.0,
                     offboard_loop_duration,
                     5,
@@ -432,7 +469,7 @@ class Agent:
                     flocking.check_velocity(
                         output_vel,
                         self.my_telem,
-                        CONST_MAX_SPEED,
+                        self.max_speed,
                         0.0,
                         offboard_loop_duration,
                         5,
@@ -455,7 +492,7 @@ class Agent:
             offboard_loop_start_time = time.time()
 
             output_vel = flocking.single_torus_swarming(
-                CONST_DRONE_ID,
+                self.id,
                 self.comms.swarm_telemetry,
                 self.my_telem,
                 offboard_loop_duration,
@@ -467,7 +504,7 @@ class Agent:
                 flocking.check_velocity(
                     output_vel,
                     self.my_telem,
-                    CONST_MAX_SPEED,
+                    self.max_speed,
                     0.0,
                     offboard_loop_duration,
                     5,
@@ -486,7 +523,7 @@ class Agent:
                     flocking.check_velocity(
                         output_vel,
                         self.my_telem,
-                        CONST_MAX_SPEED,
+                        self.max_speed,
                         0.0,
                         offboard_loop_duration,
                         5,
@@ -519,7 +556,7 @@ class Agent:
                 offboard_loop_start_time = time.time()
 
                 flocking_vel = flocking.simple_flocking(
-                    CONST_DRONE_ID,
+                    self.id,
                     self.comms.swarm_telemetry,
                     self.my_telem,
                     offboard_loop_duration,
@@ -537,7 +574,7 @@ class Agent:
                     flocking.check_velocity(
                         output_vel,
                         self.my_telem,
-                        CONST_MAX_SPEED,
+                        self.max_speed,
                         yaw,
                         offboard_loop_duration,
                         2,
@@ -594,18 +631,18 @@ class Agent:
                 position.latitude_deg,
                 position.longitude_deg,
                 position.absolute_altitude_m,
-                CONST_REF_LAT,
-                CONST_REF_LON,
-                CONST_REF_ALT,
+                self.ref_lat,
+                self.ref_lon,
+                self.ref_alt,
             )
 
             self.comms.client.publish(
-                CONST_DRONE_ID + "/telemetry/position_ned",
+                self.id + "/telemetry/position_ned",
                 str(self.my_telem.position_ned).strip("()"),
             )
 
             self.comms.client.publish(
-                CONST_DRONE_ID + "/telemetry/geodetic",
+                self.id + "/telemetry/geodetic",
                 str(self.my_telem.geodetic).strip("()"),
             )
 
@@ -617,7 +654,7 @@ class Agent:
             self.my_telem.heading = heading
 
             self.comms.client.publish(
-                CONST_DRONE_ID + "/telemetry/heading",
+                self.id + "/telemetry/heading",
                 str(self.my_telem.heading.heading_deg).strip("()"),
             )
 
@@ -632,7 +669,7 @@ class Agent:
                 position_velocity_ned.velocity.down_m_s,
             )
             self.comms.client.publish(
-                CONST_DRONE_ID + "/telemetry/velocity_ned",
+                self.id + "/telemetry/velocity_ned",
                 str(self.my_telem.velocity_ned).strip("()"),
             )
 
@@ -642,7 +679,7 @@ class Agent:
             if arm_status != self.my_telem.arm_status:
                 self.my_telem.arm_status = arm_status
                 self.comms.client.publish(
-                    CONST_DRONE_ID + "/telemetry/arm_status",
+                    self.id + "/telemetry/arm_status",
                     str(self.my_telem.arm_status),
                 )
 
@@ -650,7 +687,7 @@ class Agent:
         await drone.telemetry.set_rate_battery(0.1)
         async for battery_level in drone.telemetry.battery():
             self.comms.client.publish(
-                CONST_DRONE_ID + "/battery_level",
+                self.id + "/battery_level",
                 str(round(battery_level.remaining_percent * 100)),
             )
 
@@ -661,21 +698,21 @@ class Agent:
                 previous_flight_mode = flight_mode
                 print(flight_mode)
                 self.comms.client.publish(
-                    CONST_DRONE_ID + "/flight_mode", str(flight_mode), qos=2
+                    self.id + "/flight_mode", str(flight_mode), qos=2
                 )
 
     def report_error(self, error):
         print("Action Failed: ", error)
         self.logger.error("Action Failed: ", error)
-        self.comms.client.publish("errors", CONST_DRONE_ID + ": " + error)
+        self.comms.client.publish("errors", self.id + ": " + error)
 
 
-def setup_logger():
+def setup_logger(id):
     log_format = "%(levelname)s %(asctime)s - %(message)s"
     log_date = time.strftime("%d-%m-%y_%H-%M")
 
     logging.basicConfig(
-        filename="logs/" + CONST_DRONE_ID + "_" + log_date + ".log",
+        filename="logs/" + id + "_" + log_date + ".log",
         filemode="w",
         format=log_format,
         level=logging.INFO,
@@ -688,15 +725,15 @@ def setup_logger():
 if __name__ == "__main__":
 
     # Takes command line arguments
-    CONST_DRONE_ID = str(sys.argv[1])
-    CONST_REAL_SWARM_SIZE = int(sys.argv[2])
-    CONST_SITL_SWARM_SIZE = int(sys.argv[3])
-    CONST_SWARM_SIZE = CONST_REAL_SWARM_SIZE + CONST_SITL_SWARM_SIZE
-    CONST_PORT = int(sys.argv[4])
-    CONST_LOGGING = bool(
-        sys.argv[5]
-    )  # 5th argument should be empty for no logging and 'L' for logging enabled
-    CONST_MAX_SPEED = 5
+    # CONST_DRONE_ID = str(sys.argv[1])
+    # CONST_REAL_SWARM_SIZE = int(sys.argv[2])
+    # CONST_SITL_SWARM_SIZE = int(sys.argv[3])
+    # CONST_SWARM_SIZE = CONST_REAL_SWARM_SIZE + CONST_SITL_SWARM_SIZE
+    # CONST_PORT = int(sys.argv[4])
+    # CONST_LOGGING = bool(
+    #    sys.argv[5]
+    # )  # 5th argument should be empty for no logging and 'L' for logging enabled
+    # CONST_MAX_SPEED = 5
 
     # below are reference GPS coordinates used as the origin of the NED coordinate system
 
@@ -711,10 +748,11 @@ if __name__ == "__main__":
     # CONST_REF_ALT = 1.3
 
     # For Hough End
-    CONST_REF_LAT = 53.43578053111544
-    CONST_REF_LON = -2.250343561172483
-    CONST_REF_ALT = 31
+    # CONST_REF_LAT = 53.43578053111544
+    # CONST_REF_LON = -2.250343561172483
+    # CONST_REF_ALT = 31
 
+    CONST_JSON_PATH = "parameters.json"
     # Start the main function
     agent = Agent()
     asyncio.ensure_future(agent.run())

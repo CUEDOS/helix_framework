@@ -386,11 +386,6 @@ class App:
                 [
                     sys.executable,
                     "onboard.py",
-                    "S" + str(1 + i).zfill(3),
-                    str(self.real_swarm_size),
-                    str(self.sitl_swarm_size),
-                    str(50041 + i),
-                    "L",
                 ],
                 cwd=os.getcwd(),
                 preexec_fn=os.setsid,
