@@ -18,8 +18,8 @@ def vis (**Input):  # input keyword arguments: ref_lat, ref_long, ref_alt
         drone_size: size of drones in visualization
         ticks_num: number of ticks for each cartesian axis
         
-        Note: if a user does not provide one argumetns of ref_lat, ref_long and ref_alt, the function considers 
-            a point with the least latitude, longitude and altitude as the re
+        Note: if a user does not provide one arguments of ref_lat, ref_long and ref_alt, the function considers 
+            a point with the least latitude, longitude and altitude as the reference point
     Returns:
         An animated figure of all drones with interpolated positions
     """
@@ -136,7 +136,7 @@ def vis (**Input):  # input keyword arguments: ref_lat, ref_long, ref_alt
             y[j].append(e)
             y_max=max(y_max, e)
             y_min=min(y_min, e)
-
+            
             z[j].append(-1*d)
             z_max=max(z_max, -1*d)
             z_min=min(z_min, -1*d)
@@ -162,9 +162,9 @@ def vis (**Input):  # input keyword arguments: ref_lat, ref_long, ref_alt
         if j==latest_drone:
             continue
         for t in interp_time:
-            X_total.append(fx[j](t))
-            Y_total.append(fy[j](t))
-            Z_total.append(fz[j](t))
+            X_total.append(float(fx[j](t)))
+            Y_total.append(float(fy[j](t)))
+            Z_total.append(float(fz[j](t)))
             Time_total.append(t-max_start_time)
             Color_total.append(file_names[j])
 
@@ -209,7 +209,7 @@ def vis (**Input):  # input keyword arguments: ref_lat, ref_long, ref_alt
                 mode='lines', 
         )
     )
-    fig.layout.updatemenus[0].buttons[0].args[1]['frame']['duration'] = interp_time[1]-interp_time[0]
+    fig.layout.updatemenus[0].buttons[0].args[1]['frame']['duration'] = 0.1 #interp_time[1]-interp_time[0]
     fig.layout.updatemenus[0].buttons[0].args[1]['transition']['duration'] = 0.1
     fig.update_layout(
         showlegend=True,
@@ -221,5 +221,5 @@ def vis (**Input):  # input keyword arguments: ref_lat, ref_long, ref_alt
     fig.show()
     
    
-# vis(directory="logs",drone_size=10, ticks_num=10)
+#vis(directory="logs",drone_size=10, ticks_num=10)
 
