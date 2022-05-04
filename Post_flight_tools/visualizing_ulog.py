@@ -206,7 +206,8 @@ def vis (**Input):  # input keyword arguments: ref_lat, ref_long, ref_alt
                 x=X_total[j*interp_length: ((j+1)*interp_length)-1], 
                 y=Y_total[j*interp_length: ((j+1)*interp_length)-1],
                 z=Z_total[j*interp_length: ((j+1)*interp_length)-1], 
-                mode='lines', 
+                mode='lines',
+                name="trace of "+file_names[j]
         )
     )
     fig.layout.updatemenus[0].buttons[0].args[1]['frame']['duration'] = 0.1 #interp_time[1]-interp_time[0]
