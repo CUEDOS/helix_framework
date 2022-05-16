@@ -88,16 +88,17 @@ class Communication:
 
 # Inherits from Communication class, overriding methods specific to drones.
 class DroneCommunication(Communication):
-    def __init__(self, agent, real_swarm_size, sitl_swarm_size, id, experiment):
+    def __init__(self, agent, broker_ip, id, experiment):
         self.agent = agent
+        self.broker_ip = broker_ip
         self.experiment = experiment
         self.first_connection = True
         self.connected = False
         self.id = id
         self.command_functions = {}
         self.current_command = "none"
-        # self.return_alt = 10
-        self.create_dict(real_swarm_size, sitl_swarm_size)
+        # Initialise swarm dict
+        self.swarm_telemetry = {}
 
     async def run_comms(self):
         self.client.message_callback_add(
@@ -118,13 +119,14 @@ class DroneCommunication(Communication):
         self.client.message_callback_add(
             self.id + "/update_parameters", self.on_message_update_parameters
         )
+        self.client.message_callback_add("detection", self.on_message_detection)
         self.client.message_callback_add("commands/" + self.id, self.on_message_command)
         # set message to be sent when connection is lost
         self.client.will_set(
             self.id + "/connection_status", "Disconnected", qos=2, retain=True
         )
         self.client.connect_async(
-            CONST_BROKER_ADDRESS, 1883, keepalive=5
+            self.broker_ip, 1883, keepalive=5
         )  # change localhost to IP of broker
         self.client.on_connect = self.on_connect
         self.client.on_disconnect = self.on_disconnect
@@ -133,6 +135,7 @@ class DroneCommunication(Communication):
     def on_connect(self, client, userdata, flags, rc):
         self.connected = True
         print("MQTT connected to broker with result code " + str(rc))
+        client.subscribe("detection")
         client.subscribe("+/telemetry/+")
         client.subscribe("commands/" + self.id)
         client.subscribe("+/home/altitude")
@@ -152,6 +155,9 @@ class DroneCommunication(Communication):
         # client.publish(self.id + "/connection_status", "Disconnected", retain=True)
         self.connected = False
         self.activate_callback("disconnect")
+
+    def on_message_detection(self, mosq, obj, msg):
+        self.add_agent(msg.payload.decode())
 
     def on_message_command(self, mosq, obj, msg):
         print("received command")
@@ -178,6 +184,16 @@ class DroneCommunication(Communication):
     def activate_callback(self, command):
         print("activating callback")
         asyncio.ensure_future(self.command_functions[command](), loop=self.event_loop)
+
+    def add_agent(self, new_id):
+        # adds a new agent to the swarm if they are not already present
+        if new_id not in self.swarm_telemetry:
+            self.swarm_telemetry[new_id] = AgentTelemetry()
+            # publish ID so that new agent can add it to their dict
+            self.client.publish(
+                "detection",
+                self.id,
+            )
 
 
 class GroundCommunication(Communication):
