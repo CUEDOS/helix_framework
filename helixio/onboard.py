@@ -1,5 +1,3 @@
-# from asyncio.windows_events import NULL
-from hashlib import new
 import sys
 import time
 import json
@@ -7,7 +5,6 @@ import logging
 import asyncio
 import typing
 
-from pytest import param
 import flocking
 from mavsdk import System
 from mavsdk.action import ActionError
@@ -242,8 +239,7 @@ class Agent:
 
         self.comms = DroneCommunication(
             self,
-            self.real_swarm_size,
-            self.sitl_swarm_size,
+            self.broker_ip,
             self.id,
             self.experiment,
         )
@@ -284,8 +280,7 @@ class Agent:
     def load_parameters(self, parameters):
         # takes dict of parameters and loads them into variables
         self.id: str = parameters["id"]
-        self.real_swarm_size: int = parameters["real_swarm_size"]
-        self.sitl_swarm_size: int = parameters["sitl_swarm_size"]
+        self.broker_ip: str = parameters["broker_ip"]
         self.port: int = parameters["port"]
         self.logging: bool = parameters["logging"]
         self.max_speed: int = parameters["max_speed"]
@@ -752,7 +747,7 @@ if __name__ == "__main__":
     # CONST_REF_LON = -2.250343561172483
     # CONST_REF_ALT = 31
 
-    CONST_JSON_PATH = "parameters.json"
+    CONST_JSON_PATH = str(sys.argv[1])
     # Start the main function
     agent = Agent()
     asyncio.ensure_future(agent.run())
