@@ -11,4 +11,4 @@ __pycache__
 helixio/__pycache__
 helixio/config.txt
 helixio/parameters.json
-helixio/SITL_parameters
+helixio/SITL_Parameters
