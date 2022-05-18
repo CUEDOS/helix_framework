@@ -136,7 +136,6 @@ class DroneCommunication(Communication):
         self.connected = True
         print("MQTT connected to broker with result code " + str(rc))
         client.subscribe("detection")
-        client.subscribe("+/telemetry/+")
         client.subscribe("commands/" + self.id)
         client.subscribe("+/home/altitude")
         client.subscribe("+/corridor_points")
@@ -189,6 +188,7 @@ class DroneCommunication(Communication):
         # adds a new agent to the swarm if they are not already present
         if new_id not in self.swarm_telemetry:
             self.swarm_telemetry[new_id] = AgentTelemetry()
+            self.client.subscribe(new_id + "/telemetry/+")
             # publish ID so that new agent can add it to their dict
             self.client.publish(
                 "detection",
