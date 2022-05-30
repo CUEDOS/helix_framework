@@ -4,101 +4,19 @@ import paho.mqtt.client as mqtt
 import gtools
 from data_structures import AgentTelemetry
 
-CONST_BROKER_ADDRESS = "localhost"
-# CONST_BROKER_ADDRESS = "broker.hivemq.com"
 
-
-class Communication:
+class DroneCommunication:
     client = mqtt.Client()
 
-    def __init__(self, real_swarm_size, sitl_swarm_size):
-        self.create_dict(real_swarm_size, sitl_swarm_size)
-        self.connected = False
-
-    def create_dict(self, real_swarm_size, sitl_swarm_size):
-        self.swarm_telemetry = gtools.create_swarm_dict(
-            real_swarm_size, sitl_swarm_size
-        )
-        for key in self.swarm_telemetry.keys():
-            self.swarm_telemetry[key] = AgentTelemetry()
-
-    async def run_comms(self):
-        self.client.message_callback_add(
-            "+/telemetry/geodetic", self.on_message_geodetic
-        )
-        self.client.message_callback_add(
-            "+/telemetry/position_ned", self.on_message_position
-        )
-        self.client.message_callback_add(
-            "+/telemetry/velocity_ned", self.on_message_velocity
-        )
-        self.client.connect_async(
-            CONST_BROKER_ADDRESS, 1883, 60
-        )  # change localhost to IP of broker
-        self.client.on_connect = self.on_connect
-        self.client.on_disconnect = self.on_disconnect
-        self.client.loop_start()
-
-    def close(self):
-        self.client.disconnect()
-        self.client.loop_stop()
-
-    # callback triggeed on connection to MQTT
-    def on_connect(self, client, userdata, flags, rc):
-        print("MQTT connected to broker with result code " + str(rc))
-        self.connected = True
-        client.subscribe("+/telemetry/+")
-        client.subscribe("+/connection_status")
-
-    def on_disconnect(self, client, userdata, rc):
-        self.connected = False
-
-    def on_message_geodetic(self, mosq, obj, msg):
-        # Remove none numeric parts of string and then split into north east and down
-        received_string = msg.payload.decode().strip("()")
-        string_list = received_string.split(", ")
-        geodetic = [float(i) for i in string_list]
-        # time.sleep(1)  # simulating comm latency
-        # replace reference to first 4 characters of topic with splitting topic at /
-        self.swarm_telemetry[msg.topic[0:4]].geodetic = geodetic
-
-    def on_message_position(self, mosq, obj, msg):
-        # Remove none numeric parts of string and then split into north east and down
-        received_string = msg.payload.decode().strip("()")
-        string_list = received_string.split(", ")
-        position = [float(i) for i in string_list]
-        # time.sleep(1)  # simulating comm latency
-        self.swarm_telemetry[msg.topic[0:4]].position_ned = position
-
-    def on_message_velocity(self, mosq, obj, msg):
-        # Remove none numeric parts of string and then split into north east and down
-        received_string = msg.payload.decode().strip("[]")
-        string_list = received_string.split(", ")
-        velocity = [float(i) for i in string_list]
-        # time.sleep(1)  # simulating comm latency
-        self.swarm_telemetry[msg.topic[0:4]].velocity_ned = velocity
-
-    # def bind_callback(self, callback):
-    #     self.observers.append(callback)
-
-    # def activate_callback(self, agent, data):
-    #     for callback in self.observers:
-    #         callback(agent, data)
-
-
-# Inherits from Communication class, overriding methods specific to drones.
-class DroneCommunication(Communication):
-    def __init__(self, agent, broker_ip, id, experiment):
+    def __init__(self, agent, swarm_manager):
         self.agent = agent
-        self.broker_ip = broker_ip
-        self.experiment = experiment
+        self.swarm_manager = swarm_manager
+        self.broker_ip = agent.broker_ip
         self.first_connection = True
         self.connected = False
-        self.id = id
+        self.id = agent.id
         self.command_functions = {}
         self.current_command = "none"
-        # Initialise swarm dict
-        self.swarm_telemetry = {}
 
     async def run_comms(self):
         self.client.message_callback_add(
@@ -131,6 +49,10 @@ class DroneCommunication(Communication):
         self.client.on_connect = self.on_connect
         self.client.on_disconnect = self.on_disconnect
         self.client.loop_start()
+
+    def close(self):
+        self.client.disconnect()
+        self.client.loop_stop()
 
     def on_connect(self, client, userdata, flags, rc):
         self.connected = True
@@ -170,7 +92,32 @@ class DroneCommunication(Communication):
 
     def on_message_corridor(self, mosq, obj, msg):
         print("received new corridor")
-        self.experiment.set_corridor(msg.payload.decode())
+        # self.experiment.set_corridor(msg.payload.decode())
+
+    def on_message_geodetic(self, mosq, obj, msg):
+        # Remove none numeric parts of string and then split into north east and down
+        received_string = msg.payload.decode().strip("()")
+        string_list = received_string.split(", ")
+        geodetic = [float(i) for i in string_list]
+        # time.sleep(1)  # simulating comm latency
+        # replace reference to first 4 characters of topic with splitting topic at /
+        self.swarm_manager.telemetry[msg.topic[0:4]].geodetic = geodetic
+
+    def on_message_position(self, mosq, obj, msg):
+        # Remove none numeric parts of string and then split into north east and down
+        received_string = msg.payload.decode().strip("()")
+        string_list = received_string.split(", ")
+        position = [float(i) for i in string_list]
+        # time.sleep(1)  # simulating comm latency
+        self.swarm_manager.telemetry[msg.topic[0:4]].position_ned = position
+
+    def on_message_velocity(self, mosq, obj, msg):
+        # Remove none numeric parts of string and then split into north east and down
+        received_string = msg.payload.decode().strip("[]")
+        string_list = received_string.split(", ")
+        velocity = [float(i) for i in string_list]
+        # time.sleep(1)  # simulating comm latency
+        self.swarm_manager.telemetry[msg.topic[0:4]].velocity_ned = velocity
 
     def on_message_update_parameters(self, mosq, obj, msg):
         print("received updated parameter")
@@ -186,62 +133,11 @@ class DroneCommunication(Communication):
 
     def add_agent(self, new_id):
         # adds a new agent to the swarm if they are not already present
-        if new_id not in self.swarm_telemetry:
-            self.swarm_telemetry[new_id] = AgentTelemetry()
+        if new_id not in self.swarm_manager.telemetry:
+            self.swarm_manager.telemetry[new_id] = AgentTelemetry()
             self.client.subscribe(new_id + "/telemetry/+")
             # publish ID so that new agent can add it to their dict
             self.client.publish(
                 "detection",
                 self.id,
             )
-
-
-class GroundCommunication(Communication):
-    def __init__(self, real_swarm_size, sitl_swarm_size):
-        self.connected = False
-        self.observers = []
-        self.create_dict(real_swarm_size, sitl_swarm_size)
-
-    async def run_comms(self):
-        self.client.message_callback_add(
-            "+/telemetry/geodetic", self.on_message_geodetic
-        )
-        self.client.message_callback_add(
-            "+/telemetry/position_ned", self.on_message_position
-        )
-        self.client.message_callback_add(
-            "+/telemetry/velocity_ned", self.on_message_velocity
-        )
-        self.client.message_callback_add(
-            "+/telemetry/arm_status", self.on_message_arm_status
-        )
-        self.client.message_callback_add(
-            "+/connection_status", self.on_message_connection_status
-        )
-        self.client.connect_async(
-            CONST_BROKER_ADDRESS, 1883, 60
-        )  # change localhost to IP of broker
-        self.client.on_connect = self.on_connect
-        self.client.loop_start()
-
-    def on_message_connection_status(self, mosq, obj, msg):
-        print("connection status updated")
-        agent = msg.topic[0:4]
-        if msg.payload.decode() == "0":
-            print(agent, " lost connection")
-            self.activate_callback("connection_status", agent, False)
-        else:
-            self.activate_callback("connection_status", agent, True)
-
-    def on_message_arm_status(self, mosq, obj, msg):
-        agent = msg.topic[0:4]
-        self.swarm_telemetry[agent].arm_status = msg.payload.decode()
-        self.activate_callback(
-            "arm_status", agent, self.swarm_telemetry[agent].arm_status
-        )
-
-    def bind_callback_functions(self, callback_functions):
-        self.callback_functions = callback_functions
-
-    def activate_callback(self, callback, agent, status):
-        self.callback_functions[callback](agent, status)

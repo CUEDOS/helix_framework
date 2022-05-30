@@ -1,10 +1,10 @@
+from __future__ import annotations  # compatibility with older python versions than 3.9
 import sys
 import time
 import json
 import logging
 import asyncio
 import typing
-
 import flocking
 from mavsdk import System
 from mavsdk.action import ActionError
@@ -12,203 +12,11 @@ from mavsdk.offboard import OffboardError, VelocityNedYaw
 import pymap3d as pm
 from communication import DroneCommunication
 from data_structures import AgentTelemetry
+from experiment import Experiment
 import math
+import gtools
 import numpy as np
-
-
-def index_checker(input_index, length) -> int:
-    if input_index >= length:
-        return int(input_index % length)
-    return input_index
-
-
-class Experiment:
-    def __init__(self, drone) -> None:
-        self.ready_flag = False
-        self.drone = drone
-        self.least_distance = 2  # minimum allowed distance between two agents
-        # Set up corridor variables
-        self.points = []
-        self.lane_radius = 0
-
-        # Sensible defaults for gains
-        self.k_migration = 1
-        self.k_lane_cohesion = 2
-        # self.k_rotation = 0.1
-        self.k_rotation = 0.5
-        self.k_separation = 2
-
-        self.directions = []
-        self.current_index = 0
-        self.target_point = np.array([0, 0, 0])
-        self.target_direction = np.array([1, 1, 1])
-
-    def set_corridor(self, corridor_json):
-        corridor = json.loads(corridor_json)
-        self.lane_radius = corridor["corridor_radius"]
-        self.points = corridor["corridor_points"]
-        self.length = len(self.points)
-        self.create_directions()
-        self.initial_nearest_point()
-        self.ready_flag = True
-        print("ready")
-
-    def create_directions(self) -> list:
-        for i in range(len(self.points)):
-            # All points must be converted to np arrays
-            self.points[i] = np.array(self.points[i])
-
-            if i == len(self.points) - 1:
-                self.directions.append(
-                    (self.points[0] - self.points[i])
-                    / np.linalg.norm(self.points[0] - self.points[i])
-                )
-            else:
-                self.directions.append(
-                    (self.points[i + 1] - self.points[i])
-                    / np.linalg.norm(self.points[i + 1] - self.points[i])
-                )
-
-    def initial_nearest_point(self) -> int:
-        lnitial_least_distance = math.inf
-        for i in range(len(self.points)):
-            range_to_point_i = np.linalg.norm(
-                np.array(agent.my_telem.position_ned) - self.points[i]
-            )
-            if range_to_point_i <= lnitial_least_distance:
-                lnitial_least_distance = range_to_point_i
-                self.current_index = i
-
-    def path_following(
-        self, drone_id, swarm_telem, my_telem, max_speed, time_step, max_accel
-    ):
-        self.target_point = self.points[self.current_index]
-        self.target_direction = self.directions[self.current_index]
-        iterator = 0
-        # Finding the next bigger Index ----------
-        range_to_next = (
-            np.array(my_telem.position_ned)
-            - self.points[index_checker(self.current_index + 1, self.length)]
-        )
-
-        if (
-            np.dot(range_to_next, self.directions[self.current_index]) > 0
-        ):  # drone has passed the point next to current one
-            self.current_index = index_checker(self.current_index + 1, len(self.points))
-            self.target_point = self.points[self.current_index]
-            self.target_direction = self.directions[self.current_index]
-            iterator = 0
-            dot_fartherpoints = 0
-            while dot_fartherpoints >= 0:  # Searching for farther points
-                iterator += 1
-                farther_point = index_checker(
-                    self.current_index + iterator, len(self.points)
-                )
-                range_to_farther_point = (
-                    np.array(my_telem.position_ned) - self.points[farther_point]
-                )
-                dot_fartherpoints = np.dot(
-                    range_to_farther_point, self.directions[farther_point - 1]
-                )
-
-            self.current_index = (
-                farther_point - 1
-            )  # farther_point here has negative dot product
-            self.target_point = self.points[self.current_index]
-            self.target_direction = self.directions[self.current_index]
-
-        # Calculating migration velocity (normalized)---------------------
-        limit_v_migration = 1
-        v_migration = self.target_direction / np.linalg.norm(self.target_direction)
-        if np.linalg.norm(v_migration) > limit_v_migration:
-            v_migration = v_migration * limit_v_migration / np.linalg.norm(v_migration)
-
-        # Calculating lane Cohesion Velocity ---------------
-        limit_v_lane_cohesion = 1
-        lane_cohesion_position_error = self.target_point - np.array(
-            agent.my_telem.position_ned
-        )
-        lane_cohesion_position_error -= (
-            np.dot(lane_cohesion_position_error, self.target_direction)
-            * self.target_direction
-        )
-        lane_cohesion_position_error_magnitude = np.linalg.norm(
-            lane_cohesion_position_error
-        )
-
-        if np.linalg.norm(lane_cohesion_position_error) != 0:
-            v_lane_cohesion = (
-                (lane_cohesion_position_error_magnitude - self.lane_radius)
-                * lane_cohesion_position_error
-                / np.linalg.norm(lane_cohesion_position_error)
-            )
-        else:
-            v_lane_cohesion = np.array([0.01, 0.01, 0.01])
-
-        if np.linalg.norm(v_lane_cohesion) > limit_v_lane_cohesion:
-            v_lane_cohesion = (
-                v_lane_cohesion
-                * limit_v_lane_cohesion
-                / np.linalg.norm(v_lane_cohesion)
-            )
-
-        # Calculating v_rotation (normalized)---------------------
-        limit_v_rotation = 1
-        if lane_cohesion_position_error_magnitude < self.lane_radius:
-            v_rotation_magnitude = (
-                lane_cohesion_position_error_magnitude / self.lane_radius
-            )
-        else:
-            v_rotation_magnitude = (
-                self.lane_radius / lane_cohesion_position_error_magnitude
-            )
-        cross_prod = np.cross(lane_cohesion_position_error, self.target_direction)
-        if np.linalg.norm(cross_prod) != 0:
-            v_rotation = v_rotation_magnitude * cross_prod / np.linalg.norm(cross_prod)
-        else:
-            v_rotation = np.array[0, 0, 0]
-
-        if np.linalg.norm(v_rotation) > limit_v_rotation:
-            v_rotation = v_rotation * limit_v_rotation / np.linalg.norm(v_rotation)
-
-        # Calculating v_separation (normalized) -----------------------------
-        limit_v_separation = 5
-        r_conflict = 5
-        r_collision = 2.5
-        v_separation = np.array([0, 0, 0])
-        for key in swarm_telem:
-            if key == drone_id:
-                continue
-            p = np.array(swarm_telem[key].position_ned)
-            x = np.array(my_telem.position_ned) - p
-            d = np.linalg.norm(x)
-            if self.least_distance > d:
-                self.least_distance = d
-            if d <= r_conflict and d > r_collision and d != 0:
-                v_separation = v_separation + (
-                    (x / d) * (r_conflict - d / r_conflict - r_collision)
-                )
-            if d <= r_collision and d != 0:
-                v_separation = v_separation + 1 * (x / d)
-            if np.linalg.norm(v_separation) > limit_v_separation:
-                v_separation = (
-                    v_separation * limit_v_separation / np.linalg.norm(v_separation)
-                )
-
-        desired_vel = (
-            self.k_lane_cohesion * v_lane_cohesion
-            + self.k_migration * v_migration
-            + self.k_rotation * v_rotation
-            + self.k_separation * v_separation
-        )
-
-        # NOTE maybe add lane cohesion as well so we point the right way when coming from far away
-        yaw = flocking.get_desired_yaw(v_migration[0], v_migration[1])
-
-        output_vel = flocking.check_velocity(
-            desired_vel, my_telem, max_speed, yaw, time_step, max_accel
-        )
-        return output_vel
+from telemetry import SwarmManager, TelemetryUpdater
 
 
 # Class containing all methods for the drones.
@@ -219,15 +27,17 @@ class Agent:
         with open(CONST_JSON_PATH, "r") as f:
             parameters = json.load(f)
         self.load_parameters(parameters)
-
-        self.my_telem = AgentTelemetry()
-        self.return_alt = 10
+        self.swarm_manager = SwarmManager()
+        self.swarm_manager.telemetry[self.id] = AgentTelemetry
+        self.return_alt: float = 10
         if self.logging == True:
             self.logger = setup_logger(self.id)
         print("setup done")
 
     async def run(self):
-        self.drone = System(mavsdk_server_address="localhost", port=self.port)
+        self.drone: type[System] = System(
+            mavsdk_server_address="localhost", port=self.port
+        )
         await self.drone.connect()
         print("Waiting for drone to connect...")
         async for state in self.drone.core.connection_state():
@@ -235,31 +45,33 @@ class Agent:
                 print(f"Drone discovered!")
                 break
 
-        self.experiment = Experiment(self.drone)
-
         self.comms = DroneCommunication(
             self,
-            self.broker_ip,
-            self.id,
-            self.experiment,
+            self.swarm_manager,
         )
         asyncio.ensure_future(self.comms.run_comms())
 
-        await asyncio.sleep(1)
-        asyncio.ensure_future(self.get_position(self.drone))
-        asyncio.ensure_future(self.get_heading(self.drone))
-        asyncio.ensure_future(self.get_velocity(self.drone))
-        asyncio.ensure_future(self.get_arm_status(self.drone))
-        asyncio.ensure_future(self.get_battery_level(self.drone))
-        asyncio.ensure_future(self.get_flight_mode(self.drone))
+        self.telemetry_updater = TelemetryUpdater(
+            self.id,
+            self.drone,
+            self.comms.client,
+            self.swarm_manager.telemetry,
+            event_loop,
+            [self.ref_lat, self.ref_lon, self.ref_alt],
+        )
+        await asyncio.sleep(2)
+
+        # temp
+        experiment_file_path: str = "experiment_1.json"
+        self.experiment = Experiment(
+            self.id, self.swarm_manager.telemetry, experiment_file_path
+        )
 
         # Put command callback functions in a dict with command as key
         command_functions = {
             "arm": self.arm,
             "takeoff": self.takeoff,
-            "Simple Flocking": self.simple_flocking,
             "Experiment": self.run_experiment,
-            "Migration Test": self.migration_test,
             "hold": self.hold,
             "return": self.return_to_home,
             "land": self.land,
@@ -340,6 +152,64 @@ class Agent:
         except ActionError as error:
             self.report_error(error._result.result_str)
 
+    async def goto_ned(self, desired_position_ned, travel_alt):
+        start_lat = self.swarm_manager.telemetry[self.id].geodetic[0]
+        start_lon = self.swarm_manager.telemetry[self.id].geodetic[1]
+
+        await self.drone.action.hold()
+        await asyncio.sleep(1)
+
+        (desired_lat, desired_lon, desired_alt) = pm.ned2geodetic(
+            desired_position_ned[0],
+            desired_position_ned[1],
+            desired_position_ned[2],
+            self.ref_lat,
+            self.ref_lon,
+            self.ref_alt,
+        )
+
+        # Go to the deconflicted travel altitude
+        try:
+            await self.drone.action.goto_location(start_lat, start_lon, travel_alt, 0)
+        except ActionError as error:
+            self.report_error(error._result.result_str)
+
+        # Waits until altitude is reached
+        while abs(self.swarm_manager.telemetry[self.id].geodetic[2] - travel_alt) > 0.5:
+            await asyncio.sleep(1)
+
+        # Go to the desired position at the travel alt
+        try:
+            await self.drone.action.goto_location(
+                desired_lat, desired_lon, travel_alt, 0
+            )
+        except ActionError as error:
+            self.report_error(error._result.result_str)
+
+        # Waits until position is reached
+        while abs(
+            self.swarm_manager.telemetry[self.id].position_ned[0]
+            - desired_position_ned[0]
+        ) > 0.5 and abs(
+            self.swarm_manager.telemetry[self.id].position_ned[2]
+            - desired_position_ned[2]
+        ):
+            await asyncio.sleep(1)
+
+        # finally go to the desired altitude
+        try:
+            await self.drone.action.goto_location(
+                desired_lat, desired_lon, desired_alt, 0
+            )
+        except ActionError as error:
+            self.report_error(error._result.result_str)
+
+        # Waits until position is reached
+        while (
+            abs(self.swarm_manager.telemetry[self.id].geodetic[2] - desired_alt) > 0.5
+        ):
+            await asyncio.sleep(1)
+
     async def start_offboard(self, drone):
         print("-- Setting initial setpoint")
         await drone.offboard.set_velocity_ned(VelocityNedYaw(0.0, 0.0, 0.0, 0.0))
@@ -358,7 +228,24 @@ class Agent:
             print("could not start offboard")
             return
 
+    async def pre_start(self):
+        alt_dict = {}
+        pre_start_north = 20
+        pre_start_east = 20
+        pre_start_down = -10
+        for key in self.swarm_manager.telemetry.keys():
+            alt_dict[key] = self.swarm_manager.telemetry[key].geodetic[2]
+
+        # TODO add check that all agents calculate the same alts
+        deconflicted_alt_dict = gtools.alt_calc(alt_dict, self.ref_alt)
+        pre_start_travel_alt = deconflicted_alt_dict[self.id]
+
+        await self.goto_ned(
+            [pre_start_north, pre_start_east, pre_start_down], pre_start_travel_alt
+        )
+
     async def run_experiment(self):
+        await self.pre_start()
         print("running experiment")
         await self.start_offboard(self.drone)
 
@@ -374,9 +261,7 @@ class Agent:
 
             await self.drone.offboard.set_velocity_ned(
                 self.experiment.path_following(
-                    self.id,
-                    self.comms.swarm_telemetry,
-                    self.my_telem,
+                    self.swarm_manager.telemetry,
                     self.max_speed,
                     offboard_loop_duration,
                     5,
@@ -387,204 +272,10 @@ class Agent:
             await asyncio.sleep(
                 offboard_loop_duration - (time.time() - offboard_loop_start_time)
             )
-
-    async def simple_flocking(self):
-        # pre-swarming process
-        swarming_start_lat = self.my_telem.geodetic[0]
-        swarming_start_long = self.my_telem.geodetic[1]
-
-        print("Preparing Swarming")
-        await self.drone.action.hold()
-        await asyncio.sleep(1)
-
-        print("START ALTITUDE:")
-        print(self.comms.return_alt)
-
-        try:
-            await self.drone.action.goto_location(
-                swarming_start_lat, swarming_start_long, self.comms.return_alt, 0
-            )
-        except ActionError as error:
-            self.report_error(error._result.result_str)
-
-        while abs(self.my_telem.geodetic[2] - self.comms.return_alt) > 0.5:
-            await asyncio.sleep(1)
-
-        try:
-            await self.drone.action.goto_location(
-                self.mission_lat, self.mission_long, self.comms.return_alt, 0
-            )
-        except ActionError as error:
-            self.report_error(error._result.result_str)
-
-        await self.start_offboard(self.drone)
-
-        # End of Init the drone
-        offboard_loop_duration = 0.1  # duration of each loop
-
-        exp = Experiment(self.drone)
-
-        # Catch points, direction
-
-        # Then calculate nearest point
-
-        # Loop in which the velocity command outputs are generated
-        while self.comms.current_command == "Simple Flocking":
-            offboard_loop_start_time = time.time()
-
-            output_vel = flocking.simple_flocking(
-                self.id,
-                self.comms.swarm_telemetry,
-                self.my_telem,
-                offboard_loop_duration,
-                5,
-            )
-
-            # Sending the target velocities to the quadrotor
-            await self.drone.offboard.set_velocity_ned(
-                flocking.check_velocity(
-                    output_vel,
-                    self.my_telem,
-                    self.max_speed,
-                    0.0,
-                    offboard_loop_duration,
-                    5,
-                )
-            )
-
-            # logging the position of each drone in the swarm that this drone has
-            for key in self.comms.swarm_telemetry.keys():
-                self.logger.info(
-                    key + ": " + str(self.comms.swarm_telemetry[key].position_ned)
-                )
-
-            # logging the velocity commands sent to the pixhawk
-            self.logger.info(
-                str(
-                    flocking.check_velocity(
-                        output_vel,
-                        self.my_telem,
-                        self.max_speed,
-                        0.0,
-                        offboard_loop_duration,
-                        5,
-                    )
-                )
-            )
-            # Checking frequency of the loop
-            await asyncio.sleep(
-                offboard_loop_duration - (time.time() - offboard_loop_start_time)
-            )
-
-    async def single_torus(self):
-        await self.start_offboard(self.drone)
-
-        # End of Init the drone
-        offboard_loop_duration = 0.1  # duration of each loop
-
-        # Loop in which the velocity command outputs are generated
-        while self.comms.current_command == "Single Torus":
-            offboard_loop_start_time = time.time()
-
-            output_vel = flocking.single_torus_swarming(
-                self.id,
-                self.comms.swarm_telemetry,
-                self.my_telem,
-                offboard_loop_duration,
-                5,
-            )
-
-            # Sending the target velocities to the quadrotor
-            await self.drone.offboard.set_velocity_ned(
-                flocking.check_velocity(
-                    output_vel,
-                    self.my_telem,
-                    self.max_speed,
-                    0.0,
-                    offboard_loop_duration,
-                    5,
-                )
-            )
-
-            # logging the position of each drone in the swarm that this drone has
-            for key in self.comms.swarm_telemetry.keys():
-                self.logger.info(
-                    key + ": " + str(self.comms.swarm_telemetry[key].position_ned)
-                )
-
-            # logging the velocity commands sent to the pixhawk
-            self.logger.info(
-                str(
-                    flocking.check_velocity(
-                        output_vel,
-                        self.my_telem,
-                        self.max_speed,
-                        0.0,
-                        offboard_loop_duration,
-                        5,
-                    )
-                )
-            )
-            # Checking frequency of the loop
-            await asyncio.sleep(
-                offboard_loop_duration - (time.time() - offboard_loop_start_time)
-            )
-
-    async def migration_test(self):
-        await self.start_offboard(self.drone)
-
-        # End of Init the drone
-        offboard_loop_duration = 0.1  # duration of each loop
-
-        await asyncio.sleep(2)
-        # Endless loop (Mission)
-        Migrated = False
-        while self.comms.current_command == "Migration Test":
-            print("getting new point to migrate to")
-            desired_pos = flocking.migration_test(Migrated)
-            print(desired_pos)
-            while self.comms.current_command == "Migration Test" and (
-                abs(self.my_telem.position_ned[0] - desired_pos[0]) > 1
-                or abs(self.my_telem.position_ned[1] - desired_pos[1]) > 1
-                or abs(self.my_telem.position_ned[2] - desired_pos[2]) > 1
-            ):
-                offboard_loop_start_time = time.time()
-
-                flocking_vel = flocking.simple_flocking(
-                    self.id,
-                    self.comms.swarm_telemetry,
-                    self.my_telem,
-                    offboard_loop_duration,
-                    1,
-                )
-
-                migration_vel, yaw = flocking.velocity_to_point(
-                    self.my_telem, desired_pos
-                )
-
-                output_vel = flocking_vel + migration_vel
-
-                # Sending the target velocities to the quadrotor
-                await self.drone.offboard.set_velocity_ned(
-                    flocking.check_velocity(
-                        output_vel,
-                        self.my_telem,
-                        self.max_speed,
-                        yaw,
-                        offboard_loop_duration,
-                        2,
-                    )
-                )
-
-                # Checking frequency of the loop
-                await asyncio.sleep(
-                    offboard_loop_duration - (time.time() - offboard_loop_start_time)
-                )
-            Migrated = not Migrated
 
     async def return_to_home(self):
-        rtl_start_lat = self.my_telem.geodetic[0]
-        rtl_start_long = self.my_telem.geodetic[1]
+        rtl_start_lat = self.swarm_manager.telemetry[self.id].geodetic[0]
+        rtl_start_long = self.swarm_manager.telemetry[self.id].geodetic[1]
 
         print("Returning to home")
         await self.drone.action.hold()
@@ -600,7 +291,13 @@ class Agent:
         except ActionError as error:
             self.report_error(error._result.result_str)
 
-        while abs(self.my_telem.geodetic[2] - self.comms.return_alt) > 0.5:
+        while (
+            abs(
+                self.swarm_manager.telemetry[self.id].geodetic[2]
+                - self.comms.return_alt
+            )
+            > 0.5
+        ):
             await asyncio.sleep(1)
 
         try:
@@ -609,92 +306,6 @@ class Agent:
             )
         except ActionError as error:
             self.report_error(error._result.result_str)
-
-    # runs in background and upates state class with latest telemetry
-    async def get_position(self, drone):
-        # set the rate of telemetry updates to 10Hz
-        await drone.telemetry.set_rate_position(10)
-        async for position in drone.telemetry.position():
-
-            self.my_telem.geodetic = (
-                position.latitude_deg,
-                position.longitude_deg,
-                position.absolute_altitude_m,
-            )
-
-            self.my_telem.position_ned = pm.geodetic2ned(
-                position.latitude_deg,
-                position.longitude_deg,
-                position.absolute_altitude_m,
-                self.ref_lat,
-                self.ref_lon,
-                self.ref_alt,
-            )
-
-            self.comms.client.publish(
-                self.id + "/telemetry/position_ned",
-                str(self.my_telem.position_ned).strip("()"),
-            )
-
-            self.comms.client.publish(
-                self.id + "/telemetry/geodetic",
-                str(self.my_telem.geodetic).strip("()"),
-            )
-
-    async def get_heading(self, drone):
-        # set the rate of telemetry updates to 10Hz
-        # await drone.telemetry.set_rate_heading(10)
-        async for heading in drone.telemetry.heading():
-
-            self.my_telem.heading = heading
-
-            self.comms.client.publish(
-                self.id + "/telemetry/heading",
-                str(self.my_telem.heading.heading_deg).strip("()"),
-            )
-
-    async def get_velocity(self, drone):
-        # set the rate of telemetry updates to 10Hz
-        await drone.telemetry.set_rate_position_velocity_ned(10)
-        async for position_velocity_ned in drone.telemetry.position_velocity_ned():
-            # changed from list to tuple so formatting for all messages is the same
-            self.my_telem.velocity_ned = (
-                position_velocity_ned.velocity.north_m_s,
-                position_velocity_ned.velocity.east_m_s,
-                position_velocity_ned.velocity.down_m_s,
-            )
-            self.comms.client.publish(
-                self.id + "/telemetry/velocity_ned",
-                str(self.my_telem.velocity_ned).strip("()"),
-            )
-
-    async def get_arm_status(self, drone):
-        async for arm_status in drone.telemetry.armed():
-
-            if arm_status != self.my_telem.arm_status:
-                self.my_telem.arm_status = arm_status
-                self.comms.client.publish(
-                    self.id + "/telemetry/arm_status",
-                    str(self.my_telem.arm_status),
-                )
-
-    async def get_battery_level(self, drone):
-        await drone.telemetry.set_rate_battery(0.1)
-        async for battery_level in drone.telemetry.battery():
-            self.comms.client.publish(
-                self.id + "/battery_level",
-                str(round(battery_level.remaining_percent * 100)),
-            )
-
-    async def get_flight_mode(self, drone):
-        previous_flight_mode = "NONE"
-        async for flight_mode in drone.telemetry.flight_mode():
-            if flight_mode != previous_flight_mode:
-                previous_flight_mode = flight_mode
-                print(flight_mode)
-                self.comms.client.publish(
-                    self.id + "/flight_mode", str(flight_mode), qos=2
-                )
 
     def report_error(self, error):
         print("Action Failed: ", error)
@@ -747,7 +358,8 @@ if __name__ == "__main__":
     # CONST_REF_LON = -2.250343561172483
     # CONST_REF_ALT = 31
 
-    CONST_JSON_PATH = str(sys.argv[1])
+    # CONST_JSON_PATH = str(sys.argv[1])
+    CONST_JSON_PATH = "parameters.json"
     # Start the main function
     agent = Agent()
     asyncio.ensure_future(agent.run())
