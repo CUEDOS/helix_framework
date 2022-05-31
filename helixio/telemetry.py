@@ -12,6 +12,56 @@ class SwarmManager:
     def __init__(self):
         self.telemetry: dict[str, type[AgentTelemetry]] = {}
 
+    def check_swarm_positions(self, required_positions, check_alt=True):
+        # takes required positions as NED and checks positions of swarm
+        if check_alt == True:
+            for agent in self.telemetry.keys():
+                if (
+                    np.sqrt(
+                        (
+                            required_positions[agent][0]
+                            - self.telemetry[agent].position_ned[0]
+                        )
+                        ** 2
+                        + (
+                            required_positions[agent][1]
+                            - self.telemetry[agent].position_ned[1]
+                        )
+                        ** 2
+                        + (
+                            required_positions[agent][2]
+                            - self.telemetry[agent].position_ned[2]
+                        )
+                        ** 2
+                    )
+                ) > 0.5:
+                    return False
+        else:
+            for agent in self.telemetry.keys():
+                if (
+                    np.sqrt(
+                        (
+                            required_positions[agent][0]
+                            - self.telemetry[agent].position_ned[0]
+                        )
+                        ** 2
+                        + (
+                            required_positions[agent][1]
+                            - self.telemetry[agent].position_ned[1]
+                        )
+                        ** 2
+                    )
+                ) > 0.5:
+                    return False
+        return True
+
+    def check_swarm_altitudes(self, required_altitudes):
+        # takes required altitudes and checks positions of swarm
+        for agent in self.telemetry.keys():
+            if abs(self.telemetry[agent].geodetic[2] - required_altitudes[agent]) > 0.5:
+                return False
+        return True
+
 
 class TelemetryUpdater:
     def __init__(self, id, drone, client, swarm_telem, event_loop, geodetic_ref):

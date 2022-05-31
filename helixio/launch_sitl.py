@@ -70,9 +70,9 @@ def on_closing():
     if gazebo_process != None:
         sig = signal.SIGTERM
         os.killpg(os.getpgid(gazebo_process.pid), sig)
-        # for i in range(0, len(script_process)):
-        #     os.killpg(os.getpgid(mavsdk_process[i].pid), sig)
-        #     os.killpg(os.getpgid(script_process[i].pid), sig)
+        for i in range(0, len(script_process)):
+            os.killpg(os.getpgid(mavsdk_process[i].pid), sig)
+            os.killpg(os.getpgid(script_process[i].pid), sig)
 
 
 if __name__ == "__main__":
@@ -82,6 +82,7 @@ if __name__ == "__main__":
     firmware_path = "/home/r32401vc/CASCADE/Firmware"
     gazebo_process = start_gazebo()
     mavsdk_process = start_mavsdk_servers()
-    # script_process = start_scripts()
+    time.sleep(30)
+    script_process = start_scripts()
 
     signal.pause()

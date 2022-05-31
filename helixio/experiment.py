@@ -9,12 +9,18 @@ from communication import DroneCommunication
 from data_structures import AgentTelemetry
 import math
 import numpy as np
+from string import digits
 
 
 def index_checker(input_index, length) -> int:
     if input_index >= length:
         return int(input_index % length)
     return input_index
+
+
+def only_numeric(input_string):
+    output_string = "".join(c for c in input_string if c in digits)
+    return output_string
 
 
 class Experiment:
@@ -41,6 +47,7 @@ class Experiment:
         self.k_separation = experiment_parameters["k_seperation"]
         self.r_conflict = experiment_parameters["r_conflict"]
         self.r_collision = experiment_parameters["r_collision"]
+        self.pre_start_positions = experiment_parameters["pre_start_positions"]
         self.lane_radius = experiment_parameters["corridor_radius"]
         self.points = experiment_parameters["corridor_points"]
         self.length = len(self.points)
@@ -48,6 +55,24 @@ class Experiment:
         self.initial_nearest_point(swarm_telem)
         self.ready_flag = True
         print("ready")
+
+    def get_pre_start_positions(self, swarm_telem):
+        numeric_ids = {}
+        assigned_pre_start_positions = {}
+        # numeric_id = int(only_numeric(self.id))
+        for agent in swarm_telem.keys():
+            numeric_ids[agent] = int(only_numeric(agent))
+
+        swarm_priorities = sorted(numeric_ids, key=numeric_ids.get)
+
+        for i, agent in enumerate(swarm_priorities):
+            if len(self.pre_start_positions) > i:
+                assigned_pre_start_positions[agent] = self.pre_start_positions[i]
+            else:
+                # if there isnt enough pre start positions, start from current position
+                assigned_pre_start_positions[agent] = swarm_telem[self.id].position_ned
+
+        return assigned_pre_start_positions
 
     def create_directions(self):
         for i in range(len(self.points)):
@@ -65,7 +90,7 @@ class Experiment:
                     / np.linalg.norm(self.points[i + 1] - self.points[i])
                 )
 
-    def initial_nearest_point(self, swarm_telem) -> int:
+    def initial_nearest_point(self, swarm_telem) -> None:
         lnitial_least_distance = math.inf
         for i in range(len(self.points)):
             range_to_point_i = np.linalg.norm(
@@ -203,5 +228,4 @@ class Experiment:
         output_vel = flocking.check_velocity(
             desired_vel, swarm_telem[self.id], max_speed, yaw, time_step, max_accel
         )
-        print(output_vel)
         return output_vel

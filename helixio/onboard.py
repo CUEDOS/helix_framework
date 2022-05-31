@@ -50,23 +50,7 @@ class Agent:
             self.swarm_manager,
         )
         asyncio.ensure_future(self.comms.run_comms())
-
-        self.telemetry_updater = TelemetryUpdater(
-            self.id,
-            self.drone,
-            self.comms.client,
-            self.swarm_manager.telemetry,
-            event_loop,
-            [self.ref_lat, self.ref_lon, self.ref_alt],
-        )
         await asyncio.sleep(2)
-
-        # temp
-        experiment_file_path: str = "experiment_1.json"
-        self.experiment = Experiment(
-            self.id, self.swarm_manager.telemetry, experiment_file_path
-        )
-
         # Put command callback functions in a dict with command as key
         command_functions = {
             "arm": self.arm,
@@ -80,6 +64,21 @@ class Agent:
 
         # Bind the callbacks
         self.comms.bind_command_functions(command_functions, event_loop)
+
+        self.telemetry_updater = TelemetryUpdater(
+            self.id,
+            self.drone,
+            self.comms.client,
+            self.swarm_manager.telemetry,
+            event_loop,
+            [self.ref_lat, self.ref_lon, self.ref_alt],
+        )
+        await asyncio.sleep(2)
+        # temp
+        experiment_file_path: str = "experiment_1.json"
+        self.experiment = Experiment(
+            self.id, self.swarm_manager.telemetry, experiment_file_path
+        )
 
     async def on_disconnect(self):
         print("connection lost, timeout in 5s")
@@ -152,17 +151,18 @@ class Agent:
         except ActionError as error:
             self.report_error(error._result.result_str)
 
-    async def goto_ned(self, desired_position_ned, travel_alt):
+    async def declonflicted_goto(self, desired_positions_ned, deconflicted_alt_dict):
         start_lat = self.swarm_manager.telemetry[self.id].geodetic[0]
         start_lon = self.swarm_manager.telemetry[self.id].geodetic[1]
+        travel_alt = deconflicted_alt_dict[self.id]
 
         await self.drone.action.hold()
         await asyncio.sleep(1)
 
         (desired_lat, desired_lon, desired_alt) = pm.ned2geodetic(
-            desired_position_ned[0],
-            desired_position_ned[1],
-            desired_position_ned[2],
+            desired_positions_ned[self.id][0],
+            desired_positions_ned[self.id][1],
+            desired_positions_ned[self.id][2],
             self.ref_lat,
             self.ref_lon,
             self.ref_alt,
@@ -174,8 +174,8 @@ class Agent:
         except ActionError as error:
             self.report_error(error._result.result_str)
 
-        # Waits until altitude is reached
-        while abs(self.swarm_manager.telemetry[self.id].geodetic[2] - travel_alt) > 0.5:
+        # wait until altitude is reached by all agents
+        while not self.swarm_manager.check_swarm_altitudes(deconflicted_alt_dict):
             await asyncio.sleep(1)
 
         # Go to the desired position at the travel alt
@@ -186,13 +186,9 @@ class Agent:
         except ActionError as error:
             self.report_error(error._result.result_str)
 
-        # Waits until position is reached
-        while abs(
-            self.swarm_manager.telemetry[self.id].position_ned[0]
-            - desired_position_ned[0]
-        ) > 0.5 and abs(
-            self.swarm_manager.telemetry[self.id].position_ned[2]
-            - desired_position_ned[2]
+        # Waits until position is reached by all agents
+        while not self.swarm_manager.check_swarm_positions(
+            desired_positions_ned, check_alt=False
         ):
             await asyncio.sleep(1)
 
@@ -204,10 +200,8 @@ class Agent:
         except ActionError as error:
             self.report_error(error._result.result_str)
 
-        # Waits until position is reached
-        while (
-            abs(self.swarm_manager.telemetry[self.id].geodetic[2] - desired_alt) > 0.5
-        ):
+        # Waits until position is reached by all agents
+        while not self.swarm_manager.check_swarm_positions(desired_positions_ned):
             await asyncio.sleep(1)
 
     async def start_offboard(self, drone):
@@ -230,19 +224,18 @@ class Agent:
 
     async def pre_start(self):
         alt_dict = {}
-        pre_start_north = 20
-        pre_start_east = 20
-        pre_start_down = -10
+        pre_start_positions = self.experiment.get_pre_start_positions(
+            self.swarm_manager.telemetry
+        )
+
         for key in self.swarm_manager.telemetry.keys():
             alt_dict[key] = self.swarm_manager.telemetry[key].geodetic[2]
 
         # TODO add check that all agents calculate the same alts
         deconflicted_alt_dict = gtools.alt_calc(alt_dict, self.ref_alt)
-        pre_start_travel_alt = deconflicted_alt_dict[self.id]
 
-        await self.goto_ned(
-            [pre_start_north, pre_start_east, pre_start_down], pre_start_travel_alt
-        )
+        # TODO add check if pre start position is current position
+        await self.declonflicted_goto(pre_start_positions, deconflicted_alt_dict)
 
     async def run_experiment(self):
         await self.pre_start()
@@ -358,8 +351,8 @@ if __name__ == "__main__":
     # CONST_REF_LON = -2.250343561172483
     # CONST_REF_ALT = 31
 
-    # CONST_JSON_PATH = str(sys.argv[1])
-    CONST_JSON_PATH = "parameters.json"
+    CONST_JSON_PATH = str(sys.argv[1])
+    # CONST_JSON_PATH = "SITL_Parameters/S001_parameters.json"
     # Start the main function
     agent = Agent()
     asyncio.ensure_future(agent.run())
