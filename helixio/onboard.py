@@ -1,5 +1,6 @@
 from __future__ import annotations  # compatibility with older python versions than 3.9
 import sys
+import os
 import time
 import json
 import logging
@@ -28,7 +29,7 @@ class Agent:
             parameters = json.load(f)
         self.load_parameters(parameters)
         self.swarm_manager = SwarmManager()
-        self.swarm_manager.telemetry[self.id] = AgentTelemetry
+        self.swarm_manager.telemetry[self.id] = AgentTelemetry()
         self.return_alt: float = 10
         if self.logging == True:
             self.logger = setup_logger(self.id)
@@ -64,7 +65,6 @@ class Agent:
 
         # Bind the callbacks
         self.comms.bind_command_functions(command_functions, event_loop)
-
         self.telemetry_updater = TelemetryUpdater(
             self.id,
             self.drone,
@@ -72,6 +72,7 @@ class Agent:
             self.swarm_manager.telemetry,
             event_loop,
             [self.ref_lat, self.ref_lon, self.ref_alt],
+            self.download_ulog,
         )
         await asyncio.sleep(2)
         # temp
@@ -118,7 +119,6 @@ class Agent:
     async def arm(self):
         print("ARMING")
         self.logger.info("arming")
-
         try:
             await self.drone.action.arm()
             self.home_lat = self.my_telem.geodetic[0]
@@ -152,6 +152,7 @@ class Agent:
             self.report_error(error._result.result_str)
 
     async def declonflicted_goto(self, desired_positions_ned, deconflicted_alt_dict):
+        # TODO make sure calling hold during process works
         start_lat = self.swarm_manager.telemetry[self.id].geodetic[0]
         start_lon = self.swarm_manager.telemetry[self.id].geodetic[1]
         travel_alt = deconflicted_alt_dict[self.id]
@@ -305,6 +306,21 @@ class Agent:
         self.logger.error("Action Failed: ", error)
         self.comms.client.publish("errors", self.id + ": " + error)
 
+    async def download_ulog(self):
+        entries = await self.drone.log_files.get_entries()
+        entry = entries[-1]
+        date_without_colon = entry.date.replace(":", "-")
+        filename = f"{os.getcwd()}/px4_logs/log-{date_without_colon}.ulog"
+        print(f"Downloading: log {entry.id} from {entry.date} to {filename}")
+        previous_progress = -1
+        async for progress in self.drone.log_files.download_log_file(entry, filename):
+            new_progress = round(progress.progress * 100)
+            if new_progress != previous_progress:
+                sys.stdout.write(f"\r{new_progress} %")
+                sys.stdout.flush()
+                previous_progress = new_progress
+        print()
+
 
 def setup_logger(id):
     log_format = "%(levelname)s %(asctime)s - %(message)s"
@@ -351,8 +367,8 @@ if __name__ == "__main__":
     # CONST_REF_LON = -2.250343561172483
     # CONST_REF_ALT = 31
 
-    CONST_JSON_PATH = str(sys.argv[1])
-    # CONST_JSON_PATH = "SITL_Parameters/S001_parameters.json"
+    # CONST_JSON_PATH = str(sys.argv[1])
+    CONST_JSON_PATH = "parameters.json"
     # Start the main function
     agent = Agent()
     asyncio.ensure_future(agent.run())

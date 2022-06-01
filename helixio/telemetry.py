@@ -64,7 +64,9 @@ class SwarmManager:
 
 
 class TelemetryUpdater:
-    def __init__(self, id, drone, client, swarm_telem, event_loop, geodetic_ref):
+    def __init__(
+        self, id, drone, client, swarm_telem, event_loop, geodetic_ref, ulog_callback
+    ):
         self.id = id
         self.drone = drone
         self.client = client
@@ -72,10 +74,11 @@ class TelemetryUpdater:
         asyncio.ensure_future(
             self.get_position(swarm_telem, geodetic_ref), loop=event_loop
         )
-
         asyncio.ensure_future(self.get_heading(swarm_telem), loop=event_loop)
         asyncio.ensure_future(self.get_velocity(swarm_telem), loop=event_loop)
-        asyncio.ensure_future(self.get_arm_status(swarm_telem), loop=event_loop)
+        asyncio.ensure_future(
+            self.get_arm_status(swarm_telem, ulog_callback), loop=event_loop
+        )
         asyncio.ensure_future(self.get_battery_level(), loop=event_loop)
         asyncio.ensure_future(self.get_flight_mode(), loop=event_loop)
 
@@ -136,15 +139,20 @@ class TelemetryUpdater:
                 str(swarm_telem[self.id].velocity_ned).strip("()"),
             )
 
-    async def get_arm_status(self, swarm_telem):
-        async for arm_status in self.drone.telemetry.armed():
-
-            if arm_status != swarm_telem[self.id].arm_status:
-                swarm_telem[self.id].arm_status = arm_status
+    async def get_arm_status(self, swarm_telem, ulog_callback):
+        async for is_armed in self.drone.telemetry.armed():
+            if is_armed != swarm_telem[self.id].arm_status:
+                swarm_telem[self.id].arm_status = is_armed
                 self.client.publish(
                     self.id + "/telemetry/arm_status",
                     str(swarm_telem[self.id].arm_status),
                 )
+                if swarm_telem[self.id].arm_status == False:
+                    await ulog_callback()
+
+    async def get_uid(self, swarm_telem):
+        async for flight_info in self.drone.info.get_flight_information():
+            print(flight_info)
 
     async def get_battery_level(self):
         await self.drone.telemetry.set_rate_battery(0.1)
