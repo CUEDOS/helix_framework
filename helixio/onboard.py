@@ -76,7 +76,7 @@ class Agent:
         )
         await asyncio.sleep(2)
         # temp
-        experiment_file_path: str = "experiment_1.json"
+        experiment_file_path: str = "experiment_2.json"
         self.experiment = Experiment(
             self.id, self.swarm_manager.telemetry, experiment_file_path
         )
@@ -151,7 +151,7 @@ class Agent:
         except ActionError as error:
             self.report_error(error._result.result_str)
 
-    async def declonflicted_goto(self, desired_positions_ned, deconflicted_alt_dict):
+    async def deconflicted_goto(self, desired_positions_ned, deconflicted_alt_dict):
         # TODO make sure calling hold during process works
         start_lat = self.swarm_manager.telemetry[self.id].geodetic[0]
         start_lon = self.swarm_manager.telemetry[self.id].geodetic[1]
@@ -236,7 +236,7 @@ class Agent:
         deconflicted_alt_dict = gtools.alt_calc(alt_dict, self.ref_alt)
 
         # TODO add check if pre start position is current position
-        await self.declonflicted_goto(pre_start_positions, deconflicted_alt_dict)
+        await self.deconflicted_goto(pre_start_positions, deconflicted_alt_dict)
 
     async def run_experiment(self):
         await self.pre_start()
@@ -367,8 +367,8 @@ if __name__ == "__main__":
     # CONST_REF_LON = -2.250343561172483
     # CONST_REF_ALT = 31
 
-    # CONST_JSON_PATH = str(sys.argv[1])
-    CONST_JSON_PATH = "parameters.json"
+    CONST_JSON_PATH = str(sys.argv[1])
+    # CONST_JSON_PATH = "parameters.json"
     # Start the main function
     agent = Agent()
     asyncio.ensure_future(agent.run())

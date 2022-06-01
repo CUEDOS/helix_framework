@@ -29,7 +29,9 @@ class Experiment:
         self.id = id
         self.least_distance = 2  # minimum allowed distance between two agents
         # Set up corridor variables
-        self.points = []
+        self.points = [[]]
+        self.current_path = 0
+        self.rotation_factor = 1
         self.directions = []
         self.current_index = 0
         self.target_point = np.array([0, 0, 0])
@@ -50,9 +52,15 @@ class Experiment:
         self.pre_start_positions = experiment_parameters["pre_start_positions"]
         self.lane_radius = experiment_parameters["corridor_radius"]
         self.points = experiment_parameters["corridor_points"]
-        self.length = len(self.points)
+        self.length = [
+            len(self.points[j]) for j in range(len(self.points))
+        ]  # j is the number of a path
+        self.pass_permission = [
+            1 for j in range(len(self.points) - 1)
+        ]  # the permission to go to the next path
         self.create_directions()
         self.initial_nearest_point(swarm_telem)
+        self.create_adjacent_points()
         self.ready_flag = True
         print("ready")
 
@@ -75,74 +83,141 @@ class Experiment:
         return assigned_pre_start_positions
 
     def create_directions(self):
-        for i in range(len(self.points)):
-            # All points must be converted to np arrays
-            self.points[i] = np.array(self.points[i])
+        for j in range(len(self.points)):
+            self.directions.append([])
+            for i in range(len(self.points[j])):
+                # All points must be converted to np arrays
+                self.points[j][i] = np.array(self.points[j][i])
+                if i == len(self.points[j]) - 1:
+                    self.directions[j].append(
+                        (self.points[j][0] - self.points[j][i])
+                        / np.linalg.norm(self.points[j][0] - self.points[j][i])
+                    )
+                else:
+                    self.directions[j].append(
+                        (self.points[j][i + 1] - self.points[j][i])
+                        / np.linalg.norm(self.points[j][i + 1] - self.points[j][i])
+                    )
+        print("done creating directions")
 
-            if i == len(self.points) - 1:
-                self.directions.append(
-                    (self.points[0] - self.points[i])
-                    / np.linalg.norm(self.points[0] - self.points[i])
-                )
-            else:
-                self.directions.append(
-                    (self.points[i + 1] - self.points[i])
-                    / np.linalg.norm(self.points[i + 1] - self.points[i])
-                )
+    def create_adjacent_points(self) -> None:
+        self.adjacent_points = []
+        for j in range(len(self.points) - 1):
+            self.adjacent_points.append({})
+            for i in range(len(self.points[j])):
+                for k in range(len(self.points[j + 1])):
+                    distance = np.linalg.norm(self.points[j][i] - self.points[j + 1][k])
+                    if (
+                        distance <= self.lane_radius[j] + self.lane_radius[j + 1]
+                        and np.dot(self.directions[j][i], self.directions[j + 1][k])
+                        == 1
+                    ):
+                        pass_vector = self.points[j][i] - self.points[j + 1][k]
+                        pass_vector = pass_vector / np.linalg.norm(pass_vector)
+                        self.adjacent_points[j].update(
+                            {i: [k, pass_vector]}
+                        )  # jth dictionary is {adj. point of path j: [adj. point of j+1, vector from adj. point of path j to adj. point of j+1]}
 
     def initial_nearest_point(self, swarm_telem) -> None:
         lnitial_least_distance = math.inf
-        for i in range(len(self.points)):
+        for i in range(len(self.points[self.current_path])):
             range_to_point_i = np.linalg.norm(
-                np.array(swarm_telem[self.id].position_ned) - self.points[i]
+                np.array(swarm_telem[self.id].position_ned)
+                - self.points[self.current_path][i]
             )
             if range_to_point_i <= lnitial_least_distance:
                 lnitial_least_distance = range_to_point_i
                 self.current_index = i
 
+    def switch(self):
+        self.pass_permission[
+            self.current_path
+        ] = 0  # the agent is not allowed to get back to previous path anymore
+        self.current_index = self.adjacent_points[self.current_path][
+            self.current_index
+        ][
+            0
+        ]  # now current index is a point of the next path
+        self.current_path += 1
+        self.target_point = self.points[self.current_path][self.current_index]
+        self.target_direction = self.directions[self.current_path][self.current_index]
+        self.rotation_factor *= -1
+
     def path_following(self, swarm_telem, max_speed, time_step, max_accel):
-        self.target_point = self.points[self.current_index]
-        self.target_direction = self.directions[self.current_index]
-        iterator = 0
+        self.target_point = self.points[self.current_path][self.current_index]
+        self.target_direction = self.directions[self.current_path][self.current_index]
+        if (
+            self.current_path <= (len(self.points) - 2)
+            and self.current_index in self.adjacent_points[self.current_path]
+        ) and self.pass_permission[
+            self.current_path
+        ] == 1:  # ----!!! modification required
+            pass_vector = self.adjacent_points[self.current_path][self.current_index][1]
+            lane_cohesion_position_error = self.target_point - np.array(
+                swarm_telem[self.id].position_ned
+            )
+            lane_cohesion_position_error -= (
+                np.dot(lane_cohesion_position_error, self.target_direction)
+                * self.target_direction
+            )
+            cos_of_angle = np.dot(pass_vector, lane_cohesion_position_error) / (
+                np.linalg.norm(pass_vector)
+                * np.linalg.norm(lane_cohesion_position_error)
+            )
+            if cos_of_angle >= 0.9:
+                self.switch()
         # Finding the next bigger Index ----------
+        print("got here 1")
         range_to_next = (
             np.array(swarm_telem[self.id].position_ned)
-            - self.points[index_checker(self.current_index + 1, self.length)]
+            - self.points[self.current_path][
+                index_checker(self.current_index + 1, self.length[self.current_path])
+            ]
         )
-
+        print("got here 2")
         if (
-            np.dot(range_to_next, self.directions[self.current_index]) > 0
+            np.dot(
+                range_to_next, self.directions[self.current_path][self.current_index]
+            )
+            > 0
         ):  # drone has passed the point next to current one
-            self.current_index = index_checker(self.current_index + 1, len(self.points))
-            self.target_point = self.points[self.current_index]
-            self.target_direction = self.directions[self.current_index]
+            self.current_index = index_checker(
+                self.current_index + 1, self.length[self.current_path]
+            )
+            self.target_point = self.points[self.current_path][self.current_index]
+            self.target_direction = self.directions[self.current_path][
+                self.current_index
+            ]
             iterator = 0
             dot_fartherpoints = 0
             while dot_fartherpoints >= 0:  # Searching for farther points
                 iterator += 1
                 farther_point = index_checker(
-                    self.current_index + iterator, len(self.points)
+                    self.current_index + iterator, self.length[self.current_path]
                 )
                 range_to_farther_point = (
                     np.array(swarm_telem[self.id].position_ned)
-                    - self.points[farther_point]
+                    - self.points[self.current_path][farther_point]
                 )
                 dot_fartherpoints = np.dot(
-                    range_to_farther_point, self.directions[farther_point - 1]
+                    range_to_farther_point,
+                    self.directions[self.current_path][farther_point - 1],
                 )
 
             self.current_index = (
                 farther_point - 1
             )  # farther_point here has negative dot product
-            self.target_point = self.points[self.current_index]
-            self.target_direction = self.directions[self.current_index]
-
+            self.target_point = self.points[self.current_path][self.current_index]
+            self.target_direction = self.directions[self.current_path][
+                self.current_index
+            ]
+        print("got here 3")
         # Calculating migration velocity (normalized)---------------------
         limit_v_migration = 1
         v_migration = self.target_direction / np.linalg.norm(self.target_direction)
         if np.linalg.norm(v_migration) > limit_v_migration:
             v_migration = v_migration * limit_v_migration / np.linalg.norm(v_migration)
-
+        print("got here 4")
         # Calculating lane Cohesion Velocity ---------------
         limit_v_lane_cohesion = 1
         lane_cohesion_position_error = self.target_point - np.array(
@@ -155,10 +230,13 @@ class Experiment:
         lane_cohesion_position_error_magnitude = np.linalg.norm(
             lane_cohesion_position_error
         )
-
+        print("got here 5")
         if np.linalg.norm(lane_cohesion_position_error) != 0:
             v_lane_cohesion = (
-                (lane_cohesion_position_error_magnitude - self.lane_radius)
+                (
+                    lane_cohesion_position_error_magnitude
+                    - self.lane_radius[self.current_path]
+                )
                 * lane_cohesion_position_error
                 / np.linalg.norm(lane_cohesion_position_error)
             )
@@ -171,16 +249,18 @@ class Experiment:
                 * limit_v_lane_cohesion
                 / np.linalg.norm(v_lane_cohesion)
             )
-
+        print("got here 6")
         # Calculating v_rotation (normalized)---------------------
-        limit_v_rotation = 1
-        if lane_cohesion_position_error_magnitude < self.lane_radius:
+        limit_v_rotation = self.rotation_factor * 1
+        if lane_cohesion_position_error_magnitude < self.lane_radius[self.current_path]:
             v_rotation_magnitude = (
-                lane_cohesion_position_error_magnitude / self.lane_radius
+                lane_cohesion_position_error_magnitude
+                / self.lane_radius[self.current_path]
             )
         else:
             v_rotation_magnitude = (
-                self.lane_radius / lane_cohesion_position_error_magnitude
+                self.lane_radius[self.current_path]
+                / lane_cohesion_position_error_magnitude
             )
         cross_prod = np.cross(lane_cohesion_position_error, self.target_direction)
         if np.linalg.norm(cross_prod) != 0:
@@ -190,7 +270,7 @@ class Experiment:
 
         if np.linalg.norm(v_rotation) > limit_v_rotation:
             v_rotation = v_rotation * limit_v_rotation / np.linalg.norm(v_rotation)
-
+        print("got here 7")
         # Calculating v_separation (normalized) -----------------------------
         limit_v_separation = 5
         r_conflict = 5
@@ -214,18 +294,148 @@ class Experiment:
                 v_separation = (
                     v_separation * limit_v_separation / np.linalg.norm(v_separation)
                 )
-
+        print("got here 7")
         desired_vel = (
             self.k_lane_cohesion * v_lane_cohesion
             + self.k_migration * v_migration
             + self.k_rotation * v_rotation
             + self.k_separation * v_separation
         )
-
+        print("got here 8")
         # NOTE maybe add lane cohesion as well so we point the right way when coming from far away
         yaw = flocking.get_desired_yaw(v_migration[0], v_migration[1])
-
+        print("got here 9")
         output_vel = flocking.check_velocity(
             desired_vel, swarm_telem[self.id], max_speed, yaw, time_step, max_accel
         )
         return output_vel
+
+    # def path_following(self, swarm_telem, max_speed, time_step, max_accel):
+    #     self.target_point = self.points[self.current_path][self.current_index]
+    #     self.target_direction = self.directions[self.current_path][self.current_index]
+    #     iterator = 0
+    #     # Finding the next bigger Index ----------
+    #     range_to_next = (
+    #         np.array(swarm_telem[self.id].position_ned)
+    #         - self.points[index_checker(self.current_index + 1, self.length)]
+    #     )
+
+    #     if (
+    #         np.dot(range_to_next, self.directions[self.current_index]) > 0
+    #     ):  # drone has passed the point next to current one
+    #         self.current_index = index_checker(self.current_index + 1, len(self.points))
+    #         self.target_point = self.points[self.current_index]
+    #         self.target_direction = self.directions[self.current_index]
+    #         iterator = 0
+    #         dot_fartherpoints = 0
+    #         while dot_fartherpoints >= 0:  # Searching for farther points
+    #             iterator += 1
+    #             farther_point = index_checker(
+    #                 self.current_index + iterator, len(self.points)
+    #             )
+    #             range_to_farther_point = (
+    #                 np.array(swarm_telem[self.id].position_ned)
+    #                 - self.points[farther_point]
+    #             )
+    #             dot_fartherpoints = np.dot(
+    #                 range_to_farther_point, self.directions[farther_point - 1]
+    #             )
+
+    #         self.current_index = (
+    #             farther_point - 1
+    #         )  # farther_point here has negative dot product
+    #         self.target_point = self.points[self.current_index]
+    #         self.target_direction = self.directions[self.current_index]
+
+    #     # Calculating migration velocity (normalized)---------------------
+    #     limit_v_migration = 1
+    #     v_migration = self.target_direction / np.linalg.norm(self.target_direction)
+    #     if np.linalg.norm(v_migration) > limit_v_migration:
+    #         v_migration = v_migration * limit_v_migration / np.linalg.norm(v_migration)
+
+    #     # Calculating lane Cohesion Velocity ---------------
+    #     limit_v_lane_cohesion = 1
+    #     lane_cohesion_position_error = self.target_point - np.array(
+    #         swarm_telem[self.id].position_ned
+    #     )
+    #     lane_cohesion_position_error -= (
+    #         np.dot(lane_cohesion_position_error, self.target_direction)
+    #         * self.target_direction
+    #     )
+    #     lane_cohesion_position_error_magnitude = np.linalg.norm(
+    #         lane_cohesion_position_error
+    #     )
+
+    #     if np.linalg.norm(lane_cohesion_position_error) != 0:
+    #         v_lane_cohesion = (
+    #             (lane_cohesion_position_error_magnitude - self.lane_radius)
+    #             * lane_cohesion_position_error
+    #             / np.linalg.norm(lane_cohesion_position_error)
+    #         )
+    #     else:
+    #         v_lane_cohesion = np.array([0.01, 0.01, 0.01])
+
+    #     if np.linalg.norm(v_lane_cohesion) > limit_v_lane_cohesion:
+    #         v_lane_cohesion = (
+    #             v_lane_cohesion
+    #             * limit_v_lane_cohesion
+    #             / np.linalg.norm(v_lane_cohesion)
+    #         )
+
+    #     # Calculating v_rotation (normalized)---------------------
+    #     limit_v_rotation = 1
+    #     if lane_cohesion_position_error_magnitude < self.lane_radius:
+    #         v_rotation_magnitude = (
+    #             lane_cohesion_position_error_magnitude / self.lane_radius
+    #         )
+    #     else:
+    #         v_rotation_magnitude = (
+    #             self.lane_radius / lane_cohesion_position_error_magnitude
+    #         )
+    #     cross_prod = np.cross(lane_cohesion_position_error, self.target_direction)
+    #     if np.linalg.norm(cross_prod) != 0:
+    #         v_rotation = v_rotation_magnitude * cross_prod / np.linalg.norm(cross_prod)
+    #     else:
+    #         v_rotation = np.array[0, 0, 0]
+
+    #     if np.linalg.norm(v_rotation) > limit_v_rotation:
+    #         v_rotation = v_rotation * limit_v_rotation / np.linalg.norm(v_rotation)
+
+    #     # Calculating v_separation (normalized) -----------------------------
+    #     limit_v_separation = 5
+    #     r_conflict = 5
+    #     r_collision = 2.5
+    #     v_separation = np.array([0, 0, 0])
+    #     for key in swarm_telem:
+    #         if key == self.id:
+    #             continue
+    #         p = np.array(swarm_telem[key].position_ned)
+    #         x = np.array(swarm_telem[self.id].position_ned) - p
+    #         d = np.linalg.norm(x)
+    #         if self.least_distance > d:
+    #             self.least_distance = d
+    #         if d <= r_conflict and d > r_collision and d != 0:
+    #             v_separation = v_separation + (
+    #                 (x / d) * (r_conflict - d / r_conflict - r_collision)
+    #             )
+    #         if d <= r_collision and d != 0:
+    #             v_separation = v_separation + 1 * (x / d)
+    #         if np.linalg.norm(v_separation) > limit_v_separation:
+    #             v_separation = (
+    #                 v_separation * limit_v_separation / np.linalg.norm(v_separation)
+    #             )
+
+    #     desired_vel = (
+    #         self.k_lane_cohesion * v_lane_cohesion
+    #         + self.k_migration * v_migration
+    #         + self.k_rotation * v_rotation
+    #         + self.k_separation * v_separation
+    #     )
+
+    #     # NOTE maybe add lane cohesion as well so we point the right way when coming from far away
+    #     yaw = flocking.get_desired_yaw(v_migration[0], v_migration[1])
+
+    #     output_vel = flocking.check_velocity(
+    #         desired_vel, swarm_telem[self.id], max_speed, yaw, time_step, max_accel
+    #     )
+    #     return output_vel
