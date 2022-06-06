@@ -34,8 +34,8 @@ class Experiment:
         self.rotation_factor = 1
         self.directions = []
         self.current_index = 0
-        self.target_point = np.array([0, 0, 0])
-        self.target_direction = np.array([1, 1, 1])
+        self.target_point = np.array([0, 0, 0],dtype='float64')
+        self.target_direction = np.array([1, 1, 1],dtype='float64')
         self.load(experiment_file_path, swarm_telem)
 
     def load(self, experiment_file_path, swarm_telem):
@@ -146,35 +146,27 @@ class Experiment:
     def path_following(self, swarm_telem, max_speed, time_step, max_accel):
         self.target_point = self.points[self.current_path][self.current_index]
         self.target_direction = self.directions[self.current_path][self.current_index]
-        if (
-            self.current_path <= (len(self.points) - 2)
-            and self.current_index in self.adjacent_points[self.current_path]
-        ) and self.pass_permission[
-            self.current_path
-        ] == 1:  # ----!!! modification required
-            pass_vector = self.adjacent_points[self.current_path][self.current_index][1]
-            lane_cohesion_position_error = self.target_point - np.array(
-                swarm_telem[self.id].position_ned
-            )
-            lane_cohesion_position_error -= (
-                np.dot(lane_cohesion_position_error, self.target_direction)
-                * self.target_direction
-            )
-            cos_of_angle = np.dot(pass_vector, lane_cohesion_position_error) / (
-                np.linalg.norm(pass_vector)
-                * np.linalg.norm(lane_cohesion_position_error)
-            )
-            if cos_of_angle >= 0.9:
-                self.switch()
+        if (self.current_path <= (len(self.points) - 2)):
+            if(self.current_index in self.adjacent_points[self.current_path] and self.pass_permission[self.current_pat] == 1):
+                pass_vector = self.adjacent_points[self.current_path][self.current_index][1]
+                lane_cohesion_position_error = self.target_point - np.array(swarm_telem[self.id].position_ned, dtype='float64')
+                lane_cohesion_position_error -= (
+                    np.dot(lane_cohesion_position_error, self.target_direction)
+                    * self.target_direction
+                )
+                cos_of_angle = np.dot(pass_vector, lane_cohesion_position_error) / (
+                    np.linalg.norm(pass_vector)
+                    * np.linalg.norm(lane_cohesion_position_error)
+                )
+                if cos_of_angle >= 0.9:
+                    self.switch()
         # Finding the next bigger Index ----------
-        print("got here 1")
         range_to_next = (
-            np.array(swarm_telem[self.id].position_ned)
+            np.array(swarm_telem[self.id].position_ned, dtype='float64')
             - self.points[self.current_path][
                 index_checker(self.current_index + 1, self.length[self.current_path])
             ]
         )
-        print("got here 2")
         if (
             np.dot(
                 range_to_next, self.directions[self.current_path][self.current_index]
@@ -211,13 +203,11 @@ class Experiment:
             self.target_direction = self.directions[self.current_path][
                 self.current_index
             ]
-        print("got here 3")
         # Calculating migration velocity (normalized)---------------------
         limit_v_migration = 1
         v_migration = self.target_direction / np.linalg.norm(self.target_direction)
         if np.linalg.norm(v_migration) > limit_v_migration:
             v_migration = v_migration * limit_v_migration / np.linalg.norm(v_migration)
-        print("got here 4")
         # Calculating lane Cohesion Velocity ---------------
         limit_v_lane_cohesion = 1
         lane_cohesion_position_error = self.target_point - np.array(
@@ -230,7 +220,6 @@ class Experiment:
         lane_cohesion_position_error_magnitude = np.linalg.norm(
             lane_cohesion_position_error
         )
-        print("got here 5")
         if np.linalg.norm(lane_cohesion_position_error) != 0:
             v_lane_cohesion = (
                 (
@@ -241,7 +230,7 @@ class Experiment:
                 / np.linalg.norm(lane_cohesion_position_error)
             )
         else:
-            v_lane_cohesion = np.array([0.01, 0.01, 0.01])
+            v_lane_cohesion = np.array([0.01, 0.01, 0.01], dtype='float64')
 
         if np.linalg.norm(v_lane_cohesion) > limit_v_lane_cohesion:
             v_lane_cohesion = (
@@ -249,7 +238,6 @@ class Experiment:
                 * limit_v_lane_cohesion
                 / np.linalg.norm(v_lane_cohesion)
             )
-        print("got here 6")
         # Calculating v_rotation (normalized)---------------------
         limit_v_rotation = self.rotation_factor * 1
         if lane_cohesion_position_error_magnitude < self.lane_radius[self.current_path]:
@@ -270,12 +258,11 @@ class Experiment:
 
         if np.linalg.norm(v_rotation) > limit_v_rotation:
             v_rotation = v_rotation * limit_v_rotation / np.linalg.norm(v_rotation)
-        print("got here 7")
         # Calculating v_separation (normalized) -----------------------------
         limit_v_separation = 5
         r_conflict = 5
         r_collision = 2.5
-        v_separation = np.array([0, 0, 0])
+        v_separation = np.array([0, 0, 0], dtype='float64')
         for key in swarm_telem:
             if key == self.id:
                 continue
@@ -294,17 +281,14 @@ class Experiment:
                 v_separation = (
                     v_separation * limit_v_separation / np.linalg.norm(v_separation)
                 )
-        print("got here 7")
         desired_vel = (
             self.k_lane_cohesion * v_lane_cohesion
             + self.k_migration * v_migration
             + self.k_rotation * v_rotation
             + self.k_separation * v_separation
         )
-        print("got here 8")
         # NOTE maybe add lane cohesion as well so we point the right way when coming from far away
         yaw = flocking.get_desired_yaw(v_migration[0], v_migration[1])
-        print("got here 9")
         output_vel = flocking.check_velocity(
             desired_vel, swarm_telem[self.id], max_speed, yaw, time_step, max_accel
         )
