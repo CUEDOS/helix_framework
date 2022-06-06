@@ -147,17 +147,11 @@ class Experiment:
         self.target_point = self.points[self.current_path][self.current_index]
         self.target_direction = self.directions[self.current_path][self.current_index]
         if (self.current_path <= (len(self.points) - 2)):
-            if(self.current_index in self.adjacent_points[self.current_path] and self.pass_permission[self.current_pat] == 1):
+            if(self.current_index in self.adjacent_points[self.current_path] and self.pass_permission[self.current_path] == 1):
                 pass_vector = self.adjacent_points[self.current_path][self.current_index][1]
                 lane_cohesion_position_error = self.target_point - np.array(swarm_telem[self.id].position_ned, dtype='float64')
-                lane_cohesion_position_error -= (
-                    np.dot(lane_cohesion_position_error, self.target_direction)
-                    * self.target_direction
-                )
-                cos_of_angle = np.dot(pass_vector, lane_cohesion_position_error) / (
-                    np.linalg.norm(pass_vector)
-                    * np.linalg.norm(lane_cohesion_position_error)
-                )
+                lane_cohesion_position_error -= (np.dot(lane_cohesion_position_error, self.target_direction)* self.target_direction)
+                cos_of_angle = np.dot(pass_vector, lane_cohesion_position_error) / (np.linalg.norm(pass_vector)* np.linalg.norm(lane_cohesion_position_error))
                 if cos_of_angle >= 0.9:
                     self.switch()
         # Finding the next bigger Index ----------
