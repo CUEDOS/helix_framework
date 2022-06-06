@@ -225,8 +225,13 @@ class Agent:
 
     async def pre_start(self):
         alt_dict = {}
-        pre_start_positions = self.experiment.get_pre_start_positions(
+        # get the intiial point and the intiial path
+        swarm_priorities = self.experiment.get_swarm_priorities(
             self.swarm_manager.telemetry
+        )
+        self.experiment.get_initial_path(swarm_priorities)
+        pre_start_positions = self.experiment.get_pre_start_positions(
+            self.swarm_manager.telemetry, swarm_priorities
         )
 
         for key in self.swarm_manager.telemetry.keys():
@@ -237,6 +242,9 @@ class Agent:
 
         # TODO add check if pre start position is current position
         await self.deconflicted_goto(pre_start_positions, deconflicted_alt_dict)
+
+        # once in pre start position find the intiial nearest point
+        self.experiment.initial_nearest_point(self.swarm_manager.telemetry)
 
     async def run_experiment(self):
         await self.pre_start()
