@@ -56,7 +56,7 @@ class Experiment:
         self.length = [
             len(self.points[j]) for j in range(len(self.points))
         ]  # j is the number of a path
-        self.pass_permission =1  # the permission to go to another path
+        self.pass_permission = 1  # the permission to go to another path
         self.create_directions()
         # self.initial_nearest_point(swarm_telem)
         self.create_adjacent_points()
@@ -112,14 +112,21 @@ class Experiment:
         for j in range(len(self.points)):
             self.adjacent_points.append({})
             for i in range(len(self.points[j])):
-                for k in range(len(self.points[index_checker(j + 1,len(self.points))])):
-                    distance = np.linalg.norm(self.points[j][i] - index_checker(j + 1,len(self.points)))
+                for k in range(
+                    len(self.points[index_checker(j + 1, len(self.points))])
+                ):
+                    distance = np.linalg.norm(
+                        self.points[j][i] - index_checker(j + 1, len(self.points))
+                    )
                     if (
                         distance <= self.lane_radius[j] + self.lane_radius[j + 1]
                         and np.dot(self.directions[j][i], self.directions[j + 1][k])
                         == 1
                     ):
-                        pass_vector = self.points[j][i] - self.points[index_checker(j + 1,len(self.points))][k]
+                        pass_vector = (
+                            self.points[j][i]
+                            - self.points[index_checker(j + 1, len(self.points))][k]
+                        )
                         pass_vector = pass_vector / np.linalg.norm(pass_vector)
                         self.adjacent_points[j].update(
                             {i: [k, pass_vector]}
@@ -137,13 +144,15 @@ class Experiment:
                 self.current_index = i
 
     def switch(self):
-        self.pass_permission = 0  # the agent is not allowed to get back to previous path anymore
+        self.pass_permission = (
+            0  # the agent is not allowed to get back to previous path anymore
+        )
         self.current_index = self.adjacent_points[self.current_path][
             self.current_index
         ][
             0
         ]  # now current index is a point of the next path
-        self.current_path =index_checker(self.current_path + 1,len(self.points))
+        self.current_path = index_checker(self.current_path + 1, len(self.points))
         self.target_point = self.points[self.current_path][self.current_index]
         self.target_direction = self.directions[self.current_path][self.current_index]
         self.rotation_factor *= -1
@@ -151,37 +160,24 @@ class Experiment:
     def path_following(self, swarm_telem, max_speed, time_step, max_accel):
         self.target_point = self.points[self.current_path][self.current_index]
         self.target_direction = self.directions[self.current_path][self.current_index]
-<<<<<<< HEAD
-        if(self.current_index in self.adjacent_points[self.current_path] and self.pass_permission == 1):
+        if (
+            self.current_index in self.adjacent_points[self.current_path]
+            and self.pass_permission == 1
+        ):
             pass_vector = self.adjacent_points[self.current_path][self.current_index][1]
-            lane_cohesion_position_error = self.target_point - np.array(swarm_telem[self.id].position_ned, dtype='float64')
-            lane_cohesion_position_error -= (np.dot(lane_cohesion_position_error, self.target_direction)* self.target_direction)
-            cos_of_angle = np.dot(pass_vector, lane_cohesion_position_error) / (np.linalg.norm(pass_vector)* np.linalg.norm(lane_cohesion_position_error))
+            lane_cohesion_position_error = self.target_point - np.array(
+                swarm_telem[self.id].position_ned, dtype="float64"
+            )
+            lane_cohesion_position_error -= (
+                np.dot(lane_cohesion_position_error, self.target_direction)
+                * self.target_direction
+            )
+            cos_of_angle = np.dot(pass_vector, lane_cohesion_position_error) / (
+                np.linalg.norm(pass_vector)
+                * np.linalg.norm(lane_cohesion_position_error)
+            )
             if cos_of_angle >= 0.9:
                 self.switch()
-=======
-        if self.current_path <= (len(self.points) - 2):
-            if (
-                self.current_index in self.adjacent_points[self.current_path]
-                and self.pass_permission[self.current_path] == 1
-            ):
-                pass_vector = self.adjacent_points[self.current_path][
-                    self.current_index
-                ][1]
-                lane_cohesion_position_error = self.target_point - np.array(
-                    swarm_telem[self.id].position_ned, dtype="float64"
-                )
-                lane_cohesion_position_error -= (
-                    np.dot(lane_cohesion_position_error, self.target_direction)
-                    * self.target_direction
-                )
-                cos_of_angle = np.dot(pass_vector, lane_cohesion_position_error) / (
-                    np.linalg.norm(pass_vector)
-                    * np.linalg.norm(lane_cohesion_position_error)
-                )
-                if cos_of_angle >= 0.9:
-                    self.switch()
->>>>>>> 717b52b0da438b09dd6b56505d044cbd3a9d925f
         # Finding the next bigger Index ----------
         range_to_next = (
             np.array(swarm_telem[self.id].position_ned, dtype="float64")
