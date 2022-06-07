@@ -109,18 +109,18 @@ class Experiment:
 
     def create_adjacent_points(self) -> None:
         self.adjacent_points = []
-        for j in range(len(self.points)):
+        for j in range(len(self.points)): # j is the number of path
             self.adjacent_points.append({})
             for i in range(len(self.points[j])):
                 for k in range(
                     len(self.points[index_checker(j + 1, len(self.points))])
                 ):
                     distance = np.linalg.norm(
-                        self.points[j][i] - index_checker(j + 1, len(self.points))
+                        self.points[j][i] - self.points[index_checker(j + 1, len(self.points))][k]
                     )
                     if (
-                        distance <= self.lane_radius[j] + self.lane_radius[j + 1]
-                        and np.dot(self.directions[j][i], self.directions[j + 1][k])
+                        distance <= self.lane_radius[j] + self.lane_radius[index_checker(j + 1, len(self.points))]
+                        and np.dot(self.directions[j][i], self.directions[index_checker(j + 1, len(self.points))][k])
                         == 1
                     ):
                         pass_vector = (
@@ -160,6 +160,7 @@ class Experiment:
     def path_following(self, swarm_telem, max_speed, time_step, max_accel):
         self.target_point = self.points[self.current_path][self.current_index]
         self.target_direction = self.directions[self.current_path][self.current_index]
+        print("running path following")
         if (
             self.current_index in self.adjacent_points[self.current_path]
             and self.pass_permission == 1
