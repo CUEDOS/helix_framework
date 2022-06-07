@@ -53,6 +53,7 @@ class Experiment:
         self.initial_paths = experiment_parameters["initial_paths"]
         self.lane_radius = experiment_parameters["corridor_radius"]
         self.points = experiment_parameters["corridor_points"]
+        self.rotation_dir=["path_rotation_dir"]
         self.length = [
             len(self.points[j]) for j in range(len(self.points))
         ]  # j is the number of a path
@@ -160,7 +161,6 @@ class Experiment:
     def path_following(self, swarm_telem, max_speed, time_step, max_accel):
         self.target_point = self.points[self.current_path][self.current_index]
         self.target_direction = self.directions[self.current_path][self.current_index]
-        print("running path following")
         if (
             self.current_index in self.adjacent_points[self.current_path]
             and self.pass_permission == 1
@@ -258,7 +258,7 @@ class Experiment:
                 / np.linalg.norm(v_lane_cohesion)
             )
         # Calculating v_rotation (normalized)---------------------
-        limit_v_rotation = self.rotation_factor * 1
+        limit_v_rotation =  self.rotation_dir[self.current_path] * 1
         if lane_cohesion_position_error_magnitude < self.lane_radius[self.current_path]:
             v_rotation_magnitude = (
                 lane_cohesion_position_error_magnitude
