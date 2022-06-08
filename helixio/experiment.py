@@ -37,6 +37,7 @@ class Experiment:
         self.target_point = np.array([0, 0, 0], dtype="float64")
         self.target_direction = np.array([1, 1, 1], dtype="float64")
         self.load(experiment_file_path, swarm_telem)
+        self.pass_permission = 1  # the permission to go to another path
 
     def load(self, experiment_file_path, swarm_telem):
 
@@ -57,7 +58,6 @@ class Experiment:
         self.length = [
             len(self.points[j]) for j in range(len(self.points))
         ]  # j is the number of a path
-        self.pass_permission = 1  # the permission to go to another path
         self.create_directions()
         # self.initial_nearest_point(swarm_telem)
         self.create_adjacent_points()
@@ -132,7 +132,6 @@ class Experiment:
                         self.adjacent_points[j].update(
                             {i: [k, pass_vector]}
                         )  # jth dictionary is {adj. point of path j: [adj. point of j+1, vector from adj. point of path j to adj. point of j+1]}
-
     def initial_nearest_point(self, swarm_telem) -> None:
         lnitial_least_distance = math.inf
         for i in range(len(self.points[self.current_path])):
@@ -145,18 +144,17 @@ class Experiment:
                 self.current_index = i
 
     def switch(self):
-        self.pass_permission = (
-            0  # the agent is not allowed to get back to previous path anymore
-        )
+        self.pass_permission = 0  # the agent is not allowed to get back to previous path anymore
         self.current_index = self.adjacent_points[self.current_path][
             self.current_index
         ][
             0
         ]  # now current index is a point of the next path
+        print(self.id, self.current_path)
         self.current_path = index_checker(self.current_path + 1, len(self.points))
+        print(self.id, self.current_path)
         self.target_point = self.points[self.current_path][self.current_index]
         self.target_direction = self.directions[self.current_path][self.current_index]
-        self.rotation_factor *= -1
 
     def path_following(self, swarm_telem, max_speed, time_step, max_accel):
         self.target_point = self.points[self.current_path][self.current_index]
@@ -214,10 +212,11 @@ class Experiment:
                     range_to_farther_point,
                     self.directions[self.current_path][farther_point - 1],
                 )
-
-            self.current_index = (
-                farther_point - 1
-            )  # farther_point here has negative dot product
+            # Now farther_point has negative dot product
+            if farther_point!=0:
+                self.current_index = (farther_point - 1)
+            else:
+                self.current_index=self.length[self.current_path]-1 # the index of the last point of the current path
             self.target_point = self.points[self.current_path][self.current_index]
             self.target_direction = self.directions[self.current_path][
                 self.current_index
@@ -303,6 +302,7 @@ class Experiment:
             + self.k_rotation * v_rotation
             + self.k_separation * v_separation
         )
+        v_separation=np.array([0,0,0])
         # NOTE maybe add lane cohesion as well so we point the right way when coming from far away
         # yaw = flocking.get_desired_yaw(v_migration[0], v_migration[1])
         yaw = flocking.get_desired_yaw(desired_vel[0], desired_vel[1])
