@@ -53,7 +53,7 @@ class Experiment:
         self.initial_paths = experiment_parameters["initial_paths"]
         self.lane_radius = experiment_parameters["corridor_radius"]
         self.points = experiment_parameters["corridor_points"]
-        self.rotation_dir=["path_rotation_dir"]
+        self.rotation_dir=experiment_parameters["path_rotation_dir"]
         self.length = [
             len(self.points[j]) for j in range(len(self.points))
         ]  # j is the number of a path
@@ -95,7 +95,7 @@ class Experiment:
             self.directions.append([])
             for i in range(len(self.points[j])):
                 # All points must be converted to np arrays
-                self.points[j][i] = np.array(self.points[j][i])
+                self.points[j][i] = np.array(self.points[j][i], dtype="float64")
                 if i == len(self.points[j]) - 1:
                     self.directions[j].append(
                         (self.points[j][0] - self.points[j][i])
@@ -137,7 +137,7 @@ class Experiment:
         lnitial_least_distance = math.inf
         for i in range(len(self.points[self.current_path])):
             range_to_point_i = np.linalg.norm(
-                np.array(swarm_telem[self.id].position_ned)
+                np.array(swarm_telem[self.id].position_ned, dtype="float64")
                 - self.points[self.current_path][i]
             )
             if range_to_point_i <= lnitial_least_distance:
@@ -207,7 +207,7 @@ class Experiment:
                     self.current_index + iterator, self.length[self.current_path]
                 )
                 range_to_farther_point = (
-                    np.array(swarm_telem[self.id].position_ned)
+                    np.array(swarm_telem[self.id].position_ned, dtype="float64")
                     - self.points[self.current_path][farther_point]
                 )
                 dot_fartherpoints = np.dot(
@@ -230,12 +230,9 @@ class Experiment:
         # Calculating lane Cohesion Velocity ---------------
         limit_v_lane_cohesion = 1
         lane_cohesion_position_error = self.target_point - np.array(
-            swarm_telem[self.id].position_ned
+            swarm_telem[self.id].position_ned, dtype="float64"
         )
-        lane_cohesion_position_error -= (
-            np.dot(lane_cohesion_position_error, self.target_direction)
-            * self.target_direction
-        )
+        lane_cohesion_position_error = lane_cohesion_position_error-(np.dot(lane_cohesion_position_error, self.target_direction)* self.target_direction)
         lane_cohesion_position_error_magnitude = np.linalg.norm(
             lane_cohesion_position_error
         )
@@ -258,7 +255,7 @@ class Experiment:
                 / np.linalg.norm(v_lane_cohesion)
             )
         # Calculating v_rotation (normalized)---------------------
-        limit_v_rotation =  self.rotation_dir[self.current_path] * 1
+        limit_v_rotation =  1
         if lane_cohesion_position_error_magnitude < self.lane_radius[self.current_path]:
             v_rotation_magnitude = (
                 lane_cohesion_position_error_magnitude
@@ -271,10 +268,10 @@ class Experiment:
             )
         cross_prod = np.cross(lane_cohesion_position_error, self.target_direction)
         if np.linalg.norm(cross_prod) != 0:
-            v_rotation = v_rotation_magnitude * cross_prod / np.linalg.norm(cross_prod)
+            v_rotation = self.rotation_dir[self.current_path] * v_rotation_magnitude * cross_prod / np.linalg.norm(cross_prod)
         else:
-            v_rotation = np.array[0, 0, 0]
-
+            v_rotation = np.array([0, 0, 0], dtype="float64")
+        
         if np.linalg.norm(v_rotation) > limit_v_rotation:
             v_rotation = v_rotation * limit_v_rotation / np.linalg.norm(v_rotation)
         # Calculating v_separation (normalized) -----------------------------
@@ -285,8 +282,8 @@ class Experiment:
         for key in swarm_telem:
             if key == self.id:
                 continue
-            p = np.array(swarm_telem[key].position_ned)
-            x = np.array(swarm_telem[self.id].position_ned) - p
+            p = np.array(swarm_telem[key].position_ned, dtype="float64")
+            x = np.array(swarm_telem[self.id].position_ned, dtype="float64") - p
             d = np.linalg.norm(x)
             if self.least_distance > d:
                 self.least_distance = d
