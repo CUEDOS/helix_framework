@@ -53,7 +53,7 @@ class Experiment:
         self.initial_paths = experiment_parameters["initial_paths"]
         self.lane_radius = experiment_parameters["corridor_radius"]
         self.points = experiment_parameters["corridor_points"]
-        self.rotation_dir=experiment_parameters["path_rotation_dir"]
+        self.rotation_dir = experiment_parameters["path_rotation_dir"]
         self.length = [
             len(self.points[j]) for j in range(len(self.points))
         ]  # j is the number of a path
@@ -110,18 +110,24 @@ class Experiment:
 
     def create_adjacent_points(self) -> None:
         self.adjacent_points = []
-        for j in range(len(self.points)): # j is the number of path
+        for j in range(len(self.points)):  # j is the number of path
             self.adjacent_points.append({})
             for i in range(len(self.points[j])):
                 for k in range(
                     len(self.points[index_checker(j + 1, len(self.points))])
                 ):
                     distance = np.linalg.norm(
-                        self.points[j][i] - self.points[index_checker(j + 1, len(self.points))][k]
+                        self.points[j][i]
+                        - self.points[index_checker(j + 1, len(self.points))][k]
                     )
                     if (
-                        distance <= self.lane_radius[j] + self.lane_radius[index_checker(j + 1, len(self.points))]
-                        and np.dot(self.directions[j][i], self.directions[index_checker(j + 1, len(self.points))][k])
+                        distance
+                        <= self.lane_radius[j]
+                        + self.lane_radius[index_checker(j + 1, len(self.points))]
+                        and np.dot(
+                            self.directions[j][i],
+                            self.directions[index_checker(j + 1, len(self.points))][k],
+                        )
                         == 1
                     ):
                         pass_vector = (
@@ -159,6 +165,7 @@ class Experiment:
         self.rotation_factor *= -1
 
     def path_following(self, swarm_telem, max_speed, time_step, max_accel):
+        print(self.current_index)
         self.target_point = self.points[self.current_path][self.current_index]
         self.target_direction = self.directions[self.current_path][self.current_index]
         if (
@@ -232,7 +239,10 @@ class Experiment:
         lane_cohesion_position_error = self.target_point - np.array(
             swarm_telem[self.id].position_ned, dtype="float64"
         )
-        lane_cohesion_position_error = lane_cohesion_position_error-(np.dot(lane_cohesion_position_error, self.target_direction)* self.target_direction)
+        lane_cohesion_position_error = lane_cohesion_position_error - (
+            np.dot(lane_cohesion_position_error, self.target_direction)
+            * self.target_direction
+        )
         lane_cohesion_position_error_magnitude = np.linalg.norm(
             lane_cohesion_position_error
         )
@@ -255,7 +265,7 @@ class Experiment:
                 / np.linalg.norm(v_lane_cohesion)
             )
         # Calculating v_rotation (normalized)---------------------
-        limit_v_rotation =  1
+        limit_v_rotation = 1
         if lane_cohesion_position_error_magnitude < self.lane_radius[self.current_path]:
             v_rotation_magnitude = (
                 lane_cohesion_position_error_magnitude
@@ -268,10 +278,15 @@ class Experiment:
             )
         cross_prod = np.cross(lane_cohesion_position_error, self.target_direction)
         if np.linalg.norm(cross_prod) != 0:
-            v_rotation = self.rotation_dir[self.current_path] * v_rotation_magnitude * cross_prod / np.linalg.norm(cross_prod)
+            v_rotation = (
+                self.rotation_dir[self.current_path]
+                * v_rotation_magnitude
+                * cross_prod
+                / np.linalg.norm(cross_prod)
+            )
         else:
             v_rotation = np.array([0, 0, 0], dtype="float64")
-        
+
         if np.linalg.norm(v_rotation) > limit_v_rotation:
             v_rotation = v_rotation * limit_v_rotation / np.linalg.norm(v_rotation)
         # Calculating v_separation (normalized) -----------------------------
