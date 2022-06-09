@@ -6,6 +6,7 @@ import numpy as np
 import math
 import plotly.express as px
 import plotly.graph_objects as go
+#Simulation ------------------------------------------------------------
 # Simulation parameters
 t=0
 dt=0.1
@@ -38,8 +39,10 @@ for id in swarm_telem:
 for id in swarm_telem:
     prestart_positon=drones[id][0].get_pre_start_positions(swarm_telem, drones[id][0].get_swarm_priorities(swarm_telem))
     swarm_telem[id].position_ned=prestart_positon[id]
-    drones[id][0].get_initial_path(drones[id][0].get_swarm_priorities(swarm_telem))
 
+for id in swarm_telem:
+    drones[id][0].get_initial_path(drones[id][0].get_swarm_priorities(swarm_telem))
+    
 while (t<=simulation_time):
     t+=dt
     # Calculating target velocities
@@ -62,7 +65,7 @@ while (t<=simulation_time):
         z_min=min(z_min,-1*swarm_telem[id].position_ned[2])
         z_max=max(z_max,-1*swarm_telem[id].position_ned[2])
 
-# Preparing Final figure
+# Preparing Final figure ---------------------------------------------------------
 data=()
 for id in swarm_telem:
     drones[id][0].fig= px.scatter_3d(x=drones[id][1], y=drones[id][2], z=drones[id][3], size_max=1, opacity=1)
