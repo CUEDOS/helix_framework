@@ -37,7 +37,6 @@ class Experiment:
         self.target_point = np.array([0, 0, 0], dtype="float64")
         self.target_direction = np.array([1, 1, 1], dtype="float64")
         self.load(experiment_file_path, swarm_telem)
-        self.pass_permission = 1  # the permission to go to another path
 
     def load(self, experiment_file_path, swarm_telem):
 
@@ -50,11 +49,17 @@ class Experiment:
         self.k_separation = experiment_parameters["k_seperation"]
         self.r_conflict = experiment_parameters["r_conflict"]
         self.r_collision = experiment_parameters["r_collision"]
+        self.pass_permission = experiment_parameters[
+            "pass_permission"
+        ]  # the permission to go to another path
+        self.repeat = experiment_parameters[
+            "repeat"
+        ]  # the permission to go to another path
         self.pre_start_positions = experiment_parameters["pre_start_positions"]
         self.initial_paths = experiment_parameters["initial_paths"]
         self.lane_radius = experiment_parameters["corridor_radius"]
         self.points = experiment_parameters["corridor_points"]
-        self.rotation_dir=experiment_parameters["path_rotation_dir"]
+        self.rotation_dir = experiment_parameters["path_rotation_dir"]
         self.length = [
             len(self.points[j]) for j in range(len(self.points))
         ]  # j is the number of a path
@@ -110,18 +115,24 @@ class Experiment:
 
     def create_adjacent_points(self) -> None:
         self.adjacent_points = []
-        for j in range(len(self.points)): # j is the number of path
+        for j in range(len(self.points)):  # j is the number of path
             self.adjacent_points.append({})
             for i in range(len(self.points[j])):
                 for k in range(
                     len(self.points[index_checker(j + 1, len(self.points))])
                 ):
                     distance = np.linalg.norm(
-                        self.points[j][i] - self.points[index_checker(j + 1, len(self.points))][k]
+                        self.points[j][i]
+                        - self.points[index_checker(j + 1, len(self.points))][k]
                     )
                     if (
-                        distance <= self.lane_radius[j] + self.lane_radius[index_checker(j + 1, len(self.points))]
-                        and np.dot(self.directions[j][i], self.directions[index_checker(j + 1, len(self.points))][k])
+                        distance
+                        <= self.lane_radius[j]
+                        + self.lane_radius[index_checker(j + 1, len(self.points))]
+                        and np.dot(
+                            self.directions[j][i],
+                            self.directions[index_checker(j + 1, len(self.points))][k],
+                        )
                         == 1
                     ):
                         pass_vector = (
@@ -132,6 +143,7 @@ class Experiment:
                         self.adjacent_points[j].update(
                             {i: [k, pass_vector]}
                         )  # jth dictionary is {adj. point of path j: [adj. point of j+1, vector from adj. point of path j to adj. point of j+1]}
+
     def initial_nearest_point(self, swarm_telem) -> None:
         lnitial_least_distance = math.inf
         for i in range(len(self.points[self.current_path])):
@@ -144,7 +156,10 @@ class Experiment:
                 self.current_index = i
 
     def switch(self):
-        self.pass_permission = 0  # the agent is not allowed to get back to previous path anymore
+        self.pass_permission = (
+            False  # the agent is not allowed to get back to previous path anymore
+        )
+
         self.current_index = self.adjacent_points[self.current_path][
             self.current_index
         ][
@@ -161,7 +176,7 @@ class Experiment:
         self.target_direction = self.directions[self.current_path][self.current_index]
         if (
             self.current_index in self.adjacent_points[self.current_path]
-            and self.pass_permission == 1
+            and self.pass_permission == True
         ):
             pass_vector = self.adjacent_points[self.current_path][self.current_index][1]
             lane_cohesion_position_error = self.target_point - np.array(
@@ -213,10 +228,17 @@ class Experiment:
                     self.directions[self.current_path][farther_point - 1],
                 )
             # Now farther_point has negative dot product
-            if farther_point!=0:
-                self.current_index = (farther_point - 1)
+            if farther_point != 0:
+                self.current_index = farther_point - 1
             else:
-                self.current_index=self.length[self.current_path]-1 # the index of the last point of the current path
+                self.current_index = (
+                    self.length[self.current_path] - 1
+                )  # the index of the last point of the current path
+                if not self.repeat:
+                    self.k_lane_cohesion = 0
+                    self.k_migration = 0
+                    self.k_rotation = 0  # passed last point of path
+
             self.target_point = self.points[self.current_path][self.current_index]
             self.target_direction = self.directions[self.current_path][
                 self.current_index
@@ -231,7 +253,10 @@ class Experiment:
         lane_cohesion_position_error = self.target_point - np.array(
             swarm_telem[self.id].position_ned, dtype="float64"
         )
-        lane_cohesion_position_error = lane_cohesion_position_error-(np.dot(lane_cohesion_position_error, self.target_direction)* self.target_direction)
+        lane_cohesion_position_error = lane_cohesion_position_error - (
+            np.dot(lane_cohesion_position_error, self.target_direction)
+            * self.target_direction
+        )
         lane_cohesion_position_error_magnitude = np.linalg.norm(
             lane_cohesion_position_error
         )
@@ -254,7 +279,7 @@ class Experiment:
                 / np.linalg.norm(v_lane_cohesion)
             )
         # Calculating v_rotation (normalized)---------------------
-        limit_v_rotation =  1
+        limit_v_rotation = 1
         if lane_cohesion_position_error_magnitude < self.lane_radius[self.current_path]:
             v_rotation_magnitude = (
                 lane_cohesion_position_error_magnitude
@@ -267,10 +292,15 @@ class Experiment:
             )
         cross_prod = np.cross(lane_cohesion_position_error, self.target_direction)
         if np.linalg.norm(cross_prod) != 0:
-            v_rotation = self.rotation_dir[self.current_path] * v_rotation_magnitude * cross_prod / np.linalg.norm(cross_prod)
+            v_rotation = (
+                self.rotation_dir[self.current_path]
+                * v_rotation_magnitude
+                * cross_prod
+                / np.linalg.norm(cross_prod)
+            )
         else:
             v_rotation = np.array([0, 0, 0], dtype="float64")
-        
+
         if np.linalg.norm(v_rotation) > limit_v_rotation:
             v_rotation = v_rotation * limit_v_rotation / np.linalg.norm(v_rotation)
         # Calculating v_separation (normalized) -----------------------------
@@ -302,7 +332,7 @@ class Experiment:
             + self.k_rotation * v_rotation
             + self.k_separation * v_separation
         )
-        v_separation=np.array([0,0,0])
+        v_separation = np.array([0, 0, 0])
         # NOTE maybe add lane cohesion as well so we point the right way when coming from far away
         # yaw = flocking.get_desired_yaw(v_migration[0], v_migration[1])
         yaw = flocking.get_desired_yaw(desired_vel[0], desired_vel[1])

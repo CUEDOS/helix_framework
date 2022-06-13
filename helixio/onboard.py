@@ -266,7 +266,7 @@ class Agent:
                     self.swarm_manager.telemetry,
                     self.max_speed,
                     offboard_loop_duration,
-                    5,
+                    10,
                 )
             )
 
