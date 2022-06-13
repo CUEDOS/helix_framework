@@ -20,7 +20,7 @@ def start_gazebo():
             "-n",
             str(sitl_swarm_size),
             "-w",
-            "hough_end",
+            "llambedr",
         ],
         cwd=firmware_path + "/Tools/",
         stdin=None,
