@@ -17,7 +17,7 @@ def alt_calc(alt_dict, site_elevation):
     )  # in meters - min return altitude above launch altitude
     alt_lims = alt_lims + site_elevation  # cant use += when mixing ints and floats
     alt_step = 1  # in meters - the alt difference between return alts
-
+    # TODO change back to 1
     size = len(alt_dict)
     # Sorting dictionary by values and returning list of keys -----------------------------------------------------------------------------
     sorted_idx = sorted(alt_dict, key=alt_dict.get)

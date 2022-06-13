@@ -82,6 +82,7 @@ if __name__ == "__main__":
     firmware_path = "/home/r32401vc/CASCADE/Firmware"
     gazebo_process = start_gazebo()
     mavsdk_process = start_mavsdk_servers()
+    time.sleep(20)
     script_process = start_scripts()
 
     signal.pause()

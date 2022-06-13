@@ -1,0 +1,73 @@
+{
+	"experiment_id": 1,
+	"k_migration": 2,
+	"k_lane_cohesion": 0,
+	"k_rotation": 0,
+	"k_seperation": 2,
+	"r_conflict": 5,
+	"r_collision": 2.5,
+	"pass_permission": false,
+	"repeat": false,
+	"pre_start_positions": [
+		[
+			-42,
+			-85,
+			-20
+		],
+		[
+			-44,
+			-85,
+			-20
+		],
+		[
+			-46,
+			-85,
+			-20
+		],
+		[
+			-48,
+			-85,
+			-20
+		]
+	],
+	"initial_paths": [
+		0,
+		1,
+		0,
+		1
+	],
+	"path_rotation_dir": [
+		1,
+		-1
+	],
+	"corridor_radius": [
+		5,
+		5
+	],
+	"corridor_points": [
+		[
+			[
+				-45,
+				-80,
+				-20
+			],
+			[
+				-20,
+				80,
+				-20
+			]
+		],
+		[
+			[
+				-45,
+				-80,
+				-20
+			],
+			[
+				-70,
+				80,
+				-20
+			]
+		]
+	]
+}
