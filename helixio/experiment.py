@@ -49,6 +49,12 @@ class Experiment:
         self.k_separation = experiment_parameters["k_seperation"]
         self.r_conflict = experiment_parameters["r_conflict"]
         self.r_collision = experiment_parameters["r_collision"]
+        self.pass_permission = experiment_parameters[
+            "pass_permission"
+        ]  # the permission to go to another path
+        self.repeat = experiment_parameters[
+            "repeat"
+        ]  # the permission to go to another path
         self.pre_start_positions = experiment_parameters["pre_start_positions"]
         self.initial_paths = experiment_parameters["initial_paths"]
         self.lane_radius = experiment_parameters["corridor_radius"]
@@ -57,7 +63,6 @@ class Experiment:
         self.length = [
             len(self.points[j]) for j in range(len(self.points))
         ]  # j is the number of a path
-        self.pass_permission = 1  # the permission to go to another path
         self.create_directions()
         # self.initial_nearest_point(swarm_telem)
         self.create_adjacent_points()
@@ -152,17 +157,19 @@ class Experiment:
 
     def switch(self):
         self.pass_permission = (
-            0  # the agent is not allowed to get back to previous path anymore
+            False  # the agent is not allowed to get back to previous path anymore
         )
+
         self.current_index = self.adjacent_points[self.current_path][
             self.current_index
         ][
             0
         ]  # now current index is a point of the next path
+        print(self.id, self.current_path)
         self.current_path = index_checker(self.current_path + 1, len(self.points))
+        print(self.id, self.current_path)
         self.target_point = self.points[self.current_path][self.current_index]
         self.target_direction = self.directions[self.current_path][self.current_index]
-        self.rotation_factor *= -1
 
     def path_following(self, swarm_telem, max_speed, time_step, max_accel):
         print(self.current_index)
@@ -170,7 +177,7 @@ class Experiment:
         self.target_direction = self.directions[self.current_path][self.current_index]
         if (
             self.current_index in self.adjacent_points[self.current_path]
-            and self.pass_permission == 1
+            and self.pass_permission == True
         ):
             pass_vector = self.adjacent_points[self.current_path][self.current_index][1]
             lane_cohesion_position_error = self.target_point - np.array(
@@ -221,10 +228,18 @@ class Experiment:
                     range_to_farther_point,
                     self.directions[self.current_path][farther_point - 1],
                 )
+            # Now farther_point has negative dot product
+            if farther_point != 0:
+                self.current_index = farther_point - 1
+            else:
+                self.current_index = (
+                    self.length[self.current_path] - 1
+                )  # the index of the last point of the current path
+                if not self.repeat:
+                    self.k_lane_cohesion = 0
+                    self.k_migration = 0
+                    self.k_rotation = 0  # passed last point of path
 
-            self.current_index = (
-                farther_point - 1
-            )  # farther_point here has negative dot product
             self.target_point = self.points[self.current_path][self.current_index]
             self.target_direction = self.directions[self.current_path][
                 self.current_index
@@ -318,6 +333,7 @@ class Experiment:
             + self.k_rotation * v_rotation
             + self.k_separation * v_separation
         )
+        v_separation = np.array([0, 0, 0])
         # NOTE maybe add lane cohesion as well so we point the right way when coming from far away
         # yaw = flocking.get_desired_yaw(v_migration[0], v_migration[1])
         yaw = flocking.get_desired_yaw(desired_vel[0], desired_vel[1])

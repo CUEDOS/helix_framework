@@ -6,10 +6,11 @@ import numpy as np
 import math
 import plotly.express as px
 import plotly.graph_objects as go
+#Simulation ------------------------------------------------------------
 # Simulation parameters
 t=0
 dt=0.1
-simulation_time=100
+simulation_time=500
 drone_num = 6
 experiment_file_path="experiment_2.json" # file of parameters
 x_max=-math.inf
@@ -34,6 +35,14 @@ for i in range(drone_num):
 for id in swarm_telem:
     drones.update({id: [Experiment(id,swarm_telem,experiment_file_path),[],[],[]]}) #{id: Experiment object, [record of x], [record of y] [record of z]}
 
+# Assigning prestart positions
+for id in swarm_telem:
+    prestart_positon=drones[id][0].get_pre_start_positions(swarm_telem, drones[id][0].get_swarm_priorities(swarm_telem))
+    swarm_telem[id].position_ned=prestart_positon[id]
+
+for id in swarm_telem:
+    drones[id][0].get_initial_path(drones[id][0].get_swarm_priorities(swarm_telem))
+    
 while (t<=simulation_time):
     t+=dt
     # Calculating target velocities
@@ -43,20 +52,20 @@ while (t<=simulation_time):
     # Integrating
     for id in swarm_telem:
         swarm_telem[id].position_ned=np.array(swarm_telem[id].position_ned) + drones[id][0].velocity_ned*dt
-        drones[id][1].append(swarm_telem[id].position_ned[0]) # x recorder for drone with this id
-        drones[id][2].append(swarm_telem[id].position_ned[1]) # y recorder for drone with this id
-        drones[id][3].append(-1*swarm_telem[id].position_ned[2]) # z recorder for drone with this id
 
+        drones[id][1].append(swarm_telem[id].position_ned[0]) # x recorder for drone with this id
         x_min=min(x_min,swarm_telem[id].position_ned[0])
         x_max=max(x_max,swarm_telem[id].position_ned[0])
 
+        drones[id][2].append(swarm_telem[id].position_ned[1]) # y recorder for drone with this id
         y_min=min(y_min,swarm_telem[id].position_ned[1])
         y_max=max(y_max,swarm_telem[id].position_ned[1])
 
+        drones[id][3].append(-1*swarm_telem[id].position_ned[2]) # z recorder for drone with this id
         z_min=min(z_min,-1*swarm_telem[id].position_ned[2])
         z_max=max(z_max,-1*swarm_telem[id].position_ned[2])
 
-# Preparing Final figure
+# Preparing Final figure ---------------------------------------------------------
 data=()
 for id in swarm_telem:
     drones[id][0].fig= px.scatter_3d(x=drones[id][1], y=drones[id][2], z=drones[id][3], size_max=1, opacity=1)

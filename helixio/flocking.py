@@ -8,34 +8,33 @@ from mavsdk.offboard import VelocityNedYaw
 def check_velocity(
     desired_vel, my_pos_vel, max_speed, yaw, time_step, max_accelleration
 ):
-    current_vel = np.array(my_pos_vel.velocity_ned)
+    # current_vel = np.array(my_pos_vel.velocity_ned)
 
     # impose velocity limit
     if np.linalg.norm(desired_vel) > max_speed:
         desired_vel = desired_vel / np.linalg.norm(desired_vel) * max_speed
 
     # impose accelleration limit
-    limit_accelleration(desired_vel, current_vel, time_step, max_accelleration)
+    # output_vel = limit_accelleration(
+    #     desired_vel, current_vel, time_step, max_accelleration
+    # )
 
     # yaw = 0.0
-    output_vel = desired_vel
-    return VelocityNedYaw(output_vel[0], output_vel[1], output_vel[2], yaw)
+    return VelocityNedYaw(desired_vel[0], desired_vel[1], desired_vel[2], yaw)
 
 
-def limit_accelleration(desired_vel, current_vel, time_step, max_accel):
-    delta_v = np.linalg.norm(desired_vel - current_vel)
-
+# NOT NEEDED
+def limit_accelleration(desired_vel, current_vel, time_step, max_accel_mag):
+    delta_v = desired_vel - current_vel
     accelleration = delta_v / time_step
+    accelleration_mag = np.linalg.norm(accelleration)
 
-    # impose accelleration limit
-    if accelleration > max_accel:
-        desired_vel = (
-            desired_vel
-            / np.linalg.norm(desired_vel)
-            * (max_accel * time_step + np.linalg.norm(current_vel))
-        )
-
-    return desired_vel
+    # impose accelleration limit (seems to cause the loop to fail but px4 limits accelleration so not needed)
+    if accelleration_mag > max_accel_mag:
+        max_accel = (accelleration / np.linalg.norm(accelleration)) * max_accel_mag
+        output_vel = (max_accel * time_step) + current_vel
+    output_vel = desired_vel
+    return output_vel
 
 
 def simple_flocking(drone_id, swarm_pos_vel, my_pos_vel, time_step, max_accel):
