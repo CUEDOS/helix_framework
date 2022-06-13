@@ -121,8 +121,8 @@ class Agent:
         self.logger.info("arming")
         try:
             await self.drone.action.arm()
-            self.home_lat = self.my_telem.geodetic[0]
-            self.home_long = self.my_telem.geodetic[1]
+            self.home_lat = self.swarm_manager.telemetry[self.id].geodetic[0]
+            self.home_long = self.swarm_manager.telemetry[self.id].geodetic[1]
         except ActionError as error:
             self.report_error(error._result.result_str)
 
