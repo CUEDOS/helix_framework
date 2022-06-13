@@ -39,6 +39,7 @@ class DroneCommunication:
         )
         self.client.message_callback_add("detection", self.on_message_detection)
         self.client.message_callback_add("commands/" + self.id, self.on_message_command)
+        self.client.message_callback_add("emergency_stop", self.on_message_stop)
         # set message to be sent when connection is lost
         self.client.will_set(
             self.id + "/connection_status", "Disconnected", qos=2, retain=True
@@ -58,6 +59,7 @@ class DroneCommunication:
         self.connected = True
         print("MQTT connected to broker with result code " + str(rc))
         client.subscribe("detection")
+        client.subscribe("emergency_stop")
         client.subscribe("commands/" + self.id)
         client.subscribe("+/home/altitude")
         client.subscribe("+/corridor_points")
@@ -79,6 +81,11 @@ class DroneCommunication:
 
     def on_message_detection(self, mosq, obj, msg):
         self.add_agent(msg.payload.decode())
+
+    def on_message_stop(self, mosq, obj, msg):
+        print("STOPPING")
+        self.current_command = "hold"
+        self.activate_callback("hold")
 
     def on_message_command(self, mosq, obj, msg):
         print("received command")

@@ -266,9 +266,11 @@ class Agent:
                     self.swarm_manager.telemetry,
                     self.max_speed,
                     offboard_loop_duration,
-                    5,
+                    10,
                 )
             )
+
+            await self.check_altitude()
 
             # Checking frequency of the loop
             await asyncio.sleep(
@@ -308,6 +310,24 @@ class Agent:
             )
         except ActionError as error:
             self.report_error(error._result.result_str)
+
+    async def check_altitude(self):
+        top_alt_limit = 120.0
+        bottom_alt_limit = 5.0
+        print(
+            str(-self.swarm_manager.telemetry[self.id].position_ned[2])
+            + " "
+            + self.swarm_manager.telemetry[self.id].flight_mode
+        )
+        if self.swarm_manager.telemetry[self.id].flight_mode == "OFFBOARD" and (
+            -self.swarm_manager.telemetry[self.id].position_ned[2] <= bottom_alt_limit
+            or -self.swarm_manager.telemetry[self.id].position_ned[2] >= top_alt_limit
+        ):
+            print("OUTSIDE ALTITUDE LIMITS")
+            await self.hold()
+            self.comms.current_command = "hold"
+            for agent in self.swarm_manager.telemetry.keys():
+                self.comms.client.publish("commands/" + agent, "hold")
 
     def report_error(self, error):
         print("Action Failed: ", error)

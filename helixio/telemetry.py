@@ -1,5 +1,6 @@
 from __future__ import annotations  # compatibility with older python versions than 3.9
 import asyncio
+from turtle import position
 from mavsdk import System
 from mavsdk.action import ActionError
 from mavsdk.offboard import OffboardError, VelocityNedYaw
@@ -65,14 +66,22 @@ class SwarmManager:
 
 class TelemetryUpdater:
     def __init__(
-        self, id, drone, client, swarm_telem, event_loop, geodetic_ref, ulog_callback
+        self,
+        id,
+        drone,
+        client,
+        swarm_telem,
+        event_loop,
+        geodetic_ref,
+        ulog_callback,
     ):
         self.id = id
         self.drone = drone
         self.client = client
 
         asyncio.ensure_future(
-            self.get_position(swarm_telem, geodetic_ref), loop=event_loop
+            self.get_position(swarm_telem, geodetic_ref),
+            loop=event_loop,
         )
         asyncio.ensure_future(self.get_heading(swarm_telem), loop=event_loop)
         asyncio.ensure_future(self.get_velocity(swarm_telem), loop=event_loop)
@@ -80,7 +89,7 @@ class TelemetryUpdater:
             self.get_arm_status(swarm_telem, ulog_callback), loop=event_loop
         )
         asyncio.ensure_future(self.get_battery_level(), loop=event_loop)
-        asyncio.ensure_future(self.get_flight_mode(), loop=event_loop)
+        asyncio.ensure_future(self.get_flight_mode(swarm_telem), loop=event_loop)
 
     async def get_position(self, swarm_telem, geodetic_ref):
         # set the rate of telemetry updates to 10Hz
@@ -111,6 +120,12 @@ class TelemetryUpdater:
                 self.id + "/telemetry/position_ned",
                 str(swarm_telem[self.id].position_ned).strip("()"),
             )
+
+            # if (
+            #     -swarm_telem.position_ned[2] <= bottom_alt_limit
+            #     or -swarm_telem.position_ned[2] >= top_alt_limit
+            # ):
+            #     self.client.publish("emergency_stop", "reached an altitude limit")
 
     async def get_heading(self, swarm_telem):
         # set the rate of telemetry updates to 10Hz
@@ -162,10 +177,27 @@ class TelemetryUpdater:
                 str(round(battery_level.remaining_percent * 100)),
             )
 
-    async def get_flight_mode(self):
-        previous_flight_mode = "NONE"
+    async def get_flight_mode(self, swarm_telem):
         async for flight_mode in self.drone.telemetry.flight_mode():
-            if flight_mode != previous_flight_mode:
-                previous_flight_mode = flight_mode
-                print(flight_mode)
+            if str(flight_mode) != swarm_telem[self.id].flight_mode:
+                swarm_telem[self.id].flight_mode = str(flight_mode)
+                print(swarm_telem[self.id].flight_mode)
                 self.client.publish(self.id + "/flight_mode", str(flight_mode), qos=2)
+
+    # def check_altitude(self, swarm_telem, hold_callback, comms, event_loop):
+    #     top_alt_limit = 120.0
+    #     bottom_alt_limit = 18.0
+    #     print(
+    #         str(-swarm_telem[self.id].position_ned[2])
+    #         + " "
+    #         + swarm_telem[self.id].flight_mode
+    #     )
+    #     if swarm_telem[self.id].flight_mode == "OFFBOARD" and (
+    #         -swarm_telem[self.id].position_ned[2] <= bottom_alt_limit
+    #         or -swarm_telem[self.id].position_ned[2] >= top_alt_limit
+    #     ):
+    #         print("OUTSIDE ALTITUDE LIMITS")
+    #         asyncio.ensure_future(hold_callback(), loop=event_loop)
+    #         comms.current_command = "hold"
+    #         for agent in swarm_telem.keys():
+    #             self.client.publish("commands/" + agent, "hold")
