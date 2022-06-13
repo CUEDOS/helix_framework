@@ -34,6 +34,7 @@ class Experiment:
         self.rotation_factor = 1
         self.directions = []
         self.current_index = 0
+        self.pass_permission = False
         self.target_point = np.array([0, 0, 0], dtype="float64")
         self.target_direction = np.array([1, 1, 1], dtype="float64")
         self.load(experiment_file_path, swarm_telem)
@@ -49,7 +50,7 @@ class Experiment:
         self.k_separation = experiment_parameters["k_seperation"]
         self.r_conflict = experiment_parameters["r_conflict"]
         self.r_collision = experiment_parameters["r_collision"]
-        self.pass_permission = experiment_parameters[
+        self.pass_permission_list = experiment_parameters[
             "pass_permission"
         ]  # the permission to go to another path
         self.repeat = experiment_parameters[
@@ -81,9 +82,12 @@ class Experiment:
 
         return assigned_pre_start_positions
 
-    def get_initial_path(self, swarm_priorities):
+    def get_path_and_permission(self, swarm_priorities):
         if self.id in swarm_priorities:
             self.current_path = self.initial_paths[swarm_priorities.index(self.id)]
+            self.pass_permission = self.pass_permission_list[
+                swarm_priorities.index(self.id)
+            ]
 
     def get_swarm_priorities(self, swarm_telem):
         numeric_ids = {}

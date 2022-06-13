@@ -229,7 +229,7 @@ class Agent:
         swarm_priorities = self.experiment.get_swarm_priorities(
             self.swarm_manager.telemetry
         )
-        self.experiment.get_initial_path(swarm_priorities)
+        self.experiment.get_path_and_permission(swarm_priorities)
         pre_start_positions = self.experiment.get_pre_start_positions(
             self.swarm_manager.telemetry, swarm_priorities
         )
