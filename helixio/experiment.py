@@ -337,7 +337,12 @@ class Experiment:
         v_separation = np.array([0, 0, 0])
         # NOTE maybe add lane cohesion as well so we point the right way when coming from far away
         # yaw = flocking.get_desired_yaw(v_migration[0], v_migration[1])
-        yaw = flocking.get_desired_yaw(desired_vel[0], desired_vel[1])
+        yaw_vel = (
+            self.k_lane_cohesion * v_lane_cohesion
+            + self.k_migration * v_migration
+            + self.k_rotation * v_rotation
+        )
+        yaw = flocking.get_desired_yaw(yaw_vel[0], yaw_vel[1])
         output_vel = flocking.check_velocity(
             desired_vel, swarm_telem[self.id], max_speed, yaw, time_step, max_accel
         )
