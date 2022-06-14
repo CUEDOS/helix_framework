@@ -162,8 +162,8 @@ class TelemetryUpdater:
                     self.id + "/telemetry/arm_status",
                     str(swarm_telem[self.id].arm_status),
                 )
-                if swarm_telem[self.id].arm_status == False:
-                    await ulog_callback()
+                # if swarm_telem[self.id].arm_status == False:
+                #     await ulog_callback()
 
     async def get_uid(self, swarm_telem):
         async for flight_info in self.drone.info.get_flight_information():
