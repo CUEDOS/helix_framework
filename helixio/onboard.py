@@ -76,7 +76,7 @@ class Agent:
         )
         await asyncio.sleep(2)
         # temp
-        experiment_file_path: str = "experiment_2.json"
+        experiment_file_path: str = "experiment_3.json"
         self.experiment = Experiment(
             self.id, self.swarm_manager.telemetry, experiment_file_path
         )
@@ -314,11 +314,6 @@ class Agent:
     async def check_altitude(self):
         top_alt_limit = 120.0
         bottom_alt_limit = 5.0
-        print(
-            str(-self.swarm_manager.telemetry[self.id].position_ned[2])
-            + " "
-            + self.swarm_manager.telemetry[self.id].flight_mode
-        )
         if self.swarm_manager.telemetry[self.id].flight_mode == "OFFBOARD" and (
             -self.swarm_manager.telemetry[self.id].position_ned[2] <= bottom_alt_limit
             or -self.swarm_manager.telemetry[self.id].position_ned[2] >= top_alt_limit

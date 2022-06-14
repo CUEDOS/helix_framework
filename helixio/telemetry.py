@@ -167,7 +167,8 @@ class TelemetryUpdater:
 
     async def get_uid(self, swarm_telem):
         async for flight_info in self.drone.info.get_flight_information():
-            print(flight_info)
+            # print(flight_info)
+            continue
 
     async def get_battery_level(self):
         await self.drone.telemetry.set_rate_battery(0.1)

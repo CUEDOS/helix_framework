@@ -169,14 +169,11 @@ class Experiment:
         ][
             0
         ]  # now current index is a point of the next path
-        print(self.id, self.current_path)
         self.current_path = index_checker(self.current_path + 1, len(self.points))
-        print(self.id, self.current_path)
         self.target_point = self.points[self.current_path][self.current_index]
         self.target_direction = self.directions[self.current_path][self.current_index]
 
     def path_following(self, swarm_telem, max_speed, time_step, max_accel):
-        print(self.current_index)
         self.target_point = self.points[self.current_path][self.current_index]
         self.target_direction = self.directions[self.current_path][self.current_index]
         if (
