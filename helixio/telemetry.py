@@ -1,6 +1,5 @@
 from __future__ import annotations  # compatibility with older python versions than 3.9
 import asyncio
-from turtle import position
 from mavsdk import System
 from mavsdk.action import ActionError
 from mavsdk.offboard import OffboardError, VelocityNedYaw
