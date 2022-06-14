@@ -2,72 +2,61 @@
 	"experiment_id": 1,
 	"k_migration": 2,
 	"k_lane_cohesion": 1,
-	"k_rotation": 2,
+	"k_rotation": 1,
 	"k_seperation": 2,
 	"r_conflict": 5,
 	"r_collision": 2.5,
-	"pass_permission": [
-		true,
-		false,
-		true,
-		false,
-		true,
-		false,
-		true,
-		false,
-		true,
-		false
-	],
+	"pass_permission": [true, false, true, false, true, false, true, false, true, false],
 	"repeat": false,
 	"pre_start_positions": [
 		[
 			25,
-			-65,
+			-85,
 			-20
 		],
 		[
 			-25,
-			-65,
+			-85,
 			-20
 		],
 		[
-			30,
-			-65,
+			 30,
+			-85,
 			-20
 		],
 		[
 			-30,
-			-65,
+			-85,
 			-20
 		],
 		[
-			20,
-			-65,
+			 20,
+			-85,
 			-20
 		],
 		[
 			-20,
-			-65,
+			-85,
 			-20
 		],
 		[
-			35,
-			-65,
+			 35,
+			-85,
 			-20
 		],
 		[
 			-35,
-			-65,
+			-85,
 			-20
 		],
 		[
-			15,
-			-65,
+			 15,
+			-85,
 			-20
 		],
 		[
 			-15,
-			-65,
+			-85,
 			-20
 		]
 	],
@@ -95,12 +84,12 @@
 		[
 			[
 				25,
-				-60,
+				-80,
 				-20
 			],
 			[
 				5,
-				-40,
+				-60,
 				-20
 			],
 			[
@@ -112,17 +101,17 @@
 		[
 			[
 				-25,
+				-80,
+				-20
+			],
+			[
+				-5,
 				-60,
 				-20
 			],
 			[
 				-5,
-				-40,
-				-20
-			],
-			[
-				-5,
-				40,
+				50,
 				-20
 			]
 		]
