@@ -60,7 +60,7 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
 
     z=[]
     z_max=-1*math.inf  #for figure range
-    z_min=math.inf     #for figure range
+    z_min=0            #for figure range
     fz=[]              #z interpolation
     Z_total=[]         #total interpolated z
     
@@ -228,5 +228,5 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
     fig.show()
     
    
-visualize_ulg(directory="/home/m74744sa/Desktop/SITL_figs",drone_size=10, ticks_num=10)
+visualize_ulg(directory="/media/m74744sa/My_Backup/Manchester_Research/My_projects/Drone_figs/LLanbedr_logs",drone_size=10, ticks_num=10)
 
