@@ -17,7 +17,8 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
         ref_alt: altitude of geodetic origin reference point
         drone_size: size of drones in visualization
         ticks_num: number of ticks for each cartesian axis
-        
+        dt= time step in seconds
+
         Note: if a user does not provide one arguments of ref_lat, ref_long and ref_alt, the function considers 
             a point with the least latitude, longitude and altitude as the reference point
     Returns:
@@ -26,6 +27,7 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
     REF_lat=None
     REF_long=None
     REF_alt=None
+    dt=None
     Drone_size=10
     Ticks_num=10
     for key, value in Input.items():
@@ -41,6 +43,8 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
             Drone_size=value
         elif key=="ticks_num":
             Ticks_num=value
+        elif key=='dt':
+            dt=value
 
     x=[]
     x_max=-1*math.inf  #for figure range
@@ -210,8 +214,10 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
                 name="trace of "+file_names[j]
         )
     )
-    fig.layout.updatemenus[0].buttons[0].args[1]['frame']['duration'] = 0.1 #interp_time[1]-interp_time[0]
-    fig.layout.updatemenus[0].buttons[0].args[1]['transition']['duration'] = 0.1
+    if dt==None:
+        dt=(interp_time[1]-interp_time[0])*1000 # in milliseconds
+    fig.layout.updatemenus[0].buttons[0].args[1]['frame']['duration'] = dt
+    fig.layout.updatemenus[0].buttons[0].args[1]['transition']['duration'] = 1
     fig.update_layout(
         showlegend=True,
         legend=dict(itemsizing='constant',font=dict(family="Times New Roman",size=20), bgcolor="LightSteelBlue", bordercolor="Black", borderwidth=2),
