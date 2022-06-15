@@ -14,6 +14,8 @@ def visualize_path_following (**Input):
     simulation_time=200
     dt=0.1
     drone_num = 2
+    CSV_file_path=None
+    experiment_file_path=None
     for key, value in Input.items():
         if key=="simulation_time":
             simulation_time=value
@@ -27,6 +29,14 @@ def visualize_path_following (**Input):
             drone_num=value
         elif key=='experiment_file_path':
             experiment_file_path=value
+        elif key=='CSV_file_path':
+            CSV_file_path=value
+    if experiment_file_path==None:
+        print('Error: A path to input experiment file should be provided')
+        return 0
+    if CSV_file_path== None:
+        print('Error: A path to output CSV file should be provided')
+        return 0
     #Simulation ------------------------------------------------------------
     # Simulation parameters
     t=0
@@ -39,9 +49,9 @@ def visualize_path_following (**Input):
     max_speed=5
     time_step=dt
     max_accel=5
-    X_total=[] # positions of all drones along x
-    Y_total=[] # positions of all drones along y
-    Z_total=[] # positions of all drones along z
+    X_total=[] # positions of all drones along x used for drawing figure
+    Y_total=[] # positions of all drones along y used for drawing figure
+    Z_total=[] # positions of all drones along z used for drawing figure
 
     swarm_telem = {}
     drones={}
@@ -68,6 +78,7 @@ def visualize_path_following (**Input):
     Time_total=[]
     Color_total=[]  
     simulation_steps=0
+    
     while (t<=simulation_time):
         t+=dt
         simulation_steps+=1
@@ -93,7 +104,11 @@ def visualize_path_following (**Input):
 
             drones[id][4].append(t) 
 
-    # Preparing Final figure ---------------------------------------------------------
+    # Preparing Final figure & output CSV file ---------------------------------------------------------
+    Output_CSV_file=open(CSV_file_path, 'w')
+    writer = csv.writer(Output_CSV_file)
+    header=['x(m)', 'y(m)', 'z(m)', 'time(s)', 'drone id', 'type of experiment']
+    writer.writerow(header)
     for id in swarm_telem:
         for i in range(simulation_steps):
             X_total.append(drones[id][1][i])
@@ -101,7 +116,10 @@ def visualize_path_following (**Input):
             Z_total.append(drones[id][3][i])
             Time_total.append(drones[id][4][i])
             Color_total.append(id)
-            
+            row=[drones[id][1][i], drones[id][2][i], drones[id][3][i], drones[id][4][i], id, 'Python_simulation'] # x, y , z, time (s), id, type of experiment
+            writer.writerow(row)
+    Output_CSV_file.close()
+
     x_right_margin=x_max+(x_max-x_min)*0.05
     x_left_margin=x_min-(x_max-x_min)*0.05
     x_range=x_right_margin-x_left_margin
@@ -154,4 +172,4 @@ def visualize_path_following (**Input):
         )
     fig.show()
 
-visualize_path_following(drone_num = 6, dt=0.2, experiment_file_path='/home/m74744sa//Documents/Helixio/helixio/helixio/experiment_3.json')
+#visualize_path_following(drone_num = 6, dt=0.1, CSV_file_path='/path_to_CSV_file/CSV_file_name.csv', experiment_file_path='/path_to_experiment_json_file/json_file_name.json')
