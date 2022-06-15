@@ -215,8 +215,8 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
         )
     )
     if dt==None:
-        dt=(interp_time[1]-interp_time[0])*1000 # in milliseconds
-    fig.layout.updatemenus[0].buttons[0].args[1]['frame']['duration'] = dt
+        dt=(interp_time[1]-interp_time[0]) # in seconds
+    fig.layout.updatemenus[0].buttons[0].args[1]['frame']['duration'] = dt*1000 # in milliseconds
     fig.layout.updatemenus[0].buttons[0].args[1]['transition']['duration'] = 1
     fig.update_layout(
         showlegend=True,
