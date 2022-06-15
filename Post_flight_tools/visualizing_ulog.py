@@ -7,7 +7,7 @@ from scipy import interpolate
 import glob, os
 import math
 
-def vis (**Input):  # input keyword arguments: ref_lat, ref_long, ref_alt
+def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_alt
     """
     Draws the path of drones based on their ulog file and animates them in Cartesian coordinate
     Arguments:
@@ -84,7 +84,7 @@ def vis (**Input):  # input keyword arguments: ref_lat, ref_long, ref_alt
     
     os.chdir(directory)
     for file in glob.glob("*.ulg"):
-        convert_ulog2csv(directory+"/"+file, "vehicle_gps_position", directory, delimiter=";")
+        convert_ulog2csv(directory+"/"+file, None, directory, delimiter=";")
         file_names.append(file.replace(".ulg",""))
         latitude.append([])  # new line for latitudes
         longitude.append([]) # new line for longitudes
@@ -222,5 +222,5 @@ def vis (**Input):  # input keyword arguments: ref_lat, ref_long, ref_alt
     fig.show()
     
    
-#vis(directory="logs",drone_size=10, ticks_num=10)
+visualize_ulg(directory="/home/m74744sa/Desktop/SITL_figs",drone_size=10, ticks_num=10)
 
