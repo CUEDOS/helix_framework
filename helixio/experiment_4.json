@@ -1,8 +1,8 @@
 {
 	"experiment_id": 1,
 	"k_migration": 2,
-	"k_lane_cohesion": 0,
-	"k_rotation": 0,
+	"k_lane_cohesion": 1,
+	"k_rotation": 1,
 	"k_seperation": 2,
 	"r_conflict": 5,
 	"r_collision": 2.5,
@@ -107,7 +107,7 @@
 			[
 				-5,
 				50,
-				50
+				-20
 			],
 			[
 				-25,
