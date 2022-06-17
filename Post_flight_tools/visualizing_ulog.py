@@ -11,7 +11,7 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
     """
     Draws the path of drones based on their ulog file and animates them in Cartesian coordinate
     Arguments:
-        directory: directory of the folder containing all the ulog files of the drones we want to visualize
+        ulg_folder: directory of the folder containing all the ulog files of the drones we want to visualize
         ref_lat: latitude of geodetic origin reference point 
         ref_long: longitude of geodetic origin reference point 
         ref_alt: altitude of geodetic origin reference point
@@ -28,6 +28,9 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
     REF_long=None
     REF_alt=None
     dt=None
+    folder_of_ulg=None
+    output_CSV_file_dir=None
+    sitl_or_real='real'
     Drone_size=10
     Ticks_num=10
     for key, value in Input.items():
@@ -37,15 +40,28 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
             REF_long=value
         elif key=="ref_alt":
             REF_alt=value
-        elif key=="directory":
-            directory=value
+        elif key=="folder_of_ulg":
+            folder_of_ulg=value
         elif key=="drone_size":
             Drone_size=value
         elif key=="ticks_num":
             Ticks_num=value
         elif key=='dt':
             dt=value
-
+        elif key=="sitl_or_real":
+            sitl_or_real=value
+        elif key=='output_CSV_file_dir':
+            output_CSV_file_dir=value
+        
+    if folder_of_ulg==None:
+        print('Error: A directory to folder of input ulg files should be provided')
+        return 0
+    if output_CSV_file_dir== None:
+        print('Error: A directory to output CSV file should be provided')
+        return 0
+    if (sitl_or_real!='real' and sitl_or_real!='sitl'):
+        print('Error: argument sitl_or_real can just be real or sitl')
+        return 0
     x=[]
     x_max=-1*math.inf  #for figure range
     x_min=math.inf     #for figure range  
@@ -73,7 +89,9 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
     longitude=[]
     altitude=[]
     Color_total=[]
-    Time=[] # sampling time of each drone
+    Time=[] # sampling time of each drone (synchronized)
+    gps_timestamp=[] # sampling time of each drone since turning on (asynchronous)
+    offboard_timestamp=[]
     file_names=[]
 
 
@@ -86,37 +104,55 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
     max_start_time=-1*math.inf
     min_finish_time=math.inf
     
-    os.chdir(directory)
-    for file in glob.glob("*.ulg"):
-        convert_ulog2csv(directory+"/"+file, None, directory, delimiter=";")
-        file_names.append(file.replace(".ulg",""))
-        latitude.append([])  # new line for latitudes
-        longitude.append([]) # new line for longitudes
-        altitude.append([])  # new line for altitudes
-        Time.append([])      # new line for sampling time of each drone
-    
-        with open (directory+"/"+file.replace(".ulg","")+"_vehicle_gps_position_0.csv", newline="") as csv_file:
-            Object_of_dictionaries=csv.DictReader(csv_file, delimiter=";")
-            for row_dict in Object_of_dictionaries: # we should create the lists when the file is still open
-                
-                Time[i].append(float(row_dict["time_utc_usec"])/1000000) # in seconds, Unix
+    # opening ulg files ----------------------
+    os.chdir(folder_of_ulg)
+    for ulg_file in glob.glob("*.ulg"):
+        convert_ulog2csv(folder_of_ulg+"/"+ulg_file, 'vehicle_gps_position', folder_of_ulg, delimiter=";") # to get positions of a drone and synchronized time
+        convert_ulog2csv(folder_of_ulg+"/"+ulg_file, 'offboard_control_mode',folder_of_ulg, delimiter=";") # to check when offboard mode is active (timing is asynchronous)
+        file_names.append(ulg_file.replace(".ulg","")) # file names is the name of a ulg file without .ulg
+        latitude.append([])         # new line for latitudes of drone i
+        longitude.append([])        # new line for longitudes of drone i
+        altitude.append([])         # new line for altitudes of drone i
+        Time.append([])             # new line for sampling time of drone i
+        gps_timestamp.append([])       # new line for gps timestamp drone i
+        offboard_timestamp.append([])  # new line for offboard mode timestamp of drone i
 
-                latitude[i].append(float(row_dict ["lat"])/10000000)
-                min_lat=min(min_lat, float(row_dict ["lat"])/10000000)
-                max_lat=max(max_lat, float(row_dict ["lat"])/10000000)
+        # Getting data from gps csv file from ulg file ------
+        csv_file_gps=open(folder_of_ulg+"/"+ulg_file.replace(".ulg","")+"_vehicle_gps_position_0.csv", newline="")
+        Object_of_dictionaries_gps=csv.DictReader(csv_file_gps, delimiter=";")
+        for row_dict in Object_of_dictionaries_gps: # we should create the lists when the file is still open
+            gps_timestamp[i].append(float(row_dict["timestamp"])/1000000) # in seconds, since turning on (asynchronous)
+            Time[i].append(float(row_dict["time_utc_usec"])/1000000) # in seconds, Unix (synchronized)
 
-                longitude[i].append(float(row_dict["lon"])/10000000)
-                min_long=min(min_long, float(row_dict ["lon"])/10000000)
-                max_long=max(max_long, float(row_dict ["lon"])/1000000)
+            latitude[i].append(float(row_dict ["lat"])/10000000)
+            min_lat=min(min_lat, float(row_dict ["lat"])/10000000)
+            max_lat=max(max_lat, float(row_dict ["lat"])/10000000)
 
-                altitude[i].append(float(row_dict ["alt"])/1000) # in meters, relative to sea level
-                min_alt=min(min_alt, float(row_dict ["alt"])/1000)
-                max_alt=max(max_alt, float(row_dict ["alt"])/1000)
-                
-        max_start_time=max(max_start_time, Time[i][0])
-        latest_drone=i
+            longitude[i].append(float(row_dict["lon"])/10000000)
+            min_long=min(min_long, float(row_dict ["lon"])/10000000)
+            max_long=max(max_long, float(row_dict ["lon"])/1000000)
+
+            altitude[i].append(float(row_dict ["alt"])/1000) # in meters, relative to sea level
+            min_alt=min(min_alt, float(row_dict ["alt"])/1000)
+            max_alt=max(max_alt, float(row_dict ["alt"])/1000)
+
+        csv_file_gps.close()
+        
+        if max_start_time<Time[i][0]:
+            max_start_time=Time[i][0]
+            latest_drone=i
+        
         min_finish_time=min(min_finish_time, Time[i][len(Time[i])-1])
+
+        # Getting data from offboard csv file from ulg file --------
+        csv_file_offboard=open(folder_of_ulg+"/"+ulg_file.replace(".ulg","")+"_offboard_control_mode_0.csv", newline="")
+        Object_of_dictionaries_offboard=csv.DictReader(csv_file_offboard, delimiter=";")  
+        for row_dict in Object_of_dictionaries_offboard: # we should create the lists when the file is still open  
+            offboard_timestamp[i].append(float(row_dict['timestamp'])/1000000)    
+        csv_file_offboard.close()
+
         i+=1 #number of files
+        # End of opening ulg files  ---------------------
 
     if (REF_lat==None or REF_long==None or REF_alt==None):
         REF_lat=min_lat
@@ -125,13 +161,18 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
         print("Auto generated geodetic origin is at: latitude=",REF_lat, "longitude=", REF_long, "altitude=", REF_lat)
     else:
         print("Entered geodetic origin is at: latitude=",REF_lat, "longitude=", REF_long, "altitude=", REF_lat)
-    # Converting geodetics to Cartesian 
-  
+    
+    # Converting geodetics to Cartesian & Preparing output CSV file
+    Output_CSV_file=open(output_CSV_file_dir, 'w')
+    writer = csv.writer(Output_CSV_file)
+    header=['x(m)', 'y(m)', 'z(m)', 'time(s)', 'drone id', 'offboard mode status','type of experiment']
+    writer.writerow(header)
+    offboard_mode_status=[] # shows the offboard status of a drone
     for j in range(i):  # j is the number of a drone
         x.append([])  #new line for x coordinates
         y.append([])  #new line for y coordinates
         z.append([])  #new line for z coordinates 
-        for  k in range(len(altitude[j])): # k is the number of samples of drone j
+        for  k in range(len(Time[j])): # k is the number of samples of drone j
             n,e,d =geodetic2ned(latitude[j][k], longitude[j][k], altitude[j][k], REF_lat, REF_long, REF_alt, ell=None, deg=True)
             x[j].append(n)
             x_max=max(x_max, n)
@@ -144,27 +185,41 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
             z[j].append(-1*d)
             z_max=max(z_max, -1*d)
             z_min=min(z_min, -1*d)
-        
+            
+            offboard_mode_status.append([0 for n in range(len(gps_timestamp[j]))])
+            for l in range(len(offboard_timestamp[j])-1):
+                for m in range (len(gps_timestamp[j])):
+                    if (gps_timestamp[j][m] >= offboard_timestamp[j][l] and gps_timestamp[j][m] <= offboard_timestamp[j][l+1]): # drone j were on offboard mode at gps_timestamp [j][m]
+                        offboard_mode_status[j][m]=1
+
+                        
+            
+            row=[x[j][k], y[j][k], z[j][k], Time[j][k], file_names[j], offboard_mode_status[j][k], sitl_or_real] # x, y , z, time (s), id, status of offboard mode, type of experiment
+            writer.writerow(row)
+    
         fx.append(interpolate.interp1d(Time[j], x[j]))
         fy.append(interpolate.interp1d(Time[j], y[j]))
         fz.append(interpolate.interp1d(Time[j], z[j]))
+    
+    Output_CSV_file.close()
     
     # Creating interpolated positions
     # Adding positions of the latest drone to the interpolted lists
     
     for k in range(len(x[latest_drone])): # k is the number of samples of the latest drone
         if Time[latest_drone][k]<= min_finish_time:
-            X_total.append(x[latest_drone][k])
-            Y_total.append(y[latest_drone][k])
-            Z_total.append(z[latest_drone][k])
-            Time_total.append(Time[latest_drone][k]-max_start_time)
-            Color_total.append(file_names[latest_drone])
             interp_time.append(Time[latest_drone][k])
             interp_length+=1
-    # Calculating and Adding positions of the latest drone to the interpolted lists
+    # Adding positions of the latest drone and calculating & adding interpolated positions of the other drones to the total lists
     for j in range(i): # j is the number of a drone
         if j==latest_drone:
-            continue
+            for k in range(len(x[latest_drone])): # k is the number of samples of the latest drone
+                if Time[latest_drone][k]<= min_finish_time:
+                    X_total.append(x[latest_drone][k])
+                    Y_total.append(y[latest_drone][k])
+                    Z_total.append(z[latest_drone][k])
+                    Time_total.append(Time[latest_drone][k]-max_start_time)
+                    Color_total.append(file_names[latest_drone])
         for t in interp_time:
             X_total.append(float(fx[j](t)))
             Y_total.append(float(fy[j](t)))
@@ -228,5 +283,5 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
     fig.show()
     
    
-visualize_ulg(directory="/media/m74744sa/My_Backup/Manchester_Research/My_projects/Drone_figs/LLanbedr_logs",drone_size=10, ticks_num=10)
+visualize_ulg(output_CSV_file_dir='/media/m74744sa/My_Backup/Manchester_Research/My_projects/Drone_figs/SITL_fig/csv.csv',folder_of_ulg="/media/m74744sa/My_Backup/Manchester_Research/My_projects/Drone_figs/SITL_fig",drone_size=10, ticks_num=10)
 

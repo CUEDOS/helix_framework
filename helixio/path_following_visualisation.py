@@ -9,6 +9,21 @@ import plotly.graph_objects as go
 import csv
 
 def visualize_path_following (**Input):
+    """
+    Draws the path of drones based on path following code, and animates them in Cartesian coordinate
+    Arguments:
+        experiment_file_path: the path to input json file of experiment containing prestart positions, corridor points, pass permission, etc.
+        CSV_file_path: the path to output CSV file containg position, drone id, time stamp and type of experimetn
+        simulation_time: simulation duration in seconds
+        drone_size: size of drones in visualization
+        ticks_num: number of ticks for each cartesian axis
+        dt= time step in second
+        drone_num= number of drones in Python simulation
+    
+        Note: if a user does not provide one arguments of input experiment json file or output csv file, the code shows an error and stops
+    Returns:
+        An animated figure of all drones of simulation, and a CSV file containing position, drone id, time stamp and type of experiment
+    """
     drone_size=10
     Ticks_num=10
     simulation_time=200
@@ -31,11 +46,12 @@ def visualize_path_following (**Input):
             experiment_file_path=value
         elif key=='CSV_file_path':
             CSV_file_path=value
+            
     if experiment_file_path==None:
-        print('Error: A path to input experiment file should be provided')
+        print('Error: A directory to input experiment file should be provided')
         return 0
     if CSV_file_path== None:
-        print('Error: A path to output CSV file should be provided')
+        print('Error: A directory to output CSV file should be provided')
         return 0
     #Simulation ------------------------------------------------------------
     # Simulation parameters
@@ -107,7 +123,7 @@ def visualize_path_following (**Input):
     # Preparing Final figure & output CSV file ---------------------------------------------------------
     Output_CSV_file=open(CSV_file_path, 'w')
     writer = csv.writer(Output_CSV_file)
-    header=['x(m)', 'y(m)', 'z(m)', 'time(s)', 'drone id', 'type of experiment']
+    header=['x(m)', 'y(m)', 'z(m)', 'time(s)', 'drone id', 'offboard mode status','type of experiment']
     writer.writerow(header)
     for id in swarm_telem:
         for i in range(simulation_steps):
@@ -116,7 +132,7 @@ def visualize_path_following (**Input):
             Z_total.append(drones[id][3][i])
             Time_total.append(drones[id][4][i])
             Color_total.append(id)
-            row=[drones[id][1][i], drones[id][2][i], drones[id][3][i], drones[id][4][i], id, 'Python_simulation'] # x, y , z, time (s), id, type of experiment
+            row=[drones[id][1][i], drones[id][2][i], drones[id][3][i], drones[id][4][i], id, 1, 'Python_simulation'] # x, y , z, time (s), id, offboard mode status, type of experiment
             writer.writerow(row)
     Output_CSV_file.close()
 
@@ -171,5 +187,6 @@ def visualize_path_following (**Input):
         scene = dict(xaxis = dict(nticks=x_parts,range=[x_right_margin,x_left_margin]), yaxis = dict(nticks=math.ceil((y_range/x_range)*x_parts), range=[y_up_margin,y_down_margin]),zaxis = dict(nticks=math.ceil((z_range/x_range)*x_parts),range=[z_down_margin,z_up_margin]))
         )
     fig.show()
+
 
 #visualize_path_following(drone_num = 6, dt=0.1, CSV_file_path='/path_to_CSV_file/CSV_file_name.csv', experiment_file_path='/path_to_experiment_json_file/json_file_name.json')
