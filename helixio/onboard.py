@@ -177,7 +177,8 @@ class Agent:
 
         # wait until altitude is reached by all agents
         while not self.swarm_manager.check_swarm_altitudes(deconflicted_alt_dict):
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.1)
+        await asyncio.sleep(1)
 
         # Go to the desired position at the travel alt
         try:
@@ -191,7 +192,8 @@ class Agent:
         while not self.swarm_manager.check_swarm_positions(
             desired_positions_ned, check_alt=False
         ):
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.1)
+        await asyncio.sleep(1)
 
         # finally go to the desired altitude
         try:
@@ -203,7 +205,8 @@ class Agent:
 
         # Waits until position is reached by all agents
         while not self.swarm_manager.check_swarm_positions(desired_positions_ned):
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.1)
+        await asyncio.sleep(1)
 
     async def start_offboard(self, drone):
         print("-- Setting initial setpoint")
