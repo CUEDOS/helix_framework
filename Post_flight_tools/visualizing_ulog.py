@@ -285,4 +285,4 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
     fig.show()
      
 visualize_ulg(output_CSV_file_dir='/home/m74744sa/Desktop/All_csvs/SITL_csv.csv',folder_of_ulg="/media/m74744sa/My_Backup/Manchester_Research/My_projects/Drone_figs/SITL_fig",drone_size=10, ticks_num=10)
-
+#visualize_ulg(output_CSV_file_dir='path to csv file/name_of_csv.csv', folder_of_ulg='path to folder containing ulg files', drone_size=10, ticks_num=10)
