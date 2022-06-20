@@ -13,7 +13,7 @@ def visualize_path_following (**Input):
     Draws the path of drones based on path following code, and animates them in Cartesian coordinate
     Arguments:
         experiment_file_path: the path to input json file of experiment containing prestart positions, corridor points, pass permission, etc.
-        CSV_file_path: the path to output CSV file containg position, drone id, time stamp and type of experimetn
+        output_CSV_file_dir: the path to output CSV file containg position, drone id, time stamp and type of experimetn
         simulation_time: simulation duration in seconds
         drone_size: size of drones in visualization
         ticks_num: number of ticks for each cartesian axis
@@ -29,7 +29,7 @@ def visualize_path_following (**Input):
     simulation_time=200
     dt=0.1
     drone_num = 2
-    CSV_file_path=None
+    output_CSV_file_dir=None
     experiment_file_path=None
     for key, value in Input.items():
         if key=="simulation_time":
@@ -44,13 +44,13 @@ def visualize_path_following (**Input):
             drone_num=value
         elif key=='experiment_file_path':
             experiment_file_path=value
-        elif key=='CSV_file_path':
-            CSV_file_path=value
+        elif key=='output_CSV_file_dir':
+            output_CSV_file_dir=value
             
     if experiment_file_path==None:
         print('Error: A directory to input experiment file should be provided')
         return 0
-    if CSV_file_path== None:
+    if output_CSV_file_dir== None:
         print('Error: A directory to output CSV file should be provided')
         return 0
     #Simulation ------------------------------------------------------------
@@ -121,7 +121,7 @@ def visualize_path_following (**Input):
             drones[id][4].append(t) 
 
     # Preparing Final figure & output CSV file ---------------------------------------------------------
-    Output_CSV_file=open(CSV_file_path, 'w')
+    Output_CSV_file=open(output_CSV_file_dir, 'w')
     writer = csv.writer(Output_CSV_file)
     header=['x(m)', 'y(m)', 'z(m)', 'time(s)', 'drone id', 'offboard mode status','type of experiment']
     writer.writerow(header)
@@ -189,4 +189,5 @@ def visualize_path_following (**Input):
     fig.show()
 
 
-#visualize_path_following(drone_num = 6, dt=0.1, CSV_file_path='/path_to_CSV_file/CSV_file_name.csv', experiment_file_path='/path_to_experiment_json_file/json_file_name.json')
+visualize_path_following(drone_num = 1, dt=0.1, output_CSV_file_dir='/home/m74744sa/Desktop/All_csvs/Python_sim.csv', experiment_file_path='/home/m74744sa/Documents/Helixio/helixio/helixio/experiment_3.json')
+#visualize_path_following(drone_num = number of drones, dt= time step in sec, output_CSV_file_dir='/path_to_output_CSV_file/output_CSV_file_name.csv', experiment_file_path='/path_to_experiment_json_file/json_file_name.json')
