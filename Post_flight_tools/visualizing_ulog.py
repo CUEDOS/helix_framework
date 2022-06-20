@@ -18,6 +18,7 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
         drone_size: size of drones in visualization
         ticks_num: number of ticks for each cartesian axis
         dt= time step in seconds
+        sitl_or_rea= if its value is 'real', it means ulg is for a real experiment and if the value is 'sitl' it means ulg is for a sitl simulation (the default value is 'real'), 
 
         Note: if a user does not provide one arguments of ref_lat, ref_long and ref_alt, the function considers 
             a point with the least latitude, longitude and altitude as the reference point
@@ -83,7 +84,7 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
     Time_total=[]      #Time span of interpolation used for figure
     interp_time=[]     #Time span of interpolation
 
-    i=0
+    i=0 # i is the number of a file (drone)
     interp_length=0
     latitude=[]
     longitude=[]
@@ -117,7 +118,7 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
         gps_timestamp.append([])       # new line for gps timestamp drone i
         offboard_timestamp.append([])  # new line for offboard mode timestamp of drone i
 
-        # Getting data from gps csv file from ulg file ------
+        # Getting data from gps csv file created from ulg file ------
         csv_file_gps=open(folder_of_ulg+"/"+ulg_file.replace(".ulg","")+"_vehicle_gps_position_0.csv", newline="")
         Object_of_dictionaries_gps=csv.DictReader(csv_file_gps, delimiter=";")
         for row_dict in Object_of_dictionaries_gps: # we should create the lists when the file is still open
@@ -144,14 +145,14 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
         
         min_finish_time=min(min_finish_time, Time[i][len(Time[i])-1])
 
-        # Getting data from offboard csv file from ulg file --------
+        # Getting data from offboard csv file created from ulg file --------
         csv_file_offboard=open(folder_of_ulg+"/"+ulg_file.replace(".ulg","")+"_offboard_control_mode_0.csv", newline="")
         Object_of_dictionaries_offboard=csv.DictReader(csv_file_offboard, delimiter=";")  
         for row_dict in Object_of_dictionaries_offboard: # we should create the lists when the file is still open  
             offboard_timestamp[i].append(float(row_dict['timestamp'])/1000000)    
         csv_file_offboard.close()
 
-        i+=1 #number of files
+        i+=1 #number of files (drones)
         # End of opening ulg files  ---------------------
 
     if (REF_lat==None or REF_long==None or REF_alt==None):
@@ -172,7 +173,7 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
         x.append([])  #new line for x coordinates
         y.append([])  #new line for y coordinates
         z.append([])  #new line for z coordinates 
-        for  k in range(len(Time[j])): # k is the number of samples of drone j
+        for  k in range(len(Time[j])): # k is the number of a sample of drone j
             n,e,d =geodetic2ned(latitude[j][k], longitude[j][k], altitude[j][k], REF_lat, REF_long, REF_alt, ell=None, deg=True)
             x[j].append(n)
             x_max=max(x_max, n)
@@ -187,10 +188,11 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
             z_min=min(z_min, -1*d)
             
             offboard_mode_status.append([0 for n in range(len(gps_timestamp[j]))])
-            for l in range(len(offboard_timestamp[j])-1):
-                for m in range (len(gps_timestamp[j])):
-                    if (gps_timestamp[j][m] >= offboard_timestamp[j][l] and gps_timestamp[j][m] <= offboard_timestamp[j][l+1]): # drone j were on offboard mode at gps_timestamp [j][m]
-                        offboard_mode_status[j][m]=1
+
+        for l in range(len(offboard_timestamp[j])-1): # to check when drone j was on offboard mode
+            for m in range (len(gps_timestamp[j])):
+                if (gps_timestamp[j][m] >= offboard_timestamp[j][l] and gps_timestamp[j][m] <= offboard_timestamp[j][l+1]): # drone j were on offboard mode at gps_timestamp [j][m]
+                    offboard_mode_status[j][m]=1
 
                         
             
@@ -281,7 +283,6 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
         scene = dict(xaxis = dict(nticks=x_parts,range=[x_right_margin,x_left_margin]), yaxis = dict(nticks=math.ceil((y_range/x_range)*x_parts), range=[y_up_margin,y_down_margin]),zaxis = dict(nticks=math.ceil((z_range/x_range)*x_parts),range=[z_down_margin,z_up_margin]))
         )
     fig.show()
-    
-   
-visualize_ulg(output_CSV_file_dir='/media/m74744sa/My_Backup/Manchester_Research/My_projects/Drone_figs/SITL_fig/csv.csv',folder_of_ulg="/media/m74744sa/My_Backup/Manchester_Research/My_projects/Drone_figs/SITL_fig",drone_size=10, ticks_num=10)
+     
+visualize_ulg(output_CSV_file_dir='/home/m74744sa/Desktop/All_csvs/SITL_csv.csv',folder_of_ulg="/media/m74744sa/My_Backup/Manchester_Research/My_projects/Drone_figs/SITL_fig",drone_size=10, ticks_num=10)
 
