@@ -53,7 +53,7 @@ class Agent:
             self.swarm_manager,
         )
         asyncio.ensure_future(self.comms.run_comms())
-        await asyncio.sleep(5)
+        await asyncio.sleep(2)
         # Put command callback functions in a dict with command as key
         command_functions = {
             "arm": self.arm,
@@ -68,7 +68,6 @@ class Agent:
 
         # Bind the callbacks
         self.comms.bind_command_functions(command_functions, event_loop)
-        await asyncio.sleep(5)
         self.telemetry_updater = TelemetryUpdater(
             self.id,
             self.drone,
@@ -78,7 +77,6 @@ class Agent:
             [self.ref_lat, self.ref_lon, self.ref_alt],
             self.download_ulog,
         )
-        await asyncio.sleep(5)
         # temp
         experiment_file_path: str = "experiment_3.json"
         self.experiment = Experiment(
