@@ -36,11 +36,12 @@ class Agent:
         print("setup done")
 
     async def run(self):
-        self.drone: type[System] = System(
-            mavsdk_server_address="localhost", port=self.port
-        )
-        # await self.drone.connect(system_address="serial:///dev/ttyAMA0:921600")
-        await self.drone.connect()
+        # self.drone: type[System] = System(
+        #     mavsdk_server_address="localhost", port=self.port
+        # )
+        self.drone: type[System] = System()
+        await self.drone.connect(system_address="serial:///dev/ttyAMA0:921600")
+        # await self.drone.connect()
         print("Waiting for drone to connect...")
         async for state in self.drone.core.connection_state():
             if state.is_connected:
