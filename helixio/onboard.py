@@ -39,6 +39,7 @@ class Agent:
         self.drone: type[System] = System(
             mavsdk_server_address="localhost", port=self.port
         )
+        # await self.drone.connect(system_address="serial:///dev/ttyAMA0:921600")
         await self.drone.connect()
         print("Waiting for drone to connect...")
         async for state in self.drone.core.connection_state():
@@ -57,6 +58,7 @@ class Agent:
             "arm": self.arm,
             "takeoff": self.takeoff,
             "Experiment": self.run_experiment,
+            "pre_start": self.pre_start,
             "hold": self.hold,
             "return": self.return_to_home,
             "land": self.land,
@@ -250,7 +252,6 @@ class Agent:
         self.experiment.initial_nearest_point(self.swarm_manager.telemetry)
 
     async def run_experiment(self):
-        await self.pre_start()
         print("running experiment")
         await self.start_offboard(self.drone)
 
