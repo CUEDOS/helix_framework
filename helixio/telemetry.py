@@ -1,5 +1,6 @@
 from __future__ import annotations  # compatibility with older python versions than 3.9
 import asyncio
+import time
 from mavsdk import System
 from mavsdk.action import ActionError
 from mavsdk.offboard import OffboardError, VelocityNedYaw
@@ -89,6 +90,7 @@ class TelemetryUpdater:
         )
         asyncio.ensure_future(self.get_battery_level(), loop=event_loop)
         asyncio.ensure_future(self.get_flight_mode(swarm_telem), loop=event_loop)
+        time.sleep(10)
 
     async def get_position(self, swarm_telem, geodetic_ref):
         # set the rate of telemetry updates to 10Hz
