@@ -17,8 +17,9 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
         ref_alt: altitude of geodetic origin reference point
         drone_size: size of drones in visualization
         ticks_num: number of ticks for each cartesian axis
-        dt= time step in seconds
-        sitl_or_rea= if its value is 'real', it means ulg is for a real experiment and if the value is 'sitl' it means ulg is for a sitl simulation (the default value is 'real'), 
+        dt= time step of animation in seconds
+        sitl_or_rea: if its value is 'real', it means ulg is for a real experiment and if the value is 'sitl' it means ulg is for a sitl simulation (the default value is 'real'), 
+        frame_duration: duratin of each frame of animation (second)
 
         Note: if a user does not provide one arguments of ref_lat, ref_long and ref_alt, the function considers 
             a point with the least latitude, longitude and altitude as the reference point
@@ -34,6 +35,7 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
     sitl_or_real='real'
     Drone_size=10
     Ticks_num=10
+    frame_duration=None
     for key, value in Input.items():
         if key=="ref_lat":
             REF_lat=value
@@ -53,6 +55,8 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
             sitl_or_real=value
         elif key=='output_CSV_file_dir':
             output_CSV_file_dir=value
+        elif key=='frame_duration':
+            frame_duration=value
         
     if folder_of_ulg==None:
         print('Error: A directory to folder of input ulg files should be provided')
@@ -163,12 +167,10 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
     else:
         print("Entered geodetic origin is at: latitude=",REF_lat, "longitude=", REF_long, "altitude=", REF_lat)
     
-    # Converting geodetics to Cartesian & Preparing output CSV file
-    Output_CSV_file=open(output_CSV_file_dir, 'w')
-    writer = csv.writer(Output_CSV_file)
-    header=['x(m)', 'y(m)', 'z(m)', 'time(s)', 'drone id', 'offboard mode status','type of experiment']
-    writer.writerow(header)
+    # Converting geodetics to Cartesian -------
     offboard_mode_status=[] # shows the offboard status of a drone
+    offboard_finish=[-1*math.inf for j in range(i)]
+    offboard_start=[math.inf for j in range(i)]
     for j in range(i):  # j is the number of a drone
         x.append([])  #new line for x coordinates
         y.append([])  #new line for y coordinates
@@ -193,16 +195,29 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
             for m in range (len(gps_timestamp[j])):
                 if (gps_timestamp[j][m] >= offboard_timestamp[j][l] and gps_timestamp[j][m] <= offboard_timestamp[j][l+1]): # drone j were on offboard mode at gps_timestamp [j][m]
                     offboard_mode_status[j][m]=1
+                    if offboard_start[j]>=Time[j][m]:
+                        offboard_start[j]=Time[j][m] # offboard start for drone j based on synchronized time
+                    if offboard_finish[j]<=Time[j][m]:
+                        offboard_finish[j]=Time[j][m] # offboard finish for drone j based on synchronized time
 
-                        
-            
-            row=[x[j][k], y[j][k], z[j][k], Time[j][k], file_names[j], offboard_mode_status[j][k], sitl_or_real] # x, y , z, time (s), id, status of offboard mode, type of experiment
-            writer.writerow(row)
     
         fx.append(interpolate.interp1d(Time[j], x[j]))
         fy.append(interpolate.interp1d(Time[j], y[j]))
         fz.append(interpolate.interp1d(Time[j], z[j]))
-    
+
+    latest_offboard_start=max(offboard_start)
+    earliest_offboard_finish=min(offboard_finish)
+
+    # Creating output CSV file --------
+    Output_CSV_file=open(output_CSV_file_dir, 'w')
+    writer = csv.writer(Output_CSV_file)
+    header=['x(m)', 'y(m)', 'z(m)', 'time(s)', 'drone id', 'offboard mode status','type of experiment']
+    writer.writerow(header)
+    for j in range(i):
+        for k in range(len(Time[j])):
+            if (Time[j][k]>=latest_offboard_start and Time[j][k]<=earliest_offboard_finish): # drone j was on range of offboard mode at Time[j][k]   
+                row=[x[j][k], y[j][k], z[j][k], Time[j][k]-latest_offboard_start, file_names[j], offboard_mode_status[j][k], sitl_or_real] # x, y , z, time (s), id, status of offboard mode, type of experiment
+                writer.writerow(row)
     Output_CSV_file.close()
     
     # Creating interpolated positions
@@ -271,9 +286,9 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
                 name="trace of "+file_names[j]
         )
     )
-    if dt==None:
-        dt=(interp_time[1]-interp_time[0]) # in seconds
-    fig.layout.updatemenus[0].buttons[0].args[1]['frame']['duration'] = dt*1000 # in milliseconds
+    if frame_duration==None:
+        frame_duration=(interp_time[1]-interp_time[0]) # in seconds
+    fig.layout.updatemenus[0].buttons[0].args[1]['frame']['duration'] = frame_duration*1000 # in milliseconds
     fig.layout.updatemenus[0].buttons[0].args[1]['transition']['duration'] = 1
     fig.update_layout(
         showlegend=True,

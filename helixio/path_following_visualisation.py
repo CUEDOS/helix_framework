@@ -17,8 +17,9 @@ def visualize_path_following (**Input):
         simulation_time: simulation duration in seconds
         drone_size: size of drones in visualization
         ticks_num: number of ticks for each cartesian axis
-        dt= time step in second
-        drone_num= number of drones in Python simulation
+        dt: time step in second
+        drone_num: number of drones in Python simulation
+        frame_duration: duratin of each frame of animation (second)
     
         Note: if a user does not provide one arguments of input experiment json file or output csv file, the code shows an error and stops
     Returns:
@@ -29,6 +30,7 @@ def visualize_path_following (**Input):
     simulation_time=200
     dt=0.1
     drone_num = 2
+    frame_duration=None
     output_CSV_file_dir=None
     experiment_file_path=None
     for key, value in Input.items():
@@ -46,6 +48,8 @@ def visualize_path_following (**Input):
             experiment_file_path=value
         elif key=='output_CSV_file_dir':
             output_CSV_file_dir=value
+        elif key=='frame_duration':
+            frame_duration=value
             
     if experiment_file_path==None:
         print('Error: A directory to input experiment file should be provided')
@@ -177,7 +181,10 @@ def visualize_path_following (**Input):
             name="trace of "+drone_ids[j]
     )
     )
-    fig.layout.updatemenus[0].buttons[0].args[1]['frame']['duration'] = dt*1000 # in milliseconds
+    if frame_duration==None:
+        frame_duration=dt # in seconds
+    fig.layout.updatemenus[0].buttons[0].args[1]['frame']['duration'] = frame_duration*1000 # in milliseconds
+    fig.layout.updatemenus[0].buttons[0].args[1]['frame']['duration'] = frame_duration*1000 # in milliseconds
     fig.layout.updatemenus[0].buttons[0].args[1]['transition']['duration'] = 1 # in milliseconds
     fig.update_layout(
         showlegend=True,
@@ -190,4 +197,4 @@ def visualize_path_following (**Input):
 
 
 visualize_path_following(drone_num = 1, dt=0.1, output_CSV_file_dir='/home/m74744sa/Desktop/All_csvs/Python_sim.csv', experiment_file_path='/home/m74744sa/Documents/Helixio/helixio/helixio/experiment_3.json')
-#visualize_path_following(drone_num = number of drones, dt= time step in sec, output_CSV_file_dir='/path_to_output_CSV_file/output_CSV_file_name.csv', experiment_file_path='/path_to_experiment_json_file/json_file_name.json')
+#visualize_path_following(drone_num = number of drones, dt= time step in sec, frame_duration= duration of each frame of animation in seconds, output_CSV_file_dir='/path_to_output_CSV_file/output_CSV_file_name.csv', experiment_file_path='/path_to_experiment_json_file/json_file_name.json')
