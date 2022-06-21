@@ -18,7 +18,7 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
         drone_size: size of drones in visualization
         ticks_num: number of ticks for each cartesian axis
         dt= time step of animation in seconds
-        sitl_or_rea: if its value is 'real', it means ulg is for a real experiment and if the value is 'sitl' it means ulg is for a sitl simulation (the default value is 'real'), 
+        c: if its value is 'real', it means ulg is for a real experiment and if the value is 'sitl' it means ulg is for a sitl simulation (the default value is 'real'), 
         frame_duration: duratin of each frame of animation (second)
 
         Note: if a user does not provide one arguments of ref_lat, ref_long and ref_alt, the function considers 
@@ -26,9 +26,9 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
     Returns:
         An animated figure of all drones with interpolated positions
     """
-    REF_lat=None
-    REF_long=None
-    REF_alt=None
+    ref_lat=None
+    ref_long=None
+    ref_alt=None
     dt=None
     folder_of_ulg=None
     output_CSV_file_dir=None
@@ -38,11 +38,11 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
     frame_duration=None
     for key, value in Input.items():
         if key=="ref_lat":
-            REF_lat=value
+            ref_lat=value
         elif key=="ref_long":
-            REF_long=value
+            ref_long=value
         elif key=="ref_alt":
-            REF_alt=value
+            ref_alt=value
         elif key=="folder_of_ulg":
             folder_of_ulg=value
         elif key=="drone_size":
@@ -159,13 +159,13 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
         i+=1 #number of files (drones)
         # End of opening ulg files  ---------------------
 
-    if (REF_lat==None or REF_long==None or REF_alt==None):
-        REF_lat=min_lat
-        REF_long=min_long
-        REF_alt=min_alt
-        print("Auto generated geodetic origin is at: latitude=",REF_lat, "longitude=", REF_long, "altitude=", REF_lat)
+    if (ref_lat==None or ref_long==None or ref_alt==None):
+        ref_lat=min_lat
+        ref_long=min_long
+        ref_alt=min_alt
+        print("Auto generated geodetic origin is at: latitude=",ref_lat, "longitude=", ref_long, "altitude=", ref_lat)
     else:
-        print("Entered geodetic origin is at: latitude=",REF_lat, "longitude=", REF_long, "altitude=", REF_lat)
+        print("Entered geodetic origin is at: latitude=",ref_lat, "longitude=", ref_long, "altitude=", ref_lat)
     
     # Converting geodetics to Cartesian -------
     offboard_mode_status=[] # shows the offboard status of a drone
@@ -176,7 +176,7 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
         y.append([])  #new line for y coordinates
         z.append([])  #new line for z coordinates 
         for  k in range(len(Time[j])): # k is the number of a sample of drone j
-            n,e,d =geodetic2ned(latitude[j][k], longitude[j][k], altitude[j][k], REF_lat, REF_long, REF_alt, ell=None, deg=True)
+            n,e,d =geodetic2ned(latitude[j][k], longitude[j][k], altitude[j][k], ref_lat, ref_long, ref_alt, ell=None, deg=True)
             x[j].append(n)
             x_max=max(x_max, n)
             x_min=min(x_min, n)
@@ -237,12 +237,13 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
                     Z_total.append(z[latest_drone][k])
                     Time_total.append(Time[latest_drone][k]-max_start_time)
                     Color_total.append(file_names[latest_drone])
-        for t in interp_time:
-            X_total.append(float(fx[j](t)))
-            Y_total.append(float(fy[j](t)))
-            Z_total.append(float(fz[j](t)))
-            Time_total.append(t-max_start_time)
-            Color_total.append(file_names[j])
+        else:
+            for t in interp_time:
+                X_total.append(float(fx[j](t)))
+                Y_total.append(float(fy[j](t)))
+                Z_total.append(float(fz[j](t)))
+                Time_total.append(t-max_start_time)
+                Color_total.append(file_names[j])
 
     x_right_margin=x_max+(x_max-x_min)*0.05
     x_left_margin=x_min-(x_max-x_min)*0.05
@@ -277,15 +278,17 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
     
     #Adding lines to the figure
     for j in range(i):
+        
         fig.add_trace(            #should be an object of go
             go.Scatter3d(
-                x=X_total[j*interp_length: ((j+1)*interp_length)-1], 
-                y=Y_total[j*interp_length: ((j+1)*interp_length)-1],
-                z=Z_total[j*interp_length: ((j+1)*interp_length)-1], 
+                x=X_total[j*interp_length: ((j+1)*interp_length)], 
+                y=Y_total[j*interp_length: ((j+1)*interp_length)],
+                z=Z_total[j*interp_length: ((j+1)*interp_length)], 
                 mode='lines',
                 name="trace of "+file_names[j]
         )
     )
+    
     if frame_duration==None:
         frame_duration=(interp_time[1]-interp_time[0]) # in seconds
     fig.layout.updatemenus[0].buttons[0].args[1]['frame']['duration'] = frame_duration*1000 # in milliseconds
@@ -299,5 +302,5 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
         )
     fig.show()
      
-visualize_ulg(output_CSV_file_dir='/home/m74744sa/Desktop/All_csvs/SITL_csv.csv',folder_of_ulg="/media/m74744sa/My_Backup/Manchester_Research/My_projects/Drone_figs/SITL_fig",drone_size=10, ticks_num=10)
+visualize_ulg(output_CSV_file_dir='/home/m74744sa/Desktop/All_csvs/SITL.csv',folder_of_ulg="/home/m74744sa/Desktop/sitl",ref_lat= 52.81651946850575, ref_long= -4.124781265539541, ref_alt= 18,drone_size=10, ticks_num=10, sitl_or_real='sitl')
 #visualize_ulg(output_CSV_file_dir='/path_to_csv_file/csv_file_name.csv', folder_of_ulg='/path_to_folder_containing_ulg_files', drone_size= size of drone, ticks_num=number of partitions in the final fig)

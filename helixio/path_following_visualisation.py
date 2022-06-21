@@ -27,7 +27,7 @@ def visualize_path_following (**Input):
     """
     drone_size=10
     Ticks_num=10
-    simulation_time=200
+    simulation_time=50
     dt=0.1
     drone_num = 2
     frame_duration=None
@@ -196,5 +196,5 @@ def visualize_path_following (**Input):
     fig.show()
 
 
-visualize_path_following(drone_num = 1, dt=0.1, output_CSV_file_dir='/home/m74744sa/Desktop/All_csvs/Python_sim.csv', experiment_file_path='/home/m74744sa/Documents/Helixio/helixio/helixio/experiment_3.json')
+visualize_path_following(drone_num = 2, dt=0.1, output_CSV_file_dir='/home/m74744sa/Desktop/All_csvs/Python_sim.csv', experiment_file_path='/home/m74744sa/Documents/Helixio/helixio/helixio/experiment_3.json')
 #visualize_path_following(drone_num = number of drones, dt= time step in sec, frame_duration= duration of each frame of animation in seconds, output_CSV_file_dir='/path_to_output_CSV_file/output_CSV_file_name.csv', experiment_file_path='/path_to_experiment_json_file/json_file_name.json')
