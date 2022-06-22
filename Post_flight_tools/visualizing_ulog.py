@@ -303,4 +303,4 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
     fig.show()
      
 visualize_ulg(output_CSV_file_dir='/home/m74744sa/Desktop/All_csvs/SITL.csv',folder_of_ulg="/home/m74744sa/Desktop/sitl",ref_lat= 52.81651946850575, ref_long= -4.124781265539541, ref_alt= 18,drone_size=10, ticks_num=10, sitl_or_real='sitl')
-#visualize_ulg(output_CSV_file_dir='/path_to_csv_file/csv_file_name.csv', folder_of_ulg='/path_to_folder_containing_ulg_files', drone_size= size of drone, ticks_num=number of partitions in the final fig)
+#visualize_ulg(output_CSV_file_dir='/path_to_csv_file/csv_file_name.csv', folder_of_ulg='/path_to_folder_containing_ulg_files',ref_lat=latitude of the reference point, ref_long= longitude of the reference point, ref_alt= altitude of the reference point,drone_size= size of drone, ticks_num=number of partitions in the final fig)

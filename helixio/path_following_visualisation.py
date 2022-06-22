@@ -57,6 +57,11 @@ def visualize_path_following (**Input):
     if output_CSV_file_dir== None:
         print('Error: A directory to output CSV file should be provided')
         return 0
+    
+    def index_checker(input_index, length) -> int:
+        if input_index >= length:
+            return int(input_index % length)
+        return input_index
     #Simulation ------------------------------------------------------------
     # Simulation parameters
     t=0
@@ -76,6 +81,7 @@ def visualize_path_following (**Input):
     swarm_telem = {}
     drones={}
     drone_ids=[]
+    fig_colors=['blue','red', 'lightgreen', 'orange','aqua', 'silver', 'magenta','dodgerblue','green','black']
     # Creating swarm_telem dictionary
     for i in range(drone_num):
         id = str('S'+ str(i+1).zfill(3))
@@ -96,6 +102,7 @@ def visualize_path_following (**Input):
         drones[id][0].get_path_and_permission(drones[id][0].get_swarm_priorities(swarm_telem))
 
     Time_total=[]
+    labels_total=[]
     Color_total=[]  
     simulation_steps=0
     
@@ -129,13 +136,16 @@ def visualize_path_following (**Input):
     writer = csv.writer(Output_CSV_file)
     header=['x(m)', 'y(m)', 'z(m)', 'time(s)', 'drone id', 'offboard mode status','type of experiment']
     writer.writerow(header)
-    for id in swarm_telem:
+
+    for id in drone_ids:  # to count ids in order
         for i in range(simulation_steps):
             X_total.append(drones[id][1][i])
             Y_total.append(drones[id][2][i])
             Z_total.append(drones[id][3][i])
             Time_total.append(drones[id][4][i])
-            Color_total.append(id)
+            labels_total.append(id)
+            Color_total.append(fig_colors[index_checker(drone_ids.index(id),len(fig_colors))])
+            
             row=[drones[id][1][i], drones[id][2][i], drones[id][3][i], drones[id][4][i], id, 1, 'Python_simulation'] # x, y , z, time (s), id, offboard mode status, type of experiment
             writer.writerow(row)
     Output_CSV_file.close()
@@ -168,17 +178,20 @@ def visualize_path_following (**Input):
 
     SIZE=int(drone_size)
     size=[SIZE for k in range(len(X_total))]
-    fig= px.scatter_3d(x=X_total, range_x=[x_right_margin,x_left_margin], y=Y_total, range_y=[y_up_margin,y_down_margin], z=Z_total, range_z=[z_down_margin,z_up_margin], animation_frame=Time_total, opacity=1, size=size, color=Color_total, size_max=max(size))
+    fig= px.scatter_3d(x=X_total, range_x=[x_right_margin,x_left_margin], y=Y_total, range_y=[y_up_margin,y_down_margin], z=Z_total, range_z=[z_down_margin,z_up_margin], animation_frame=Time_total, opacity=1, size=size, color=labels_total, size_max=max(size),color_discrete_sequence=fig_colors)
 
     #Adding lines to the figure
     for j in range(len(drone_ids)):
         fig.add_trace(            #should be an object of go
             go.Scatter3d(
-            x=X_total[j*simulation_steps: ((j+1)*simulation_steps)-1], 
-            y=Y_total[j*simulation_steps: ((j+1)*simulation_steps)-1],
-            z=Z_total[j*simulation_steps: ((j+1)*simulation_steps)-1], 
+            x=X_total[j*simulation_steps: ((j+1)*simulation_steps)], 
+            y=Y_total[j*simulation_steps: ((j+1)*simulation_steps)],
+            z=Z_total[j*simulation_steps: ((j+1)*simulation_steps)], 
             mode='lines',
-            name="trace of "+drone_ids[j]
+            name="trace of "+drone_ids[j],
+            marker=dict(
+            color=fig_colors[index_checker(j,len(fig_colors))])
+
     )
     )
     if frame_duration==None:
@@ -196,5 +209,5 @@ def visualize_path_following (**Input):
     fig.show()
 
 
-visualize_path_following(drone_num = 2, dt=0.1, output_CSV_file_dir='/home/m74744sa/Desktop/All_csvs/Python_sim.csv', experiment_file_path='/home/m74744sa/Documents/Helixio/helixio/helixio/experiment_3.json')
+visualize_path_following(drone_num = 10, dt=0.1, output_CSV_file_dir='/home/m74744sa/Desktop/All_csvs/Python_sim.csv', experiment_file_path='/home/m74744sa/Documents/Helixio/helixio/helixio/experiment_3.json')
 #visualize_path_following(drone_num = number of drones, dt= time step in sec, frame_duration= duration of each frame of animation in seconds, output_CSV_file_dir='/path_to_output_CSV_file/output_CSV_file_name.csv', experiment_file_path='/path_to_experiment_json_file/json_file_name.json')

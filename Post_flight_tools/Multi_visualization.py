@@ -145,9 +145,9 @@ def multi_visualizer (**Input):
     for j in range(len(drones)):
         fig.add_trace(            #should be an object of go
             go.Scatter3d(
-                x=X_total[j*interp_length: ((j+1)*interp_length)-1], 
-                y=Y_total[j*interp_length: ((j+1)*interp_length)-1],
-                z=Z_total[j*interp_length: ((j+1)*interp_length)-1], 
+                x=X_total[j*interp_length: ((j+1)*interp_length)], 
+                y=Y_total[j*interp_length: ((j+1)*interp_length)],
+                z=Z_total[j*interp_length: ((j+1)*interp_length)], 
                 mode='lines',
                 name="trace of "+ drones[j]
         )
