@@ -37,6 +37,10 @@ def multi_visualizer (**Input):
     if folder_of_csvs==None:
         print('Error: A directory to folder of containing csv files should be provided')
         return 0
+    def index_checker(input_index, length) -> int:
+        if input_index >= length:
+            return int(input_index % length)
+        return input_index
     x_max=-1*math.inf  #for figure range
     x_min=math.inf     #for figure range  
     X_total=[]         #total interpolated x
@@ -50,10 +54,8 @@ def multi_visualizer (**Input):
     Z_total=[]         #total interpolated z
     
     Time_total=[]      #Time span of interpolation used for figure
-    interp_time=[]     #Time span of interpolation
-
+    labels_total=[]
     interp_length=0
-    Color_total=[]
     
     all_drones={}
     # opening csv files ----------------------
@@ -96,6 +98,7 @@ def multi_visualizer (**Input):
         all_drones[drone_id].append(interpolate.interp1d(all_drones[drone_id][3],all_drones[drone_id][1])) # interpolation of time and y position, all_drones[drone_id][6]
         all_drones[drone_id].append(interpolate.interp1d(all_drones[drone_id][3],all_drones[drone_id][2])) # interpolation of time and z position, all_drones[drone_id][7]
     
+    fig_colors=['blue','red', 'lightgreen', 'orange','aqua', 'silver', 'magenta','dodgerblue','green','black']
     drones=[] # to know the order of the drones in interpolation
     for drone_id in all_drones:
         t=max_start_time
@@ -106,7 +109,7 @@ def multi_visualizer (**Input):
             Y_total.append(float(all_drones[drone_id][6](t))) # using y interpolation for drone
             Z_total.append(float(all_drones[drone_id][7](t))) # using z interpolation for drone
             Time_total.append(t)
-            Color_total.append(drone_id+' ('+all_drones[drone_id][4][0]+')')
+            labels_total.append(drone_id+' ('+all_drones[drone_id][4][0]+')')
             t+=dt
             interp_length+=1
 
@@ -139,7 +142,7 @@ def multi_visualizer (**Input):
     
     SIZE=int(drone_size)
     size=[SIZE for k in range(len(X_total))]
-    fig= px.scatter_3d(x=X_total, range_x=[x_right_margin,x_left_margin], y=Y_total, range_y=[y_up_margin,y_down_margin], z=Z_total, range_z=[z_down_margin,z_up_margin], animation_frame=Time_total, opacity=1, size=size, color=Color_total, size_max=max(size))
+    fig= px.scatter_3d(x=X_total, range_x=[x_right_margin,x_left_margin], y=Y_total, range_y=[y_up_margin,y_down_margin], z=Z_total, range_z=[z_down_margin,z_up_margin], animation_frame=Time_total, opacity=1, size=size, color=labels_total, size_max=max(size),color_discrete_sequence=fig_colors)
     
     #Adding lines to the figure
     for j in range(len(drones)):
@@ -149,7 +152,8 @@ def multi_visualizer (**Input):
                 y=Y_total[j*interp_length: ((j+1)*interp_length)],
                 z=Z_total[j*interp_length: ((j+1)*interp_length)], 
                 mode='lines',
-                name="trace of "+ drones[j]
+                name="trace of "+ drones[j],
+                marker=dict(color=fig_colors[index_checker(j,len(fig_colors))])
         )
     )
     if frame_duration==None:
@@ -161,7 +165,8 @@ def multi_visualizer (**Input):
         legend=dict(itemsizing='constant',font=dict(family="Times New Roman",size=20), bgcolor="LightSteelBlue", bordercolor="Black", borderwidth=2),
         scene_aspectmode='manual',
         scene_aspectratio=dict(x=1, y=y_range/x_range, z=z_range/x_range), 
-        scene = dict(xaxis = dict(nticks=x_parts,range=[x_right_margin,x_left_margin]), yaxis = dict(nticks=math.ceil((y_range/x_range)*x_parts), range=[y_up_margin,y_down_margin]),zaxis = dict(nticks=math.ceil((z_range/x_range)*x_parts),range=[z_down_margin,z_up_margin]))
+        scene = dict(xaxis = dict(nticks=x_parts,range=[x_right_margin,x_left_margin]), yaxis = dict(nticks=math.ceil((y_range/x_range)*x_parts), range=[y_up_margin,y_down_margin]),zaxis = dict(nticks=math.ceil((z_range/x_range)*x_parts),range=[z_down_margin,z_up_margin])),
+        legend_title_text='Drones & traces'
         )
     fig.show()
     

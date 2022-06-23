@@ -81,7 +81,6 @@ def visualize_path_following (**Input):
     swarm_telem = {}
     drones={}
     drone_ids=[]
-    fig_colors=['blue','red', 'lightgreen', 'orange','aqua', 'silver', 'magenta','dodgerblue','green','black']
     # Creating swarm_telem dictionary
     for i in range(drone_num):
         id = str('S'+ str(i+1).zfill(3))
@@ -103,7 +102,6 @@ def visualize_path_following (**Input):
 
     Time_total=[]
     labels_total=[]
-    Color_total=[]  
     simulation_steps=0
     
     while (t<=simulation_time):
@@ -132,6 +130,7 @@ def visualize_path_following (**Input):
             drones[id][4].append(t) 
 
     # Preparing Final figure & output CSV file ---------------------------------------------------------
+    fig_colors=['blue','red', 'lightgreen', 'orange','aqua', 'silver', 'magenta','dodgerblue','green','black']
     Output_CSV_file=open(output_CSV_file_dir, 'w')
     writer = csv.writer(Output_CSV_file)
     header=['x(m)', 'y(m)', 'z(m)', 'time(s)', 'drone id', 'offboard mode status','type of experiment']
@@ -144,7 +143,6 @@ def visualize_path_following (**Input):
             Z_total.append(drones[id][3][i])
             Time_total.append(drones[id][4][i])
             labels_total.append(id)
-            Color_total.append(fig_colors[index_checker(drone_ids.index(id),len(fig_colors))])
             
             row=[drones[id][1][i], drones[id][2][i], drones[id][3][i], drones[id][4][i], id, 1, 'Python_simulation'] # x, y , z, time (s), id, offboard mode status, type of experiment
             writer.writerow(row)
@@ -189,8 +187,7 @@ def visualize_path_following (**Input):
             z=Z_total[j*simulation_steps: ((j+1)*simulation_steps)], 
             mode='lines',
             name="trace of "+drone_ids[j],
-            marker=dict(
-            color=fig_colors[index_checker(j,len(fig_colors))])
+            marker=dict(color=fig_colors[index_checker(j,len(fig_colors))])
 
     )
     )
@@ -204,7 +201,8 @@ def visualize_path_following (**Input):
         legend=dict(itemsizing='constant',font=dict(family="Times New Roman",size=20), bgcolor="LightSteelBlue", bordercolor="Black", borderwidth=2),
         scene_aspectmode='manual',
         scene_aspectratio=dict(x=1, y=y_range/x_range, z=z_range/x_range), 
-        scene = dict(xaxis = dict(nticks=x_parts,range=[x_right_margin,x_left_margin]), yaxis = dict(nticks=math.ceil((y_range/x_range)*x_parts), range=[y_up_margin,y_down_margin]),zaxis = dict(nticks=math.ceil((z_range/x_range)*x_parts),range=[z_down_margin,z_up_margin]))
+        scene = dict(xaxis = dict(nticks=x_parts,range=[x_right_margin,x_left_margin]), yaxis = dict(nticks=math.ceil((y_range/x_range)*x_parts), range=[y_up_margin,y_down_margin]),zaxis = dict(nticks=math.ceil((z_range/x_range)*x_parts),range=[z_down_margin,z_up_margin])),
+        legend_title_text='Drones & traces'
         )
     fig.show()
 

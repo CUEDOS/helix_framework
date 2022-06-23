@@ -94,6 +94,7 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
     longitude=[]
     altitude=[]
     Color_total=[]
+    labels_total=[]
     Time=[] # sampling time of each drone (synchronized)
     gps_timestamp=[] # sampling time of each drone since turning on (asynchronous)
     offboard_timestamp=[]
@@ -167,6 +168,10 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
     else:
         print("Entered geodetic origin is at: latitude=",ref_lat, "longitude=", ref_long, "altitude=", ref_lat)
     
+    def index_checker(input_index, length) -> int:
+        if input_index >= length:
+            return int(input_index % length)
+        return input_index
     # Converting geodetics to Cartesian -------
     offboard_mode_status=[] # shows the offboard status of a drone
     offboard_finish=[-1*math.inf for j in range(i)]
@@ -228,6 +233,7 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
             interp_time.append(Time[latest_drone][k])
             interp_length+=1
     # Adding positions of the latest drone and calculating & adding interpolated positions of the other drones to the total lists
+    fig_colors=['blue','red', 'lightgreen', 'orange','aqua', 'silver', 'magenta','dodgerblue','green','black']
     for j in range(i): # j is the number of a drone
         if j==latest_drone:
             for k in range(len(x[latest_drone])): # k is the number of samples of the latest drone
@@ -236,14 +242,14 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
                     Y_total.append(y[latest_drone][k])
                     Z_total.append(z[latest_drone][k])
                     Time_total.append(Time[latest_drone][k]-max_start_time)
-                    Color_total.append(file_names[latest_drone])
+                    labels_total.append(file_names[latest_drone])
         else:
             for t in interp_time:
                 X_total.append(float(fx[j](t)))
                 Y_total.append(float(fy[j](t)))
                 Z_total.append(float(fz[j](t)))
                 Time_total.append(t-max_start_time)
-                Color_total.append(file_names[j])
+                labels_total.append(file_names[j])
 
     x_right_margin=x_max+(x_max-x_min)*0.05
     x_left_margin=x_min-(x_max-x_min)*0.05
@@ -274,7 +280,7 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
     
     SIZE=int(Drone_size)
     size=[SIZE for k in range(len(X_total))]
-    fig= px.scatter_3d(x=X_total, range_x=[x_right_margin,x_left_margin], y=Y_total, range_y=[y_up_margin,y_down_margin], z=Z_total, range_z=[z_down_margin,z_up_margin], animation_frame=Time_total, opacity=1, size=size, color=Color_total, size_max=max(size))
+    fig= px.scatter_3d(x=X_total, range_x=[x_right_margin,x_left_margin], y=Y_total, range_y=[y_up_margin,y_down_margin], z=Z_total, range_z=[z_down_margin,z_up_margin], animation_frame=Time_total, opacity=1, size=size, color=labels_total, size_max=max(size),color_discrete_sequence=fig_colors)
     
     #Adding lines to the figure
     for j in range(i):
@@ -285,7 +291,8 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
                 y=Y_total[j*interp_length: ((j+1)*interp_length)],
                 z=Z_total[j*interp_length: ((j+1)*interp_length)], 
                 mode='lines',
-                name="trace of "+file_names[j]
+                name="trace of "+file_names[j],
+                marker=dict(color=fig_colors[index_checker(j,len(fig_colors))])
         )
     )
     
@@ -298,7 +305,8 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
         legend=dict(itemsizing='constant',font=dict(family="Times New Roman",size=20), bgcolor="LightSteelBlue", bordercolor="Black", borderwidth=2),
         scene_aspectmode='manual',
         scene_aspectratio=dict(x=1, y=y_range/x_range, z=z_range/x_range), 
-        scene = dict(xaxis = dict(nticks=x_parts,range=[x_right_margin,x_left_margin]), yaxis = dict(nticks=math.ceil((y_range/x_range)*x_parts), range=[y_up_margin,y_down_margin]),zaxis = dict(nticks=math.ceil((z_range/x_range)*x_parts),range=[z_down_margin,z_up_margin]))
+        scene = dict(xaxis = dict(nticks=x_parts,range=[x_right_margin,x_left_margin]), yaxis = dict(nticks=math.ceil((y_range/x_range)*x_parts), range=[y_up_margin,y_down_margin]),zaxis = dict(nticks=math.ceil((z_range/x_range)*x_parts),range=[z_down_margin,z_up_margin])),
+        legend_title_text='Drones & traces'
         )
     fig.show()
      
