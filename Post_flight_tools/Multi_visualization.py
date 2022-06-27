@@ -18,13 +18,13 @@ def multi_visualizer (**Input):
         An animated figure of all drones with interpolated positions
     """
     dt=None
-    folder_of_csvs=None
+    folder_of_input_csvs=None
     drone_size=10
     Ticks_num=10
     frame_duration=None
     for key, value in Input.items():
-        if key=="folder_of_csvs":
-            folder_of_csvs=value
+        if key=="folder_of_input_csvs":
+            folder_of_input_csvs=value
         elif key=="drone_size":
             drone_size=value
         elif key=="ticks_num":
@@ -34,7 +34,7 @@ def multi_visualizer (**Input):
         elif key=='frame_duration':
             frame_duration=value
         
-    if folder_of_csvs==None:
+    if folder_of_input_csvs==None:
         print('Error: A directory to folder of containing csv files should be provided')
         return 0
     def index_checker(input_index, length) -> int:
@@ -59,10 +59,10 @@ def multi_visualizer (**Input):
     
     all_drones={}
     # opening csv files ----------------------
-    os.chdir(folder_of_csvs)
+    os.chdir(folder_of_input_csvs)
     for csv_file in glob.glob("*.csv"):
         # Getting data from gps csv file from a csv file ------
-        opened_csv_file=open(folder_of_csvs+"/"+csv_file, newline="")
+        opened_csv_file=open(folder_of_input_csvs+"/"+csv_file, newline="")
         Object_of_dictionaries=csv.DictReader(opened_csv_file, delimiter=",")
         for row_dict in Object_of_dictionaries: # we should create the lists when the file is still open
             drone_id=row_dict["drone id"]
@@ -171,5 +171,5 @@ def multi_visualizer (**Input):
     fig.show()
     
    
-multi_visualizer(folder_of_csvs='/home/m74744sa/Desktop/All_csvs',drone_size=10, ticks_num=10,dt=0.1)
+multi_visualizer(folder_of_input_csvs='/home/m74744sa/Desktop/All_csvs',drone_size=10, ticks_num=10,dt=0.1)
 
