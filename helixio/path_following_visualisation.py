@@ -130,7 +130,7 @@ def visualize_path_following (**Input):
             drones[id][4].append(t) 
 
     # Preparing Final figure & output CSV file ---------------------------------------------------------
-    fig_colors=['blue','red', 'lightgreen', 'orange','aqua', 'silver', 'magenta','dodgerblue','green','black']
+    fig_colors=['blue','red', 'lightgreen', 'orange','aqua', 'silver', 'magenta', 'darkkhaki','dodgerblue','green','black','brown']
     Output_CSV_file=open(output_CSV_file_dir, 'w')
     writer = csv.writer(Output_CSV_file)
     header=['x(m)', 'y(m)', 'z(m)', 'time(s)', 'drone id', 'offboard mode status','type of experiment']
