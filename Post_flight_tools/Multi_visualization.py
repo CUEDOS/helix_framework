@@ -94,11 +94,11 @@ def multi_visualizer (**Input):
     for drone_id in all_drones:
         min_finish_time=min(min_finish_time, max(all_drones[drone_id][3]))
         max_start_time=max(max_start_time, min(all_drones[drone_id][3]))
-        all_drones[drone_id].append(interpolate.interp1d(all_drones[drone_id][3],all_drones[drone_id][0])) # interpolation of time and x position, all_drones[drone_id][5]
-        all_drones[drone_id].append(interpolate.interp1d(all_drones[drone_id][3],all_drones[drone_id][1])) # interpolation of time and y position, all_drones[drone_id][6]
-        all_drones[drone_id].append(interpolate.interp1d(all_drones[drone_id][3],all_drones[drone_id][2])) # interpolation of time and z position, all_drones[drone_id][7]
+        all_drones[drone_id].append(interpolate.interp1d(all_drones[drone_id][3],all_drones[drone_id][0])) # interpolation of time and x position at all_drones[drone_id][5]
+        all_drones[drone_id].append(interpolate.interp1d(all_drones[drone_id][3],all_drones[drone_id][1])) # interpolation of time and y position at all_drones[drone_id][6]
+        all_drones[drone_id].append(interpolate.interp1d(all_drones[drone_id][3],all_drones[drone_id][2])) # interpolation of time and z position at all_drones[drone_id][7]
     
-    fig_colors=['blue','red', 'lightgreen', 'orange','aqua', 'silver', 'magenta','dodgerblue','green','black']
+    fig_colors=['blue','red', 'lightgreen', 'orange','aqua', 'silver', 'magenta', 'darkkhaki','dodgerblue','green','black','brown']
     drones=[] # to know the order of the drones in interpolation
     for drone_id in all_drones:
         t=max_start_time
@@ -171,5 +171,5 @@ def multi_visualizer (**Input):
     fig.show()
     
    
-multi_visualizer(folder_of_input_csvs='/home/m74744sa/Desktop/All_csvs',drone_size=10, ticks_num=10,dt=0.1)
+multi_visualizer(folder_of_input_csvs='/home/m74744sa/Desktop/All_csvs',drone_size=15, ticks_num=10,dt=0.1, frame_duration=0.0001)
 
