@@ -27,7 +27,7 @@ def visualize_path_following (**Input):
     """
     drone_size=10
     Ticks_num=10
-    simulation_time=50
+    simulation_time=100
     dt=0.1
     drone_num = 2
     frame_duration=None
@@ -115,13 +115,13 @@ def visualize_path_following (**Input):
         for id in swarm_telem:
             swarm_telem[id].position_ned=np.array(swarm_telem[id].position_ned) + drones[id][0].velocity_ned*dt
 
-            drones[id][1].append(swarm_telem[id].position_ned[0])
-            x_min=min(x_min,swarm_telem[id].position_ned[0])
-            x_max=max(x_max,swarm_telem[id].position_ned[0])
+            drones[id][1].append(swarm_telem[id].position_ned[1])  # East is along x
+            x_min=min(x_min,swarm_telem[id].position_ned[1])
+            x_max=max(x_max,swarm_telem[id].position_ned[1])
 
-            drones[id][2].append(swarm_telem[id].position_ned[1])
-            y_min=min(y_min,swarm_telem[id].position_ned[1])
-            y_max=max(y_max,swarm_telem[id].position_ned[1])
+            drones[id][2].append(swarm_telem[id].position_ned[0]) # North is along y
+            y_min=min(y_min,swarm_telem[id].position_ned[0])
+            y_max=max(y_max,swarm_telem[id].position_ned[0])
 
             drones[id][3].append(-1*swarm_telem[id].position_ned[2])
             z_min=min(z_min,-1*swarm_telem[id].position_ned[2])
@@ -207,5 +207,5 @@ def visualize_path_following (**Input):
     fig.show()
 
 
-visualize_path_following(drone_num = 10, dt=0.1, output_CSV_file_dir='/home/m74744sa/Desktop/All_csvs/Python_sim.csv', experiment_file_path='/home/m74744sa/Documents/Helixio/helixio/helixio/experiment_3.json')
+visualize_path_following(drone_num = 10, dt=0.1, output_CSV_file_dir='/home/m74744sa/Desktop/All_csvs/Python_sim.csv', experiment_file_path='/home/m74744sa/Documents/Helixio/helixio/helixio/experiment_4.json')
 #visualize_path_following(drone_num = number of drones, dt= time step in sec, frame_duration= duration of each frame of animation in seconds, output_CSV_file_dir='/path_to_output_CSV_file/output_CSV_file_name.csv', experiment_file_path='/path_to_experiment_json_file/json_file_name.json')
