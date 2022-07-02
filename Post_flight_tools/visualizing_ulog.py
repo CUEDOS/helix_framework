@@ -182,13 +182,13 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
         z.append([])  #new line for z coordinates 
         for  k in range(len(Time[j])): # k is the number of a sample of drone j
             n,e,d =geodetic2ned(latitude[j][k], longitude[j][k], altitude[j][k], ref_lat, ref_long, ref_alt, ell=None, deg=True)
-            x[j].append(n)
-            x_max=max(x_max, n)
-            x_min=min(x_min, n)
+            x[j].append(e)
+            x_max=max(x_max, e)
+            x_min=min(x_min, e)
 
-            y[j].append(e)
-            y_max=max(y_max, e)
-            y_min=min(y_min, e)
+            y[j].append(n)
+            y_max=max(y_max, n)
+            y_min=min(y_min, n)
             
             z[j].append(-1*d)
             z_max=max(z_max, -1*d)
@@ -233,7 +233,7 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
             interp_time.append(Time[latest_drone][k])
             interp_length+=1
     # Adding positions of the latest drone and calculating & adding interpolated positions of the other drones to the total lists
-    fig_colors=['blue','red', 'lightgreen', 'orange','aqua', 'silver', 'magenta','dodgerblue','green','black']
+    fig_colors=['blue','red', 'lightgreen', 'orange','aqua', 'silver', 'magenta', 'darkkhaki','dodgerblue','green','black','brown']
     for j in range(i): # j is the number of a drone
         if j==latest_drone:
             for k in range(len(x[latest_drone])): # k is the number of samples of the latest drone
@@ -310,5 +310,5 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
         )
     fig.show()
      
-visualize_ulg(output_CSV_file_dir='/home/m74744sa/Desktop/All_csvs/SITL.csv',folder_of_ulg="/home/m74744sa/Desktop/sitl",ref_lat= 52.81651946850575, ref_long= -4.124781265539541, ref_alt= 18,drone_size=10, ticks_num=10, sitl_or_real='sitl')
+visualize_ulg(output_CSV_file_dir='/home/m74744sa/Desktop/All_csvs/SITLNR.csv',folder_of_ulg="/home/m74744sa/Desktop/Hough_End_June_30",ref_lat= 52.81651946850575, ref_long= -4.124781265539541, ref_alt= 18,drone_size=15, ticks_num=10, sitl_or_real='sitl')
 #visualize_ulg(output_CSV_file_dir='/path_to_csv_file/csv_file_name.csv', folder_of_ulg='/path_to_folder_containing_ulg_files',ref_lat=latitude of the reference point, ref_long= longitude of the reference point, ref_alt= altitude of the reference point,drone_size= size of drone, ticks_num=number of partitions in the final fig)
