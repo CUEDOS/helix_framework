@@ -36,10 +36,12 @@ class Agent:
         print("setup done")
 
     async def run(self):
-        self.drone: type[System] = System(
-            mavsdk_server_address="localhost", port=self.port
-        )
-        await self.drone.connect()
+        # self.drone: type[System] = System(
+        #     mavsdk_server_address="localhost", port=self.port
+        # )
+        # await self.drone.connect()
+        self.drone: type[System] = System()
+        await self.drone.connect(system_address="serial:///dev/ttyAMA0:921600")
         print("Waiting for drone to connect...")
         async for state in self.drone.core.connection_state():
             if state.is_connected:
@@ -57,6 +59,7 @@ class Agent:
             "arm": self.arm,
             "takeoff": self.takeoff,
             "Experiment": self.run_experiment,
+            "pre_start": self.pre_start,
             "hold": self.hold,
             "return": self.return_to_home,
             "land": self.land,
@@ -74,7 +77,6 @@ class Agent:
             [self.ref_lat, self.ref_lon, self.ref_alt],
             self.download_ulog,
         )
-        await asyncio.sleep(2)
         # temp
         experiment_file_path: str = "experiment_4.json"
         self.experiment = Experiment(
@@ -177,7 +179,8 @@ class Agent:
 
         # wait until altitude is reached by all agents
         while not self.swarm_manager.check_swarm_altitudes(deconflicted_alt_dict):
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.1)
+        await asyncio.sleep(1)
 
         # Go to the desired position at the travel alt
         try:
@@ -191,7 +194,8 @@ class Agent:
         while not self.swarm_manager.check_swarm_positions(
             desired_positions_ned, check_alt=False
         ):
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.1)
+        await asyncio.sleep(1)
 
         # finally go to the desired altitude
         try:
@@ -203,7 +207,8 @@ class Agent:
 
         # Waits until position is reached by all agents
         while not self.swarm_manager.check_swarm_positions(desired_positions_ned):
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.1)
+        await asyncio.sleep(1)
 
     async def start_offboard(self, drone):
         print("-- Setting initial setpoint")
@@ -247,7 +252,6 @@ class Agent:
         self.experiment.initial_nearest_point(self.swarm_manager.telemetry)
 
     async def run_experiment(self):
-        await self.pre_start()
         print("running experiment")
         await self.start_offboard(self.drone)
 

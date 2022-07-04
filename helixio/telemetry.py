@@ -1,5 +1,6 @@
 from __future__ import annotations  # compatibility with older python versions than 3.9
 import asyncio
+import time
 from mavsdk import System
 from mavsdk.action import ActionError
 from mavsdk.offboard import OffboardError, VelocityNedYaw
@@ -34,7 +35,7 @@ class SwarmManager:
                         )
                         ** 2
                     )
-                ) > 0.5:
+                ) > 0.3:
                     return False
         else:
             for agent in self.telemetry.keys():
@@ -51,7 +52,7 @@ class SwarmManager:
                         )
                         ** 2
                     )
-                ) > 0.5:
+                ) > 0.3:
                     return False
         return True
 
@@ -89,6 +90,7 @@ class TelemetryUpdater:
         )
         asyncio.ensure_future(self.get_battery_level(), loop=event_loop)
         asyncio.ensure_future(self.get_flight_mode(swarm_telem), loop=event_loop)
+        time.sleep(10)
 
     async def get_position(self, swarm_telem, geodetic_ref):
         # set the rate of telemetry updates to 10Hz
@@ -178,21 +180,3 @@ class TelemetryUpdater:
                 swarm_telem[self.id].flight_mode = str(flight_mode)
                 print(swarm_telem[self.id].flight_mode)
                 self.client.publish(self.id + "/flight_mode", str(flight_mode), qos=2)
-
-    # def check_altitude(self, swarm_telem, hold_callback, comms, event_loop):
-    #     top_alt_limit = 120.0
-    #     bottom_alt_limit = 18.0
-    #     print(
-    #         str(-swarm_telem[self.id].position_ned[2])
-    #         + " "
-    #         + swarm_telem[self.id].flight_mode
-    #     )
-    #     if swarm_telem[self.id].flight_mode == "OFFBOARD" and (
-    #         -swarm_telem[self.id].position_ned[2] <= bottom_alt_limit
-    #         or -swarm_telem[self.id].position_ned[2] >= top_alt_limit
-    #     ):
-    #         print("OUTSIDE ALTITUDE LIMITS")
-    #         asyncio.ensure_future(hold_callback(), loop=event_loop)
-    #         comms.current_command = "hold"
-    #         for agent in swarm_telem.keys():
-    #             self.client.publish("commands/" + agent, "hold")
