@@ -143,7 +143,8 @@ class Experiment:
                             self.points[j][i]
                             - self.points[index_checker(j + 1, len(self.points))][k]
                         )
-                        pass_vector = pass_vector / np.linalg.norm(pass_vector)
+                        if np.linalg.norm(pass_vector)!=0:
+                            pass_vector = pass_vector / np.linalg.norm(pass_vector)
                         self.adjacent_points[j].update(
                             {i: [k, pass_vector]}
                         )  # jth dictionary is {adj. point of path j: [adj. point of j+1, vector from adj. point of path j to adj. point of j+1]}
@@ -160,6 +161,7 @@ class Experiment:
                 self.current_index = i
 
     def switch(self):
+        print(self.id, 'switched')
         self.pass_permission = (
             False  # the agent is not allowed to get back to previous path anymore
         )
@@ -180,6 +182,7 @@ class Experiment:
             self.current_index in self.adjacent_points[self.current_path]
             and self.pass_permission == True
         ):
+            
             pass_vector = self.adjacent_points[self.current_path][self.current_index][1]
             lane_cohesion_position_error = self.target_point - np.array(
                 swarm_telem[self.id].position_ned, dtype="float64"
@@ -188,10 +191,10 @@ class Experiment:
                 np.dot(lane_cohesion_position_error, self.target_direction)
                 * self.target_direction
             )
-            cos_of_angle = np.dot(pass_vector, lane_cohesion_position_error) / (
-                np.linalg.norm(pass_vector)
-                * np.linalg.norm(lane_cohesion_position_error)
-            )
+            cos_of_angle = 0
+            if np.linalg.norm(pass_vector)* np.linalg.norm(lane_cohesion_position_error) !=0:
+                cos_of_angle = np.dot(pass_vector, lane_cohesion_position_error) / (np.linalg.norm(pass_vector)* np.linalg.norm(lane_cohesion_position_error))
+            
             if cos_of_angle >= 0.9:
                 self.switch()
         # Finding the next bigger Index ----------

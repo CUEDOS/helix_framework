@@ -78,7 +78,7 @@ class Agent:
             self.download_ulog,
         )
         # temp
-        experiment_file_path: str = "experiment_3.json"
+        experiment_file_path: str = "experiment_4.json"
         self.experiment = Experiment(
             self.id, self.swarm_manager.telemetry, experiment_file_path
         )
