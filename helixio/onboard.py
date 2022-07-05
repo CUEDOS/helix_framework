@@ -30,6 +30,7 @@ class Agent:
         self.load_parameters(parameters)
         self.swarm_manager = SwarmManager()
         self.swarm_manager.telemetry[self.id] = AgentTelemetry()
+        self.current_experiment = "none"
         self.return_alt: float = 10
         if self.logging == True:
             self.logger = setup_logger(self.id)
@@ -225,7 +226,7 @@ class Agent:
 
     async def pre_start(self):
         # temp
-        experiment_file_path: str = "experiment_3.json"
+        experiment_file_path: str = "experiments/" + self.current_experiment
         self.experiment = Experiment(
             self.id, self.swarm_manager.telemetry, experiment_file_path
         )
