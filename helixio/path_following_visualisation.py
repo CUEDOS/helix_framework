@@ -151,7 +151,6 @@ def visualize_path_following (**Input):
     x_right_margin=x_max+(x_max-x_min)*0.05
     x_left_margin=x_min-(x_max-x_min)*0.05
     x_range=x_right_margin-x_left_margin
-    x_parts=Ticks_num
 
     y_up_margin=y_max+(y_max-y_min)*0.05
     y_down_margin=y_min-(y_max-y_min)*0.05
@@ -163,16 +162,19 @@ def visualize_path_following (**Input):
     
     # Making figure a cube with real scale
     max_range=max(x_range, y_range, z_range)
-    x_right_margin=(x_right_margin+x_left_margin)/2 + max_range/2
-    x_left_margin=(x_right_margin+x_left_margin)/2 - max_range/2
+    x_mean=(x_right_margin+x_left_margin)/2.0
+    x_right_margin=x_mean + max_range/2.0
+    x_left_margin=x_mean- max_range/2.0
     x_range=max_range
 
-    y_up_margin=(y_up_margin+y_down_margin)/2 + max_range/2
-    y_down_margin=(y_up_margin+y_down_margin)/2 - max_range/2
+    y_mean=(y_up_margin+y_down_margin)/2.0 
+    y_up_margin=y_mean + max_range/2.0
+    y_down_margin=y_mean - max_range/2.0
     y_range=max_range
 
     z_up_margin=z_down_margin + max_range
     z_range=max_range
+
 
     SIZE=int(drone_size)
     size=[SIZE for k in range(len(X_total))]
@@ -191,6 +193,7 @@ def visualize_path_following (**Input):
 
     )
     )
+
     if frame_duration==None:
         frame_duration=dt # in seconds
     fig.layout.updatemenus[0].buttons[0].args[1]['frame']['duration'] = frame_duration*1000 # in milliseconds
@@ -207,5 +210,5 @@ def visualize_path_following (**Input):
     fig.show()
 
 
-visualize_path_following(drone_num = 10, dt=0.1, output_CSV_file_dir='/home/m74744sa/Desktop/All_csvs/Python_sim.csv', experiment_file_path='/home/m74744sa/Documents/Helixio/helixio/helixio/convergence_S_to_N.json')
+visualize_path_following(drone_num = 10, dt=0.1, output_CSV_file_dir='/home/m74744sa/Desktop/All_csvs/Python_sim.csv', experiment_file_path='/home/m74744sa/Documents/helixio/helixio/experiments/convergence_S_to_N.json')
 #visualize_path_following(drone_num = number of drones, dt= time step in sec, frame_duration= duration of each frame of animation in seconds, output_CSV_file_dir='/path_to_output_CSV_file/output_CSV_file_name.csv', experiment_file_path='/path_to_experiment_json_file/json_file_name.json')
