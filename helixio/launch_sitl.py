@@ -20,7 +20,7 @@ def start_gazebo():
             "-n",
             str(sitl_swarm_size),
             "-w",
-            "llambedr",
+            "llanbedr",
         ],
         cwd=firmware_path + "/Tools/",
         stdin=None,
@@ -79,7 +79,7 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)
     print("Press Ctrl+C to close")
     sitl_swarm_size = int(sys.argv[1])
-    firmware_path = "/home/m74744sa/PX4-Autopilot"
+    firmware_path = "/home/vcrann/PX4-Autopilot"
     gazebo_process = start_gazebo()
     mavsdk_process = start_mavsdk_servers()
     time.sleep(20)
