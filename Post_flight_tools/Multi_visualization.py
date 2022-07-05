@@ -13,6 +13,7 @@ def multi_visualizer (**Input):
         drone_size: size of drones in visualization
         ticks_num: number of ticks for each cartesian axis
         frame_duration: duratin of each frame of animation (second)
+        dt=time step (used for interpolation)
 
     Returns:
         An animated figure of all drones with interpolated positions
@@ -189,4 +190,4 @@ def multi_visualizer (**Input):
     
    
 multi_visualizer(folder_of_input_csvs='/home/m74744sa/Desktop/All_csvs',drone_size=15, ticks_num=10,dt=0.1, frame_duration=0.0001)
-
+#multi_visualizer(folder_of_input_csvs='/path_to_folder_containing_ulg_files',drone_size=size of drones, ticks_num=number of partitions in the final fig,dt=time step in sec, frame_duration=0.0001)
