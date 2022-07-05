@@ -37,6 +37,9 @@ class DroneCommunication:
         self.client.message_callback_add(
             self.id + "/update_parameters", self.on_message_update_parameters
         )
+        self.client.message_callback_add(
+            self.id + "/current_experiment", self.on_message_current_experiment
+        )
         self.client.message_callback_add("detection", self.on_message_detection)
         self.client.message_callback_add("commands/" + self.id, self.on_message_command)
         self.client.message_callback_add("emergency_stop", self.on_message_stop)
@@ -64,6 +67,7 @@ class DroneCommunication:
         client.subscribe("+/home/altitude")
         client.subscribe("+/corridor_points")
         client.subscribe(self.id + "/update_parameters")
+        client.subscribe(self.id + "/current_experiment")
         if self.first_connection:
             client.publish(
                 "detection",
@@ -100,6 +104,10 @@ class DroneCommunication:
     def on_message_corridor(self, mosq, obj, msg):
         print("received new corridor")
         # self.experiment.set_corridor(msg.payload.decode())
+
+    def on_message_current_experiment(self, mosq, obj, msg):
+        print("selecting experiment")
+        self.agent.current_experiment = msg.payload.decode()
 
     def on_message_geodetic(self, mosq, obj, msg):
         # Remove none numeric parts of string and then split into north east and down
