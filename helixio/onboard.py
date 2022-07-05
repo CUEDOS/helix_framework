@@ -78,7 +78,7 @@ class Agent:
             self.download_ulog,
         )
         # temp
-        experiment_file_path: str = "experiment_3_W_to_E.json"
+        experiment_file_path: str = "convergence_S_to_N.json"
         self.experiment = Experiment(
             self.id, self.swarm_manager.telemetry, experiment_file_path
         )
