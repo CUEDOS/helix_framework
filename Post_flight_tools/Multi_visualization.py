@@ -98,7 +98,7 @@ def multi_visualizer (**Input):
         all_drones[drone_id].append(interpolate.interp1d(all_drones[drone_id][3],all_drones[drone_id][1])) # interpolation of time and y position at all_drones[drone_id][6]
         all_drones[drone_id].append(interpolate.interp1d(all_drones[drone_id][3],all_drones[drone_id][2])) # interpolation of time and z position at all_drones[drone_id][7]
     
-    fig_colors=['blue','red', 'lightgreen', 'orange','aqua', 'silver', 'magenta', 'darkkhaki','dodgerblue','green','black','brown']
+    fig_colors=['red','lightgreen', 'blue', 'orange','aqua', 'silver', 'magenta', 'darkkhaki','dodgerblue','green','black','brown']
     drones=[] # to know the order of the drones in interpolation
     for drone_id in all_drones:
         t=max_start_time
