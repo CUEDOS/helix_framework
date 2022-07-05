@@ -36,12 +36,12 @@ class Agent:
         print("setup done")
 
     async def run(self):
-        # self.drone: type[System] = System(
-        #     mavsdk_server_address="localhost", port=self.port
-        # )
-        # await self.drone.connect()
-        self.drone: type[System] = System()
-        await self.drone.connect(system_address="serial:///dev/ttyAMA0:921600")
+        self.drone: type[System] = System(
+            mavsdk_server_address="localhost", port=self.port
+        )
+        await self.drone.connect()
+        # self.drone: type[System] = System()
+        # await self.drone.connect(system_address="serial:///dev/ttyAMA0:921600")
         print("Waiting for drone to connect...")
         async for state in self.drone.core.connection_state():
             if state.is_connected:
@@ -78,7 +78,7 @@ class Agent:
             self.download_ulog,
         )
         # temp
-        experiment_file_path: str = "experiment_4.json"
+        experiment_file_path: str = "experiment_3_W_to_E.json"
         self.experiment = Experiment(
             self.id, self.swarm_manager.telemetry, experiment_file_path
         )

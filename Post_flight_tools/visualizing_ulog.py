@@ -18,7 +18,7 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
         drone_size: size of drones in visualization
         ticks_num: number of ticks for each cartesian axis
         dt= time step of animation in seconds
-        c: if its value is 'real', it means ulg is for a real experiment and if the value is 'sitl' it means ulg is for a sitl simulation (the default value is 'real'), 
+        sitl_or_real: if its value is 'real', it means ulg is for a real experiment and if the value is 'sitl' it means ulg is for a sitl simulation (the default value is 'real'), 
         frame_duration: duratin of each frame of animation (second)
 
         Note: if a user does not provide one arguments of ref_lat, ref_long and ref_alt, the function considers 
@@ -166,7 +166,7 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
         ref_alt=min_alt
         print("Auto generated geodetic origin is at: latitude=",ref_lat, "longitude=", ref_long, "altitude=", ref_lat)
     else:
-        print("Entered geodetic origin is at: latitude=",ref_lat, "longitude=", ref_long, "altitude=", ref_lat)
+        print("Entered geodetic origin is at: latitude=",ref_lat, "longitude=", ref_long, "altitude=", ref_alt)
     
     def index_checker(input_index, length) -> int:
         if input_index >= length:
@@ -310,5 +310,5 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
         )
     fig.show()
      
-visualize_ulg(output_CSV_file_dir='/home/m74744sa/Desktop/All_csvs/SITLNR.csv',folder_of_ulg="/home/m74744sa/Desktop/Hough_End_June_30",ref_lat= 52.81651946850575, ref_long= -4.124781265539541, ref_alt= 18,drone_size=15, ticks_num=10, sitl_or_real='sitl')
+visualize_ulg(output_CSV_file_dir='/home/m74744sa/Desktop/All_csvs/Real_shot.csv',folder_of_ulg="/home/m74744sa/Desktop/July_5th_shot",ref_lat= 52.816522986211055, ref_long= -4.1271978280723225, ref_alt= 6,drone_size=15, ticks_num=10, sitl_or_real='real')
 #visualize_ulg(output_CSV_file_dir='/path_to_csv_file/csv_file_name.csv', folder_of_ulg='/path_to_folder_containing_ulg_files',ref_lat=latitude of the reference point, ref_long= longitude of the reference point, ref_alt= altitude of the reference point,drone_size= size of drone, ticks_num=number of partitions in the final fig)
