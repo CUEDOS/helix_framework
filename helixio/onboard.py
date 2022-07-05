@@ -77,12 +77,7 @@ class Agent:
             [self.ref_lat, self.ref_lon, self.ref_alt],
             self.download_ulog,
         )
-        # temp
-        experiment_file_path: str = "convergence_S_to_N.json"
-        self.experiment = Experiment(
-            self.id, self.swarm_manager.telemetry, experiment_file_path
-        )
-
+        
     async def on_disconnect(self):
         print("connection lost, timeout in 5s")
         await asyncio.sleep(5)
@@ -229,6 +224,14 @@ class Agent:
             return
 
     async def pre_start(self):
+        # temp
+        experiment_file_path: str = "experiment_3.json"
+        self.experiment = Experiment(
+            self.id, self.swarm_manager.telemetry, experiment_file_path
+        )
+
+        await asyncio.sleep(1)
+
         alt_dict = {}
         # get the intiial point and the intiial path
         swarm_priorities = self.experiment.get_swarm_priorities(
