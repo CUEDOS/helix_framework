@@ -13,6 +13,7 @@ def multi_visualizer (**Input):
         drone_size: size of drones in visualization
         ticks_num: number of ticks for each cartesian axis
         frame_duration: duratin of each frame of animation (second)
+        dt=time step (used for interpolation)
 
     Returns:
         An animated figure of all drones with interpolated positions
@@ -113,6 +114,7 @@ def multi_visualizer (**Input):
             t+=dt
             interp_length+=1
 
+
     x_right_margin=x_max+(x_max-x_min)*0.05
     x_left_margin=x_min-(x_max-x_min)*0.05
     x_range=x_right_margin-x_left_margin
@@ -127,13 +129,28 @@ def multi_visualizer (**Input):
     z_range=z_up_margin-z_down_margin
     
     # Making figure a cube with real scale
+    x_right_margin=x_max+(x_max-x_min)*0.05
+    x_left_margin=x_min-(x_max-x_min)*0.05
+    x_range=x_right_margin-x_left_margin
+
+    y_up_margin=y_max+(y_max-y_min)*0.05
+    y_down_margin=y_min-(y_max-y_min)*0.05
+    y_range=y_up_margin-y_down_margin
+
+    z_up_margin=z_max+(z_max-z_min)*0.05
+    z_down_margin=z_min
+    z_range=z_up_margin-z_down_margin
+    
+    # Making figure a cube with real scale
     max_range=max(x_range, y_range, z_range)
-    x_right_margin=(x_right_margin+x_left_margin)/2 + max_range/2
-    x_left_margin=(x_right_margin+x_left_margin)/2 - max_range/2
+    x_mean=(x_right_margin+x_left_margin)/2.0
+    x_right_margin=x_mean + max_range/2.0
+    x_left_margin=x_mean- max_range/2.0
     x_range=max_range
 
-    y_up_margin=(y_up_margin+y_down_margin)/2 + max_range/2
-    y_down_margin=(y_up_margin+y_down_margin)/2 - max_range/2
+    y_mean=(y_up_margin+y_down_margin)/2.0 
+    y_up_margin=y_mean + max_range/2.0
+    y_down_margin=y_mean - max_range/2.0
     y_range=max_range
 
     z_up_margin=z_down_margin + max_range
@@ -159,17 +176,18 @@ def multi_visualizer (**Input):
     if frame_duration==None:
         frame_duration=dt # in seconds
     fig.layout.updatemenus[0].buttons[0].args[1]['frame']['duration'] = frame_duration*1000 # in milliseconds
-    fig.layout.updatemenus[0].buttons[0].args[1]['transition']['duration'] = 1
+    fig.layout.updatemenus[0].buttons[0].args[1]['frame']['duration'] = frame_duration*1000 # in milliseconds
+    fig.layout.updatemenus[0].buttons[0].args[1]['transition']['duration'] = 1 # in milliseconds
     fig.update_layout(
         showlegend=True,
         legend=dict(itemsizing='constant',font=dict(family="Times New Roman",size=20), bgcolor="LightSteelBlue", bordercolor="Black", borderwidth=2),
         scene_aspectmode='manual',
-        scene_aspectratio=dict(x=1, y=y_range/x_range, z=z_range/x_range), 
-        scene = dict(xaxis = dict(nticks=x_parts,range=[x_right_margin,x_left_margin]), yaxis = dict(nticks=math.ceil((y_range/x_range)*x_parts), range=[y_up_margin,y_down_margin]),zaxis = dict(nticks=math.ceil((z_range/x_range)*x_parts),range=[z_down_margin,z_up_margin])),
+        scene_aspectratio=dict(x=1, y=1, z=1), 
+        scene = dict(xaxis = dict(nticks=Ticks_num,range=[x_right_margin,x_left_margin]), yaxis = dict(nticks=Ticks_num, range=[y_up_margin,y_down_margin]),zaxis = dict(nticks=Ticks_num,range=[z_down_margin,z_up_margin])),
         legend_title_text='Drones & traces'
         )
     fig.show()
     
    
 multi_visualizer(folder_of_input_csvs='/home/m74744sa/Desktop/All_csvs',drone_size=15, ticks_num=10,dt=0.1, frame_duration=0.0001)
-
+#multi_visualizer(folder_of_input_csvs='/path_to_folder_containing_ulg_files',drone_size=size of drones, ticks_num=number of partitions in the final fig,dt=time step in sec, frame_duration=0.0001)
