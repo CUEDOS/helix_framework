@@ -34,9 +34,9 @@ class Agent:
         self.return_alt: float = 10
         if self.logging == True:
             self.logger = setup_logger(self.id)
-        self.logger.info("ref lat: ", self.ref_lat)
-        self.logger.info("ref lon: ", self.ref_lon)
-        self.logger.info("ref alt: ", self.ref_alt)
+        self.logger.info("ref lat: " + str(self.ref_lat))
+        self.logger.info("ref lon: " + str(self.ref_lon))
+        self.logger.info("ref alt: " + str(self.ref_alt))
         print("setup done")
 
     async def run(self):
@@ -179,7 +179,7 @@ class Agent:
         # wait until altitude is reached by all agents
         while not self.swarm_manager.check_swarm_altitudes(deconflicted_alt_dict):
             await asyncio.sleep(0.1)
-        await asyncio.sleep(5)
+        await asyncio.sleep(15)
 
         # Go to the desired position at the travel alt
         try:
@@ -194,7 +194,7 @@ class Agent:
             desired_positions_ned, check_alt=False
         ):
             await asyncio.sleep(0.1)
-        await asyncio.sleep(5)
+        await asyncio.sleep(15)
 
         # finally go to the desired altitude
         try:
