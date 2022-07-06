@@ -30,7 +30,7 @@ class Agent:
         self.load_parameters(parameters)
         self.swarm_manager = SwarmManager()
         self.swarm_manager.telemetry[self.id] = AgentTelemetry()
-        self.current_experiment = "convergence_S_to_N"
+        self.current_experiment = "convergence_W_to_E_ZE"
         self.return_alt: float = 10
         if self.logging == True:
             self.logger = setup_logger(self.id)
