@@ -34,15 +34,18 @@ class Agent:
         self.return_alt: float = 10
         if self.logging == True:
             self.logger = setup_logger(self.id)
+        self.logger.info("ref lat: ", self.ref_lat)
+        self.logger.info("ref lon: ", self.ref_lon)
+        self.logger.info("ref alt: ", self.ref_alt)
         print("setup done")
 
     async def run(self):
-        self.drone: type[System] = System(
-            mavsdk_server_address="localhost", port=self.port
-        )
-        await self.drone.connect()
-        # self.drone: type[System] = System()
-        # await self.drone.connect(system_address="serial:///dev/ttyAMA0:921600")
+        # self.drone: type[System] = System(
+        #     mavsdk_server_address="localhost", port=self.port
+        # )
+        # await self.drone.connect()
+        self.drone: type[System] = System()
+        await self.drone.connect(system_address="serial:///dev/ttyAMA0:921600")
         print("Waiting for drone to connect...")
         async for state in self.drone.core.connection_state():
             if state.is_connected:
@@ -176,7 +179,7 @@ class Agent:
         # wait until altitude is reached by all agents
         while not self.swarm_manager.check_swarm_altitudes(deconflicted_alt_dict):
             await asyncio.sleep(0.1)
-        await asyncio.sleep(1)
+        await asyncio.sleep(5)
 
         # Go to the desired position at the travel alt
         try:
@@ -191,7 +194,7 @@ class Agent:
             desired_positions_ned, check_alt=False
         ):
             await asyncio.sleep(0.1)
-        await asyncio.sleep(1)
+        await asyncio.sleep(5)
 
         # finally go to the desired altitude
         try:
@@ -202,9 +205,9 @@ class Agent:
             self.report_error(error._result.result_str)
 
         # Waits until position is reached by all agents
-        while not self.swarm_manager.check_swarm_positions(desired_positions_ned):
-            await asyncio.sleep(0.1)
-        await asyncio.sleep(1)
+        # while not self.swarm_manager.check_swarm_positions(desired_positions_ned):
+        #     await asyncio.sleep(0.1)
+        # await asyncio.sleep(1)
 
     async def start_offboard(self, drone):
         print("-- Setting initial setpoint")
