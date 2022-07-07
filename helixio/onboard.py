@@ -30,7 +30,7 @@ class Agent:
         self.load_parameters(parameters)
         self.swarm_manager = SwarmManager()
         self.swarm_manager.telemetry[self.id] = AgentTelemetry()
-        self.current_experiment = "convergence_W_to_E_ZE"
+        self.current_experiment = "convergence_S_to_N_NZ"
         self.return_alt: float = 10
         if self.logging == True:
             self.logger = setup_logger(self.id)
@@ -40,12 +40,12 @@ class Agent:
         print("setup done")
 
     async def run(self):
-        self.drone: type[System] = System(
-            mavsdk_server_address="localhost", port=self.port
-        )
+        # self.drone: type[System] = System(
+        #     mavsdk_server_address="localhost", port=self.port
+        # )
         await self.drone.connect()
-        # self.drone: type[System] = System()
-        # await self.drone.connect(system_address="serial:///dev/ttyAMA0:921600")
+        self.drone: type[System] = System()
+        await self.drone.connect(system_address=self.serial_address)
         print("Waiting for drone to connect...")
         async for state in self.drone.core.connection_state():
             if state.is_connected:
@@ -95,6 +95,7 @@ class Agent:
         self.id: str = parameters["id"]
         self.broker_ip: str = parameters["broker_ip"]
         self.port: int = parameters["port"]
+        self.serial_address: str = parameters["serial_address"]
         self.logging: bool = parameters["logging"]
         self.max_speed: int = parameters["max_speed"]
         self.ref_lat: float = parameters["ref_lat"]
@@ -354,9 +355,9 @@ class Agent:
                 self.comms.client.publish("commands/" + agent, "hold")
 
     def report_error(self, error):
-        print("Action Failed: ", error)
-        self.logger.error("Action Failed: ", error)
-        self.comms.client.publish("errors", self.id + ": " + error)
+        print(error)
+        self.logger.error(error)
+        # self.comms.client.publish("errors", self.id + ": " + error)
 
     async def download_ulog(self):
         entries = await self.drone.log_files.get_entries()
