@@ -40,12 +40,12 @@ class Agent:
         print("setup done")
 
     async def run(self):
-        # self.drone: type[System] = System(
-        #     mavsdk_server_address="localhost", port=self.port
-        # )
-        # await self.drone.connect()
-        self.drone: type[System] = System()
-        await self.drone.connect(system_address="serial:///dev/ttyAMA0:921600")
+        self.drone: type[System] = System(
+            mavsdk_server_address="localhost", port=self.port
+        )
+        await self.drone.connect()
+        # self.drone: type[System] = System()
+        # await self.drone.connect(system_address="serial:///dev/ttyAMA0:921600")
         print("Waiting for drone to connect...")
         async for state in self.drone.core.connection_state():
             if state.is_connected:
@@ -177,9 +177,11 @@ class Agent:
             self.report_error(error._result.result_str)
 
         # wait until altitude is reached by all agents
-        while not self.swarm_manager.check_swarm_altitudes(deconflicted_alt_dict):
-            await asyncio.sleep(0.1)
-        await asyncio.sleep(15)
+        # while not self.swarm_manager.check_swarm_altitudes(deconflicted_alt_dict):
+        #     await asyncio.sleep(0.1)
+        while abs(self.swarm_manager.telemetry[self.id].geodetic[2] - travel_alt) > 0.5:
+            await asyncio.sleep(1)
+        await asyncio.sleep(10)
 
         # Go to the desired position at the travel alt
         try:
@@ -189,12 +191,26 @@ class Agent:
         except ActionError as error:
             self.report_error(error._result.result_str)
 
-        # Waits until position is reached by all agents
-        while not self.swarm_manager.check_swarm_positions(
-            desired_positions_ned, check_alt=False
+        while (
+            abs(
+                self.swarm_manager.telemetry[self.id].position_ned[0]
+                - desired_positions_ned[self.id][0]
+            )
+            > 1
+            or abs(
+                self.swarm_manager.telemetry[self.id].position_ned[1]
+                - desired_positions_ned[self.id][1]
+            )
+            > 1
         ):
-            await asyncio.sleep(0.1)
-        await asyncio.sleep(15)
+            await asyncio.sleep(1)
+
+        # Waits until position is reached by all agents
+        # while not self.swarm_manager.check_swarm_positions(
+        #     desired_positions_ned, check_alt=False
+        # ):
+        #     await asyncio.sleep(0.1)
+        await asyncio.sleep(10)
 
         # finally go to the desired altitude
         try:
