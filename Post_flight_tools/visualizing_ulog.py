@@ -194,7 +194,7 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
             z_max=max(z_max, -1*d)
             z_min=min(z_min, -1*d)
             
-            offboard_mode_status.append([0 for n in range(len(gps_timestamp[j]))])
+        offboard_mode_status.append([0 for n in range(len(gps_timestamp[j]))])
 
         for l in range(len(offboard_timestamp[j])-1): # to check when drone j was on offboard mode
             for m in range (len(gps_timestamp[j])):
