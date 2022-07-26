@@ -1,8 +1,7 @@
 ![CI On Pull](https://github.com/CUEDOS/helixio/actions/workflows/test.yml/badge.svg)
 
 <img src="https://github.com/CUEDOS/cascade-demo/blob/main/img/HelixioLogoFinal.svg" alt="" />
-**Docs:** 
-* [The Helix Framework Documentation](https://helix-framework-docs.readthedocs.io/en/latest/)
+**Docs:** * [Helix Framework Documentation](https://helix-framework-docs.readthedocs.io/en/latest/)
 
 <!-- TABLE OF CONTENTS -->
 <details>
