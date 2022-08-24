@@ -1,10 +1,10 @@
-from helixio.gtools import (
+from helix_framework.gtools import (
     alt_calc,
     proximity_check,
 )  # importing the module we want to test its function (the test file should be in the same directory as module file)
 import pytest
 import numpy as np
-from helixio.data_structures import AgentTelemetry
+from helix_framework.data_structures import AgentTelemetry
 from math import sqrt
 
 # test of alt_dict function ------------------------------------------------------------------------------------------------------------------------------------
@@ -24,12 +24,12 @@ from math import sqrt
             },  # input Set1: even number of drones
             10,  # site_elevation Set1
             {
-                "P101": 23.5,
-                "P102": 22.5,
-                "P103": 25.5,
-                "P104": 24.5,
-                "P105": 27.5,
-                "P106": 26.5,
+                "P102": 20.0,
+                "P101": 22.0,
+                "P104": 24.0,
+                "P103": 26.0,
+                "P106": 28.0,
+                "P105": 30.0,
             },
         ),  # output Set1
         (
@@ -43,12 +43,12 @@ from math import sqrt
             },  # input Set2: even number of drones, two same altitudes
             20,  # site_elevation Set2
             {
-                "P101": 33.5,
-                "P102": 32.5,
-                "P103": 34.5,
-                "P104": 35.5,
-                "P105": 37.5,
-                "P106": 36.5,
+                "P102": 30.0,
+                "P101": 32.0,
+                "P103": 34.0,
+                "P104": 36.0,
+                "P106": 38.0,
+                "P105": 40.0,
             },
         ),  # output Set2
         (
@@ -66,16 +66,16 @@ from math import sqrt
             },  # Set3: 10 drones, mean below min+site_elevation
             480,  # site_elevation Set3
             {
-                "P101": 492,
-                "P102": 490,
-                "P103": 497,
-                "P104": 493,
-                "P105": 494,
-                "P106": 495,
-                "P107": 498,
-                "P108": 496,
-                "P109": 499,
-                "P110": 491,
+                "P102": 490.0,
+                "P110": 492.0,
+                "P101": 494.0,
+                "P104": 496.0,
+                "P105": 498.0,
+                "P106": 500.0,
+                "P108": 502.0,
+                "P103": 504.0,
+                "P107": 506.0,
+                "P109": 508.0,
             },
         ),  # output Set3
         (
@@ -87,7 +87,7 @@ from math import sqrt
                 "P105": 4,
             },  # input Set4: odd number of drones, two same altitudes
             -10,  # site_elevation Set4
-            {"P101": 8, "P102": 7, "P103": 10, "P104": 9, "P105": 6},
+            {"P105": 4.0, "P102": 6.0, "P101": 8.0, "P104": 10.0, "P103": 12.0},
         ),  # output Set4
         (
             {
@@ -102,14 +102,14 @@ from math import sqrt
             },  # input Set5: 8 drones, all same altitudes
             -20,  # site_elevation Set5
             {
-                "P101": -3.5,
-                "P102": -2.5,
-                "P103": -1.5,
-                "P104": -0.5,
-                "P105": 0.5,
-                "P106": 1.5,
-                "P107": 2.5,
-                "P108": 3.5,
+                "P101": -7.0,
+                "P102": -5.0,
+                "P103": -3.0,
+                "P104": -1.0,
+                "P105": 1.0,
+                "P106": 3.0,
+                "P107": 5.0,
+                "P108": 7.0,
             },
         ),  # output Set5
         (
@@ -124,13 +124,13 @@ from math import sqrt
             },  # input Set6: 7 drones, three & two same altitudes, huge differences
             30,  # site_elevation Set6
             {
-                "P101": 129,
-                "P102": 124,
-                "P103": 126,
-                "P104": 127,
-                "P105": 128,
-                "P106": 130,
-                "P107": 125,
+                "P102": 118.0,
+                "P107": 120.0,
+                "P103": 122.0,
+                "P104": 124.0,
+                "P105": 126.0,
+                "P101": 128.0,
+                "P106": 130.0,
             },
         ),  # output Set6
         (
@@ -148,16 +148,16 @@ from math import sqrt
             },  # input Set7:# 10 drones, four & two same altitudes
             1000,  # site_elevation Set7
             {
-                "P101": 1012,
-                "P102": 1010,
-                "P103": 1017,
-                "P104": 1013,
-                "P105": 1014,
-                "P106": 1015,
-                "P107": 1018,
-                "P108": 1016,
-                "P109": 1019,
-                "P110": 1011,
+                "P102": 1010.0,
+                "P110": 1012.0,
+                "P101": 1014.0,
+                "P104": 1016.0,
+                "P105": 1018.0,
+                "P106": 1020.0,
+                "P108": 1022.0,
+                "P103": 1024.0,
+                "P107": 1026.0,
+                "P109": 1028.0,
             },
         ),
     ],  # output Set7

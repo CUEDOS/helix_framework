@@ -1,0 +1,1 @@
+{"id": "S004", "broker_ip": "localhost", "port": 50044, "serial_address": "serial:///dev/ttyAMA0:921600", "logging": true, "max_speed": 5, "ref_lat": 52.81644775696209, "ref_lon": -4.1270183615204425, "ref_alt": 6}
