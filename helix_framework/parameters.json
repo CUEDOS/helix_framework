@@ -1,0 +1,11 @@
+{
+    "id": "P108",
+    "broker_ip": "192.168.0.100",
+    "port": 50041,
+    "serial_address": "serial:///dev/ttyAMA0:921600",
+    "logging": true,
+    "max_speed": 5,
+    "ref_lat": 52.817008335016816,
+    "ref_lon": -4.128502426303207,
+    "ref_alt": 18
+}
