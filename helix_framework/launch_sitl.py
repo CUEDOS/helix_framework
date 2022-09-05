@@ -80,7 +80,7 @@ if __name__ == "__main__":
     print("Press Ctrl+C to close")
     sitl_swarm_size = int(sys.argv[1])
     # firmware_path = "/home/m74744sa/PX4-Autopilot"
-    firmware_path = "/home/vcrann/PX4-Autopilot"
+    firmware_path = "/home/m74744sa/PX4-Autopilot"
     gazebo_process = start_gazebo()
     mavsdk_process = start_mavsdk_servers()
     time.sleep(20)

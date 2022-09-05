@@ -30,7 +30,7 @@ class Agent:
         self.load_parameters(parameters)
         self.swarm_manager = SwarmManager()
         self.swarm_manager.telemetry[self.id] = AgentTelemetry()
-        self.current_experiment = "convergence_S_to_N_NZ"
+        self.current_experiment = "Roundabout_S_to_N_NZ"
         self.return_alt: float = 10
         if self.logging == True:
             self.logger = setup_logger(self.id)
@@ -40,12 +40,12 @@ class Agent:
         print("setup done")
 
     async def run(self):
-        # self.drone: type[System] = System(
-        #     mavsdk_server_address="localhost", port=self.port
-        # )
+        self.drone: type[System] = System(
+        mavsdk_server_address="localhost", port=self.port
+        )
         await self.drone.connect()
-        self.drone: type[System] = System()
-        await self.drone.connect(system_address=self.serial_address)
+        #self.drone: type[System] = System()
+        #await self.drone.connect(system_address=self.serial_address)
         print("Waiting for drone to connect...")
         async for state in self.drone.core.connection_state():
             if state.is_connected:

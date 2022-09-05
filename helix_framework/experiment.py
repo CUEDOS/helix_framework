@@ -345,7 +345,8 @@ class Experiment:
             + self.k_migration * v_migration
             + self.k_rotation * v_rotation
         )
-        yaw = flocking.get_desired_yaw(yaw_vel[0], yaw_vel[1])
+        #yaw = flocking.get_desired_yaw(yaw_vel[0], yaw_vel[1])
+        yaw=0.0
         output_vel = flocking.check_velocity(
             desired_vel, swarm_telem[self.id], max_speed, yaw, time_step, max_accel
         )
