@@ -1,6 +1,6 @@
 {
 	"experiment_id": 1,
-	"k_migration": 2,
+	"k_migration": 1,
 	"k_lane_cohesion": 1,
 	"k_rotation": 1,
 	"k_seperation": 2,
