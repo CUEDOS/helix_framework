@@ -34,7 +34,7 @@ class Experiment:
         self.rotation_factor = 1
         self.directions = []
         self.current_index = 0
-        self.pass_permission = False
+        self.pass_permission = [] # self.pass_permission[i]: pass permission of switch from path i to index_checker(i+1, number of paths)
         self.target_point = np.array([0, 0, 0], dtype="float64")
         self.target_direction = np.array([1, 1, 1], dtype="float64")
         self.load(experiment_file_path, swarm_telem)
@@ -119,35 +119,40 @@ class Experiment:
 
     def create_adjacent_points(self) -> None:
         self.adjacent_points = []
-        for j in range(len(self.points)):  # j is the number of path
+        if len(self.points)==1:            # in this case, there should be no adjacent points
             self.adjacent_points.append({})
-            for i in range(len(self.points[j])):
-                for k in range(
-                    len(self.points[index_checker(j + 1, len(self.points))])
-                ):
-                    distance = np.linalg.norm(
-                        self.points[j][i]
-                        - self.points[index_checker(j + 1, len(self.points))][k]
-                    )
-                    if (
-                        distance
-                        <= self.lane_radius[j]
-                        + self.lane_radius[index_checker(j + 1, len(self.points))]
-                        and np.dot(
-                            self.directions[j][i],
-                            self.directions[index_checker(j + 1, len(self.points))][k],
-                        )
-                        == 1
+        else:
+            for j in range(len(self.points)):  # j is the number of path
+                self.adjacent_points.append({})
+                for i in range(len(self.points[j])):
+                    for k in range(
+                        len(self.points[index_checker(j + 1, len(self.points))])
                     ):
-                        pass_vector = (
+                        distance = np.linalg.norm(
                             self.points[j][i]
                             - self.points[index_checker(j + 1, len(self.points))][k]
                         )
-                        if np.linalg.norm(pass_vector)!=0:
-                            pass_vector = pass_vector / np.linalg.norm(pass_vector)
-                        self.adjacent_points[j].update(
-                            {i: [k, pass_vector]}
-                        )  # jth dictionary is {adj. point of path j: [adj. point of j+1, vector from adj. point of path j to adj. point of j+1]}
+                        if (
+                            distance
+                            <= self.lane_radius[j]
+                            + self.lane_radius[index_checker(j + 1, len(self.points))]
+                            and abs(np.dot(
+                                self.directions[j][i],
+                                self.directions[index_checker(j + 1, len(self.points))][k],
+                            )-1)<0.001
+    
+                        ):
+                            pass_vector = (
+                                self.points[j][i]
+                                - self.points[index_checker(j + 1, len(self.points))][k]
+                            )
+                            if np.linalg.norm(pass_vector)!=0:
+                                pass_vector = pass_vector / np.linalg.norm(pass_vector)
+                            self.adjacent_points[j].update(
+                                {i: [k, pass_vector]}
+                            )  # jth dictionary is {adj. point of path j: [adj. point of j+1, vector from adj. point of path j to adj. point of j+1]}
+        if self.id=="S001":
+          print(self.adjacent_points)
 
     def initial_nearest_point(self, swarm_telem) -> None:
         lnitial_least_distance = math.inf
@@ -162,9 +167,7 @@ class Experiment:
 
     def switch(self):
         print(self.id, 'switched')
-        self.pass_permission = (
-            False  # the agent is not allowed to get back to previous path anymore
-        )
+        self.pass_permission [self.current_path]= False  # the agent is not allowed to get back to previous path anymore
 
         self.current_index = self.adjacent_points[self.current_path][
             self.current_index
@@ -180,7 +183,7 @@ class Experiment:
         self.target_direction = self.directions[self.current_path][self.current_index]
         if (
             self.current_index in self.adjacent_points[self.current_path]
-            and self.pass_permission == True
+            and self.pass_permission [self.current_path]== True
         ):
             
             pass_vector = self.adjacent_points[self.current_path][self.current_index][1]

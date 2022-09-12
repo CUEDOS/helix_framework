@@ -1,12 +1,12 @@
 {
 	"experiment_id": 1,
-	"k_migration": 2,
+	"k_migration": 1,
 	"k_lane_cohesion": 1,
 	"k_rotation": 1,
 	"k_seperation": 2,
 	"r_conflict": 5,
 	"r_collision": 2.5,
-	"pass_permission": [false, false, false, false, false, false, false, false, false, false],
+	"pass_permission": [[false], [false], [false], [false], [false], [false], [false], [false], [false], [false]],
 	"repeat": true,
 	"pre_start_positions": [
 		[
