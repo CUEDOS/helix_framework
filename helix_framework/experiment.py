@@ -151,8 +151,6 @@ class Experiment:
                             self.adjacent_points[j].update(
                                 {i: [k, pass_vector]}
                             )  # jth dictionary is {adj. point of path j: [adj. point of j+1, vector from adj. point of path j to adj. point of j+1]}
-        if self.id=="S001":
-          print(self.adjacent_points)
 
     def initial_nearest_point(self, swarm_telem) -> None:
         lnitial_least_distance = math.inf
