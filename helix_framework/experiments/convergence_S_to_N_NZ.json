@@ -6,7 +6,7 @@
 	"k_seperation": 2,
 	"r_conflict": 5,
 	"r_collision": 2.5,
-	"pass_permission": [[true, false], [false, false], [true, false], [false, false], [true, false], [false, false], [true, false] , [false, false], [true, false], [false, false]],
+	"pass_permission": [[1, null], [null, null], [1, null], [null, null], [1, null], [null, null], [1, null] , [null, null], [1, null], [null, null]],
 	"repeat": false,
 	"pre_start_positions": [
 		[
@@ -108,6 +108,11 @@
 				-50,
 				0,
 				-40
+			],
+			[
+			    30,
+				0,
+				-40	
 			],
 			[
 				90,
