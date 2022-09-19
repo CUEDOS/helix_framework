@@ -295,7 +295,7 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
     
     SIZE=int(Drone_size)
     size=[SIZE for k in range(len(X_total))]
-    fig= px.scatter_3d(x=X_total, range_x=[x_right_margin,x_left_margin], y=Y_total, range_y=[y_up_margin,y_down_margin], z=Z_total, range_z=[z_down_margin,z_up_margin], animation_frame=Time_total, opacity=1, size=size, color=labels_total, size_max=max(size),color_discrete_sequence=fig_colors)
+    fig= px.scatter_3d(x=X_total, y=Y_total, z=Z_total, animation_frame=Time_total, opacity=1, size=size, color=labels_total, size_max=max(size),color_discrete_sequence=fig_colors)
     
     #Adding lines to the figure
     for j in range(i):
@@ -321,9 +321,10 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
         legend=dict(itemsizing='constant',font=dict(family="Times New Roman",size=20), bgcolor="LightSteelBlue", bordercolor="Black", borderwidth=2),
         scene_aspectmode='manual',
         scene_aspectratio=dict(x=1, y=1, z=1), 
-        scene = dict(xaxis = dict(nticks=Ticks_num,range=[x_right_margin,x_left_margin]), yaxis = dict(nticks=Ticks_num, range=[y_up_margin,y_down_margin]),zaxis = dict(nticks=Ticks_num,range=[z_down_margin,z_up_margin])),
+        scene = dict(xaxis = dict(nticks=Ticks_num,range=[x_right_margin,x_left_margin], visible=True), yaxis = dict(nticks=Ticks_num, range=[y_up_margin,y_down_margin], visible=True),zaxis = dict(nticks=Ticks_num,range=[z_down_margin,z_up_margin], visible=True)),
         legend_title_text='Drones & traces'
         )
+    fig.layout.scene.camera.projection.type = "perspective" # for orthographic projection set it to "orthographic"
     fig.show()
      
 visualize_ulg(output_CSV_file_dir='/home/m74744sa/Desktop/All_csvs/Real_shot.csv',folder_of_ulg="/home/m74744sa/Desktop/July_5th_shot",ref_lat= 52.816522986211055, ref_long= -4.1271978280723225, ref_alt= 6,drone_size=15, ticks_num=10, sitl_or_real='real')

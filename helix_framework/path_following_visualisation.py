@@ -178,7 +178,7 @@ def visualize_path_following (**Input):
 
     SIZE=int(drone_size)
     size=[SIZE for k in range(len(X_total))]
-    fig= px.scatter_3d(x=X_total, range_x=[x_right_margin,x_left_margin], y=Y_total, range_y=[y_up_margin,y_down_margin], z=Z_total, range_z=[z_down_margin,z_up_margin], animation_frame=Time_total, opacity=1, size=size, color=labels_total, size_max=max(size),color_discrete_sequence=fig_colors)
+    fig= px.scatter_3d(x=X_total, y=Y_total, z=Z_total, animation_frame=Time_total, opacity=1, size=size, color=labels_total, size_max=max(size),color_discrete_sequence=fig_colors)
 
     #Adding lines to the figure
     for j in range(len(drone_ids)):
@@ -204,11 +204,12 @@ def visualize_path_following (**Input):
         legend=dict(itemsizing='constant',font=dict(family="Times New Roman",size=20), bgcolor="LightSteelBlue", bordercolor="Black", borderwidth=2),
         scene_aspectmode='manual',
         scene_aspectratio=dict(x=1, y=1, z=1), 
-        scene = dict(xaxis = dict(nticks=Ticks_num,range=[x_right_margin,x_left_margin]), yaxis = dict(nticks=Ticks_num, range=[y_up_margin,y_down_margin]),zaxis = dict(nticks=Ticks_num,range=[z_down_margin,z_up_margin])),
+        scene = dict(xaxis = dict(nticks=Ticks_num,range=[x_right_margin,x_left_margin], visible=True), yaxis = dict(nticks=Ticks_num, range=[y_up_margin,y_down_margin], visible=True),zaxis = dict(nticks=Ticks_num,range=[z_down_margin,z_up_margin], visible=True)),
         legend_title_text='Drones & traces'
         )
+    fig.layout.scene.camera.projection.type = "perspective" # for orthographic projection set it to "orthographic"
     fig.show()
 
 
-visualize_path_following(drone_num = 6, dt=0.1, output_CSV_file_dir='/home/m74744sa/Desktop/All_csvs/Python_sim.csv', experiment_file_path='/home/m74744sa/Documents/helix_framework/helix_framework/experiments/Parabolic_way_Roundabout_S_to_N_NZ.json')
+visualize_path_following(drone_num = 6, dt=0.1, output_CSV_file_dir='/home/m74744sa/Desktop/All_csvs/Python_sim.csv', experiment_file_path='/home/m74744sa/Documents/helix_framework/helix_framework/experiments/Two_way_Roundabout_S_to_N_NZ.json')
 #visualize_path_following(drone_num = number of drones, dt= time step in sec, frame_duration= duration of each frame of animation in seconds, output_CSV_file_dir='/path_to_output_CSV_file/output_CSV_file_name.csv', experiment_file_path='/path_to_experiment_json_file/json_file_name.json')
