@@ -182,13 +182,13 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
         z.append([])  #new line for z coordinates 
         for  k in range(len(Time[j])): # k is the number of a sample of drone j
             n,e,d =geodetic2ned(latitude[j][k], longitude[j][k], altitude[j][k], ref_lat, ref_long, ref_alt, ell=None, deg=True)
-            x[j].append(e)
-            x_max=max(x_max, e)
-            x_min=min(x_min, e)
+            x[j].append(n)
+            x_max=max(x_max, n)
+            x_min=min(x_min, n)
 
-            y[j].append(n)
-            y_max=max(y_max, n)
-            y_min=min(y_min, n)
+            y[j].append(e)
+            y_max=max(y_max, e)
+            y_min=min(y_min, e)
             
             z[j].append(-1*d)
             z_max=max(z_max, -1*d)
