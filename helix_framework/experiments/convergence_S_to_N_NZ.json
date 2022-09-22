@@ -7,7 +7,7 @@
 	"r_conflict": 5,
 	"r_collision": 2.5,
 	"pass_permission": [[1, null], [null, null], [1, null], [null, null], [1, null], [null, null], [1, null] , [null, null], [1, null], [null, null]],
-	"repeat": false,
+	"repeat": ["STOP", "STOP"],
 	"pre_start_positions": [
 		[
 			-133,
@@ -76,9 +76,10 @@
 		1,
 		-1
 	],
+	"switching_points":[[1],[]],
 	"corridor_radius": [
-		5,
-		5
+		[5, 5, 5],
+		[5, 5, 5, 5]
 	],
 	"corridor_points": [
 		[

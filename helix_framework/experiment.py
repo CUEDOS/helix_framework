@@ -50,9 +50,10 @@ class Experiment:
         self.k_separation = experiment_parameters["k_seperation"]
         self.r_conflict = experiment_parameters["r_conflict"]
         self.r_collision = experiment_parameters["r_collision"]
-        self.pass_permission_list = experiment_parameters[
+        self.pass_permission_list = experiment_parameters[  # self.pass_permission_list[n][j]: is the pass permission for drone n from path j
             "pass_permission"
         ]  # the permission to go to another path
+        self.switching_points=experiment_parameters["switching_points"] # self.pass_switching_points[j]: contains all of the points which can switch from path j
         self.repeat = experiment_parameters[
             "repeat"
         ]  # the permission to go to another path
@@ -126,37 +127,29 @@ class Experiment:
                 self.adjacent_points.append({})  # jth dictionary in adjacent_points is for jth path
                 if self.pass_permission[j] != None: # if there is a path that path j can switch to
                     next_path=self.pass_permission[j]
-                    for i in range(len(self.points[j])):
+                    for switching_point in self.switching_points[j]:
                         for k in range(
                             len(self.points[next_path]) # self.pass_permission[j] shows the path we can switch from path j
                         ):
                             current_distance = np.linalg.norm(
-                                self.points[j][i]
+                                self.points[j][switching_point]
                                 - self.points[next_path][k])
-                            
-                            next_distance=np.linalg.norm(
-                                self.points[j][index_checker(i+1,len(self.points[j]))]
-                                - self.points[next_path][index_checker(k+1,len(self.points[next_path]))])
-                            
                             
                             if (
                                 current_distance
-                                <= (self.lane_radius[j]
-                                + self.lane_radius[self.pass_permission[j]])*1.001  # this 1 percent is numerical calculation inaccuracies
-                                and next_distance
-                                <= (self.lane_radius[j]
-                                + self.lane_radius[self.pass_permission[j]])*1.001  # this 1 percent is numerical calculation inaccuracies
+                                <= (self.lane_radius[j][switching_point]
+                                + self.lane_radius[self.pass_permission[j]][k])*1.001  # this 1 percent is to compensate numerical calculation inaccuracies
     
                             ):
                                 pass_vector = (
-                                    self.points[j][i]
+                                    self.points[j][switching_point]
                                     - self.points[self.pass_permission[j]][k]
                                 )
                                 if np.linalg.norm(pass_vector)!=0:
                                     pass_vector = pass_vector / np.linalg.norm(pass_vector)
                                 self.adjacent_points[j].update(
-                                    {i: [k, pass_vector]}
-                                )  # jth dictionary is {adj. point of path j: [adj. point of j+1, vector from adj. point of path j to adj. point of j+1]}
+                                    {switching_point: [k, pass_vector]}
+                                )  # jth dictionary is {adj. point of path j: [adj. point of next_path, vector from adj. point of path j to adj. point of next_path]}
 
     def initial_nearest_point(self, swarm_telem) -> None:
         lnitial_least_distance = math.inf
@@ -212,10 +205,7 @@ class Experiment:
             ]
         )
         if (
-            np.dot(
-                range_to_next, self.directions[self.current_path][self.current_index]
-            )
-            > 0
+            np.dot(range_to_next, self.directions[self.current_path][self.current_index])> 0
         ):  # drone has passed the point next to current one
             self.current_index = index_checker(
                 self.current_index + 1, self.length[self.current_path]
@@ -246,10 +236,6 @@ class Experiment:
                 self.current_index = (
                     self.length[self.current_path] - 1
                 )  # the index of the last point of the current path
-                if not self.repeat:
-                    self.k_lane_cohesion = 0
-                    self.k_migration = 0
-                    self.k_rotation = 0  # passed last point of path
 
             self.target_point = self.points[self.current_path][self.current_index]
             self.target_direction = self.directions[self.current_path][
@@ -276,7 +262,7 @@ class Experiment:
             v_lane_cohesion = (
                 (
                     lane_cohesion_position_error_magnitude
-                    - self.lane_radius[self.current_path]
+                    - self.lane_radius[self.current_path][self.current_index]
                 )
                 * lane_cohesion_position_error
                 / np.linalg.norm(lane_cohesion_position_error)
@@ -292,14 +278,14 @@ class Experiment:
             )
         # Calculating v_rotation (normalized)---------------------
         limit_v_rotation = 1
-        if lane_cohesion_position_error_magnitude < self.lane_radius[self.current_path]:
+        if lane_cohesion_position_error_magnitude < self.lane_radius[self.current_path][self.current_index]:
             v_rotation_magnitude = (
                 lane_cohesion_position_error_magnitude
-                / self.lane_radius[self.current_path]
+                / self.lane_radius[self.current_path][self.current_index]
             )
         else:
             v_rotation_magnitude = (
-                self.lane_radius[self.current_path]
+                self.lane_radius[self.current_path][self.current_index]
                 / lane_cohesion_position_error_magnitude
             )
         cross_prod = np.cross(lane_cohesion_position_error, self.target_direction)
@@ -338,6 +324,19 @@ class Experiment:
                 v_separation = (
                     v_separation * limit_v_separation / np.linalg.norm(v_separation)
                 )
+
+        # checking the last point of the current path
+        if self.current_index==(len(self.points[self.current_path])-1) and self.repeat[self.current_path]=="STOP":
+            self.k_lane_cohesion=0
+            self.k_migration =0
+            self.k_rotation=0
+
+        elif self.current_index==(len(self.points[self.current_path])-1) and self.repeat[self.current_path]=="STAY":
+            v_migration=0
+        
+        elif self.current_index==(len(self.points[self.current_path])-1) and self.repeat[self.current_path]=="REPEAT":
+            pass
+
         desired_vel = (
             self.k_lane_cohesion * v_lane_cohesion
             + self.k_migration * v_migration
