@@ -7,12 +7,13 @@ import math
 import plotly.express as px
 import plotly.graph_objects as go
 import csv
+import json
 
 def visualize_path_following (**Input):
     """
     Draws the path of drones based on path following code, and animates them in Cartesian coordinate
     Arguments:
-        experiment_file_path: the path to input json file of experiment containing prestart positions, corridor points, pass permission, etc.
+        JSON_file_path: the path to input json file of experiment containing prestart positions, corridor points, pass permission, etc.
         output_CSV_file_dir: the path to output CSV file containg position, drone id, time stamp and type of experimetn
         simulation_time: simulation duration in seconds
         drone_size: size of drones in visualization
@@ -20,6 +21,7 @@ def visualize_path_following (**Input):
         dt: time step in second
         drone_num: number of drones in Python simulation
         frame_duration: duratin of each frame of animation (second)
+        show_corridors: to show corridors or not
     
         Note: if a user does not provide one arguments of input experiment json file or output csv file, the code shows an error and stops
     Returns:
@@ -27,12 +29,13 @@ def visualize_path_following (**Input):
     """
     drone_size=10
     Ticks_num=10
-    simulation_time=300
+    simulation_time=200
     dt=0.1
     drone_num = 2
     frame_duration=None
     output_CSV_file_dir=None
-    experiment_file_path=None
+    JSON_file_dir=None
+    show_corridors=False
     for key, value in Input.items():
         if key=="simulation_time":
             simulation_time=value
@@ -44,15 +47,17 @@ def visualize_path_following (**Input):
             dt=value
         elif key=="drone_num":
             drone_num=value
-        elif key=='experiment_file_path':
-            experiment_file_path=value
+        elif key=='JSON_file_dir':
+            JSON_file_dir=value
         elif key=='output_CSV_file_dir':
             output_CSV_file_dir=value
         elif key=='frame_duration':
             frame_duration=value
+        elif key=='show_corridors':
+            show_corridors=value
             
-    if experiment_file_path==None:
-        print('Error: A directory to input experiment file should be provided')
+    if JSON_file_dir==None:
+        print('Error: A directory to input JSON file should be provided')
         return 0
     if output_CSV_file_dir== None:
         print('Error: A directory to output CSV file should be provided')
@@ -90,7 +95,7 @@ def visualize_path_following (**Input):
 
     # Creating drones dictionary
     for id in swarm_telem:
-        drones.update({id: [Experiment(id,swarm_telem,experiment_file_path),[],[],[],[]]}) #{id: Experiment object, [record of x], [record of y], [record of z], [record of time]}
+        drones.update({id: [Experiment(id,swarm_telem, JSON_file_dir),[],[],[],[]]}) #{id: Experiment object, [record of x], [record of y], [record of z], [record of time]}
 
     # Assigning prestart positions
     for id in swarm_telem:
@@ -147,6 +152,61 @@ def visualize_path_following (**Input):
             row=[drones[id][1][i], drones[id][2][i], drones[id][3][i], drones[id][4][i], id, 1, 'Python_simulation'] # x, y , z, time (s), id, offboard mode status, type of experiment
             writer.writerow(row)
     Output_CSV_file.close()
+    
+
+    SIZE=int(drone_size)
+    size=[SIZE for k in range(len(X_total))]
+    fig= px.scatter_3d(x=X_total, y=Y_total, z=Z_total, animation_frame=Time_total, opacity=1, size=size, color=labels_total, size_max=max(size),color_discrete_sequence=fig_colors)
+
+    #Adding lines to the figure
+    for j in range(len(drone_ids)):
+        fig.add_trace(            #should be an object of go
+            go.Scatter3d(
+            x=X_total[j*simulation_steps: ((j+1)*simulation_steps)], 
+            y=Y_total[j*simulation_steps: ((j+1)*simulation_steps)],
+            z=Z_total[j*simulation_steps: ((j+1)*simulation_steps)], 
+            mode='lines',
+            name="trace of "+drone_ids[j],
+            marker=dict(color=fig_colors[index_checker(j,len(fig_colors))])
+
+    )
+    )
+    if show_corridors==True:
+        #Adding corridors
+        with open(JSON_file_dir, "r") as f:
+            experiment_parameters = json.load(f)
+
+        corridor_points= experiment_parameters["corridor_points"]
+    
+        #Adding corridors to the figure
+        for j in range(len(corridor_points)):
+            X_corridor=[]
+            Y_corridor=[]
+            Z_corridor=[]
+            for k in range(len(corridor_points[j])):
+
+                X_corridor.append(corridor_points[j][k][0])
+                x_max=max(x_max,corridor_points[j][k][0])
+                x_min=min(x_min,corridor_points[j][k][0])
+
+                Y_corridor.append(corridor_points[j][k][1])
+                y_max=max(y_max,corridor_points[j][k][1])
+                y_min=min(y_min,corridor_points[j][k][1])
+  
+                Z_corridor.append(-1* corridor_points[j][k][2])
+                z_max=max(z_max,-1*corridor_points[j][k][2])
+                z_min=min(z_min,-1*corridor_points[j][k][2])
+           
+            fig.add_trace(           
+                go.Scatter3d(
+                    x=X_corridor, 
+                    y=Y_corridor,
+                    z=Z_corridor, 
+                    mode='lines',
+                    line=dict(dash='longdash'),
+                    name="corridor "+str(j),
+                )
+            )
 
     x_right_margin=x_max+(x_max-x_min)*0.05
     x_left_margin=x_min-(x_max-x_min)*0.05
@@ -176,24 +236,6 @@ def visualize_path_following (**Input):
     z_range=max_range
 
 
-    SIZE=int(drone_size)
-    size=[SIZE for k in range(len(X_total))]
-    fig= px.scatter_3d(x=X_total, y=Y_total, z=Z_total, animation_frame=Time_total, opacity=1, size=size, color=labels_total, size_max=max(size),color_discrete_sequence=fig_colors)
-
-    #Adding lines to the figure
-    for j in range(len(drone_ids)):
-        fig.add_trace(            #should be an object of go
-            go.Scatter3d(
-            x=X_total[j*simulation_steps: ((j+1)*simulation_steps)], 
-            y=Y_total[j*simulation_steps: ((j+1)*simulation_steps)],
-            z=Z_total[j*simulation_steps: ((j+1)*simulation_steps)], 
-            mode='lines',
-            name="trace of "+drone_ids[j],
-            marker=dict(color=fig_colors[index_checker(j,len(fig_colors))])
-
-    )
-    )
-
     if frame_duration==None:
         frame_duration=dt # in seconds
     fig.layout.updatemenus[0].buttons[0].args[1]['frame']['duration'] = frame_duration*1000 # in milliseconds
@@ -211,5 +253,5 @@ def visualize_path_following (**Input):
     fig.show()
 
 
-visualize_path_following(drone_num = 8, dt=0.1, output_CSV_file_dir='/home/m74744sa/Desktop/All_csvs/Python_sim.csv', experiment_file_path='/home/m74744sa/Documents/helix_framework/helix_framework/experiments/Two_way_Roundabout_S_to_N_NZ.json')
-#visualize_path_following(drone_num = number of drones, dt= time step in sec, frame_duration= duration of each frame of animation in seconds, output_CSV_file_dir='/path_to_output_CSV_file/output_CSV_file_name.csv', experiment_file_path='/path_to_experiment_json_file/json_file_name.json')
+visualize_path_following(drone_num = 8, dt=0.1, output_CSV_file_dir='/home/m74744sa/Desktop/All_csvs/Python_sim.csv', JSON_file_dir='/home/m74744sa/Documents/helix_framework/helix_framework/experiments/Same_level_vertiport.json', show_corridors=True)
+#visualize_path_following(drone_num = number of drones, dt= time step in sec, frame_duration= duration of each frame of animation in seconds, output_CSV_file_dir='/path_to_output_CSV_file/output_CSV_file_name.csv', experiment_file_path='/path_to_experiment_json_file/json_file_name.json', show_corridors=True)

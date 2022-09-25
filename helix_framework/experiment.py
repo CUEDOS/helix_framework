@@ -65,6 +65,7 @@ class Experiment:
         self.length = [
             len(self.points[j]) for j in range(len(self.points))
         ]  # j is the number of a path
+        self.passed_last_point=[False for j in range(len(self.points))] # to see if the drone has passed the last point of path j or not
         self.create_directions()
         # self.initial_nearest_point(swarm_telem)
         self.ready_flag = True
@@ -107,10 +108,11 @@ class Experiment:
                 # All points must be converted to np arrays
                 self.points[j][i] = np.array(self.points[j][i], dtype="float64")
                 if i == len(self.points[j]) - 1:
-                    self.directions[j].append(
-                        (self.points[j][0] - self.points[j][i])
-                        / np.linalg.norm(self.points[j][0] - self.points[j][i])
-                    )
+                    if self.repeat[j]=="STAY": # if we want to stay at the last point
+                        self.directions[j].append((self.points[j][i] - self.points[j][i-1])/ np.linalg.norm(self.points[j][i] - self.points[j][i-1]))
+                        print((self.points[j][i] - self.points[j][i-1])/ np.linalg.norm(self.points[j][i] - self.points[j][i-1]))
+                    else:    
+                        self.directions[j].append((self.points[j][0] - self.points[j][i])/ np.linalg.norm(self.points[j][0] - self.points[j][i]))
                 else:
                     self.directions[j].append(
                         (self.points[j][i + 1] - self.points[j][i])
@@ -180,7 +182,7 @@ class Experiment:
         self.target_point = self.points[self.current_path][self.current_index]
         self.target_direction = self.directions[self.current_path][self.current_index]
         if (
-            self.current_index in self.adjacent_points[self.current_path]
+            self.current_index in self.adjacent_points[self.current_path] # the index is elgible for switching
         ):
             
             pass_vector = self.adjacent_points[self.current_path][self.current_index][1]
@@ -192,55 +194,37 @@ class Experiment:
                 * self.target_direction
             )
             cos_of_angle = 0
-            if np.linalg.norm(pass_vector)* np.linalg.norm(lane_cohesion_position_error) !=0:
+            if abs (np.linalg.norm(pass_vector)* np.linalg.norm(lane_cohesion_position_error))<=0.01:
+                cos_of_angle=1
+            else:
                 cos_of_angle = np.dot(pass_vector, lane_cohesion_position_error) / (np.linalg.norm(pass_vector)* np.linalg.norm(lane_cohesion_position_error))
             
             if cos_of_angle >= 0.9:
                 self.switch()
         # Finding the next bigger Index ----------
-        range_to_next = (
-            np.array(swarm_telem[self.id].position_ned, dtype="float64")
-            - self.points[self.current_path][
-                index_checker(self.current_index + 1, self.length[self.current_path])
-            ]
-        )
-        if (
-            np.dot(range_to_next, self.directions[self.current_path][self.current_index])> 0
-        ):  # drone has passed the point next to current one
-            self.current_index = index_checker(
-                self.current_index + 1, self.length[self.current_path]
+        dot_next_point = 0
+            
+        while dot_next_point >= 0 and not (self.passed_last_point[self.current_path]==True and self.repeat[self.current_path]=="STAY"):  # Searching for farther points, if the drone reach the last point and it has STAY for its path, searching for more points should be stopped
+            next_point = index_checker(
+                self.current_index +1, self.length[self.current_path]
             )
-            self.target_point = self.points[self.current_path][self.current_index]
-            self.target_direction = self.directions[self.current_path][
-                self.current_index
-            ]
-            iterator = 0
-            dot_fartherpoints = 0
-            while dot_fartherpoints >= 0:  # Searching for farther points
-                iterator += 1
-                farther_point = index_checker(
-                    self.current_index + iterator, self.length[self.current_path]
-                )
-                range_to_farther_point = (
-                    np.array(swarm_telem[self.id].position_ned, dtype="float64")
-                    - self.points[self.current_path][farther_point]
-                )
-                dot_fartherpoints = np.dot(
-                    range_to_farther_point,
-                    self.directions[self.current_path][farther_point - 1],
-                )
-            # Now farther_point has negative dot product
-            if farther_point != 0:
-                self.current_index = farther_point - 1
-            else:
-                self.current_index = (
-                    self.length[self.current_path] - 1
-                )  # the index of the last point of the current path
+            range_to_next = (
+                np.array(swarm_telem[self.id].position_ned, dtype="float64")
+                - self.points[self.current_path][next_point]
+            )
+            dot_next_point = np.dot(
+                range_to_next,
+                self.directions[self.current_path][next_point - 1],
+            )
+            if (dot_next_point>=0):
+                self.current_index=next_point
+                if (next_point==self.length[self.current_path]-1): # it shows the drone has passed the last point of the current path
+                    self.passed_last_point[self.current_path]=True
 
-            self.target_point = self.points[self.current_path][self.current_index]
-            self.target_direction = self.directions[self.current_path][
-                self.current_index
-            ]
+        self.target_point = self.points[self.current_path][self.current_index]
+        self.target_direction = self.directions[self.current_path][
+            self.current_index
+        ]
         # Calculating migration velocity (normalized)---------------------
         limit_v_migration = 1
         v_migration = self.target_direction / np.linalg.norm(self.target_direction)
@@ -278,16 +262,19 @@ class Experiment:
             )
         # Calculating v_rotation (normalized)---------------------
         limit_v_rotation = 1
-        if lane_cohesion_position_error_magnitude < self.lane_radius[self.current_path][self.current_index]:
-            v_rotation_magnitude = (
-                lane_cohesion_position_error_magnitude
-                / self.lane_radius[self.current_path][self.current_index]
-            )
+        if lane_cohesion_position_error_magnitude==0:
+            v_rotation_magnitude=0
         else:
-            v_rotation_magnitude = (
-                self.lane_radius[self.current_path][self.current_index]
-                / lane_cohesion_position_error_magnitude
-            )
+            if lane_cohesion_position_error_magnitude < self.lane_radius[self.current_path][self.current_index]:
+                v_rotation_magnitude = (
+                    lane_cohesion_position_error_magnitude
+                    / self.lane_radius[self.current_path][self.current_index]
+                )
+            else:
+                v_rotation_magnitude = (
+                    self.lane_radius[self.current_path][self.current_index]
+                    / lane_cohesion_position_error_magnitude
+                )
         cross_prod = np.cross(lane_cohesion_position_error, self.target_direction)
         if np.linalg.norm(cross_prod) != 0:
             v_rotation = (
@@ -326,17 +313,17 @@ class Experiment:
                 )
 
         # checking the last point of the current path
-        if self.current_index==(len(self.points[self.current_path])-1) and self.repeat[self.current_path]=="STOP":
+        if self.passed_last_point[self.current_path]==True and self.repeat[self.current_path]=="STOP":
             self.k_lane_cohesion=0
             self.k_migration =0
             self.k_rotation=0
 
-        elif self.current_index==(len(self.points[self.current_path])-1) and self.repeat[self.current_path]=="STAY":
+        elif self.passed_last_point[self.current_path]==True and self.repeat[self.current_path]=="STAY":
             v_migration=0
         
-        elif self.current_index==(len(self.points[self.current_path])-1) and self.repeat[self.current_path]=="REPEAT":
+        elif self.passed_last_point[self.current_path]==True and self.repeat[self.current_path]=="REPEAT":
             pass
-
+        #print("self.current_index", self.current_index, "self.current_path", self.current_path, "self.id", self.id, "self.passed_last_point[self.current_path]", self.passed_last_point[self.current_path])
         desired_vel = (
             self.k_lane_cohesion * v_lane_cohesion
             + self.k_migration * v_migration
