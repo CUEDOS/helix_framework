@@ -6,7 +6,7 @@
 	"k_seperation": 2,
 	"r_conflict": 5,
 	"r_collision": 2.5,
-	"pass_permission": [[null], [null], [null], [null], [null], [null], [null], [null], [null], [null]],
+	"pass_permission": [{}, {}, {}, {}, {}, {}, {}, {}, {}, {}],
 	"repeat": ["REPEAT"],
 	"pre_start_positions": [
 		[

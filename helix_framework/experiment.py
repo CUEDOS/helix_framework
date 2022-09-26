@@ -34,7 +34,7 @@ class Experiment:
         self.rotation_factor = 1
         self.directions = []
         self.current_index = 0
-        self.pass_permission = [] # self.pass_permission[i]: pass permission of switch from path i to index_checker(i+1, number of paths)
+        self.pass_permission = {} # self.pass_permission[j]: shows the path wchich path j can switch to
         self.target_point = np.array([0, 0, 0], dtype="float64")
         self.target_direction = np.array([1, 1, 1], dtype="float64")
         self.load(experiment_file_path, swarm_telem)
@@ -50,9 +50,7 @@ class Experiment:
         self.k_separation = experiment_parameters["k_seperation"]
         self.r_conflict = experiment_parameters["r_conflict"]
         self.r_collision = experiment_parameters["r_collision"]
-        self.pass_permission_list = experiment_parameters[  # self.pass_permission_list[n][j]: is the pass permission for drone n from path j
-            "pass_permission"
-        ]  # the permission to go to another path
+        self.pass_permission_list = experiment_parameters["pass_permission"]  # self.pass_permission_list[n]: is a dictionary to show switching paths for drone n, it should be empty if there is no switching 
         self.switching_points=experiment_parameters["switching_points"] # self.pass_switching_points[j]: contains all of the points which can switch from path j
         self.repeat = experiment_parameters[
             "repeat"
@@ -86,9 +84,9 @@ class Experiment:
     def get_path_and_permission(self, swarm_priorities):
         if self.id in swarm_priorities:
             self.current_path = self.initial_paths[swarm_priorities.index(self.id)]
-            self.pass_permission = self.pass_permission_list[
-                swarm_priorities.index(self.id)
-            ]
+            for j , next_path in self.pass_permission_list[swarm_priorities.index(self.id)].items():
+                self.pass_permission.update({int(j): next_path}) # j here is a string
+        
         self.create_adjacent_points()
 
     def get_swarm_priorities(self, swarm_telem):
@@ -110,7 +108,6 @@ class Experiment:
                 if i == len(self.points[j]) - 1:
                     if self.repeat[j]=="STAY": # if we want to stay at the last point
                         self.directions[j].append((self.points[j][i] - self.points[j][i-1])/ np.linalg.norm(self.points[j][i] - self.points[j][i-1]))
-                        print((self.points[j][i] - self.points[j][i-1])/ np.linalg.norm(self.points[j][i] - self.points[j][i-1]))
                     else:    
                         self.directions[j].append((self.points[j][0] - self.points[j][i])/ np.linalg.norm(self.points[j][0] - self.points[j][i]))
                 else:
@@ -121,37 +118,34 @@ class Experiment:
         print("done creating directions")
 
     def create_adjacent_points(self) -> None:
-        self.adjacent_points = []
-        if len(self.points)==1:            # in this case, there should be no adjacent points
-            self.adjacent_points.append({})
-        else:
-            for j in range(len(self.points)):  # j is the number of path
-                self.adjacent_points.append({})  # jth dictionary in adjacent_points is for jth path
-                if self.pass_permission[j] != None: # if there is a path that path j can switch to
-                    next_path=self.pass_permission[j]
-                    for switching_point in self.switching_points[j]:
-                        for k in range(
-                            len(self.points[next_path]) # self.pass_permission[j] shows the path we can switch from path j
-                        ):
-                            current_distance = np.linalg.norm(
-                                self.points[j][switching_point]
-                                - self.points[next_path][k])
+        self.adjacent_points = [{} for j in range(len(self.points))]
+        for j in self.pass_permission:  # j is the number of path
+            if self.pass_permission[j] != None: # if there is a path that path j can switch to
+                next_path=self.pass_permission[j]
+                for switching_point in self.switching_points[j]:
+                    for k in range(
+                        len(self.points[next_path]) # self.pass_permission[j] shows the path we can switch from path j
+                    ):
+                        current_distance = np.linalg.norm(
+                            self.points[j][switching_point]
+                            - self.points[next_path][k])
                             
-                            if (
-                                current_distance
-                                <= (self.lane_radius[j][switching_point]
-                                + self.lane_radius[self.pass_permission[j]][k])*1.001  # this 1 percent is to compensate numerical calculation inaccuracies
+                        if (
+                            current_distance
+                            <= (self.lane_radius[j][switching_point]
+                            + self.lane_radius[self.pass_permission[j]][k])*1.001  # this 1 percent is to compensate numerical calculation inaccuracies
     
-                            ):
-                                pass_vector = (
-                                    self.points[j][switching_point]
-                                    - self.points[self.pass_permission[j]][k]
-                                )
-                                if np.linalg.norm(pass_vector)!=0:
-                                    pass_vector = pass_vector / np.linalg.norm(pass_vector)
-                                self.adjacent_points[j].update(
-                                    {switching_point: [k, pass_vector]}
-                                )  # jth dictionary is {adj. point of path j: [adj. point of next_path, vector from adj. point of path j to adj. point of next_path]}
+                        ):
+                            pass_vector = (
+                                self.points[j][switching_point]
+                                - self.points[self.pass_permission[j]][k]
+                            )
+                            if np.linalg.norm(pass_vector)!=0:
+                                pass_vector = pass_vector / np.linalg.norm(pass_vector)
+                            
+                            self.adjacent_points[j].update(
+                                {switching_point: [k, pass_vector]}
+                            )  # jth dictionary is {adj. point of path j: [adj. point of next_path, vector from adj. point of path j to adj. point of next_path]}
 
     def initial_nearest_point(self, swarm_telem) -> None:
         lnitial_least_distance = math.inf
@@ -194,7 +188,7 @@ class Experiment:
                 * self.target_direction
             )
             cos_of_angle = 0
-            if abs (np.linalg.norm(pass_vector)* np.linalg.norm(lane_cohesion_position_error))<=0.01:
+            if abs (np.linalg.norm(pass_vector)) <=0.05 or abs(np.linalg.norm(lane_cohesion_position_error))<=0.05:
                 cos_of_angle=1
             else:
                 cos_of_angle = np.dot(pass_vector, lane_cohesion_position_error) / (np.linalg.norm(pass_vector)* np.linalg.norm(lane_cohesion_position_error))
@@ -262,7 +256,7 @@ class Experiment:
             )
         # Calculating v_rotation (normalized)---------------------
         limit_v_rotation = 1
-        if lane_cohesion_position_error_magnitude==0:
+        if lane_cohesion_position_error_magnitude==0 or self.lane_radius[self.current_path][self.current_index]==0:
             v_rotation_magnitude=0
         else:
             if lane_cohesion_position_error_magnitude < self.lane_radius[self.current_path][self.current_index]:
@@ -323,7 +317,7 @@ class Experiment:
         
         elif self.passed_last_point[self.current_path]==True and self.repeat[self.current_path]=="REPEAT":
             pass
-        #print("self.current_index", self.current_index, "self.current_path", self.current_path, "self.id", self.id, "self.passed_last_point[self.current_path]", self.passed_last_point[self.current_path])
+
         desired_vel = (
             self.k_lane_cohesion * v_lane_cohesion
             + self.k_migration * v_migration
