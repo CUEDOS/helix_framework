@@ -116,6 +116,8 @@ def visualize_path_following (**Input):
         for id in swarm_telem:
             velocity_ned_yaw = drones[id][0].path_following(swarm_telem, max_speed, time_step, max_accel)  # object of class VelocityNedYaw
             drones[id][0].velocity_ned =np.array([velocity_ned_yaw.north_m_s,velocity_ned_yaw.east_m_s,velocity_ned_yaw.down_m_s])
+            if (t<=drones[id][0].start_delay/1000000):
+                drones[id][0].velocity_ned =np.array([0, 0, 0], dtype="float64")
         # Integrating
         for id in swarm_telem:
             swarm_telem[id].position_ned=np.array(swarm_telem[id].position_ned) + drones[id][0].velocity_ned*dt
@@ -253,5 +255,5 @@ def visualize_path_following (**Input):
     fig.show()
 
 
-visualize_path_following(drone_num = 16, dt=0.1, output_CSV_file_dir='/home/m74744sa/Desktop/All_csvs/Python_sim.csv', JSON_file_dir='/home/m74744sa/Documents/helix_framework/helix_framework/experiments/Same_level_vertiport.json', show_corridors=True)
+visualize_path_following(drone_num = 4, dt=0.1, output_CSV_file_dir='/home/m74744sa/Desktop/All_csvs/Python_sim.csv', JSON_file_dir='/home/m74744sa/Documents/helix_framework/helix_framework/experiments/Same_level_vertiport.json', show_corridors=True)
 #visualize_path_following(drone_num = number of drones, dt= time step in sec, frame_duration= duration of each frame of animation in seconds, output_CSV_file_dir='/path_to_output_CSV_file/output_CSV_file_name.csv', experiment_file_path='/path_to_experiment_json_file/json_file_name.json', show_corridors=True)

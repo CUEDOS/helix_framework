@@ -10,6 +10,7 @@ from data_structures import AgentTelemetry
 import math
 import numpy as np
 from string import digits
+import time
 
 
 def index_checker(input_index, length) -> int:
@@ -27,9 +28,11 @@ class Experiment:
     def __init__(self, id, swarm_telem, experiment_file_path) -> None:
         self.ready_flag = False
         self.id = id
-        self.least_distance = 2  # minimum allowed distance between two agents
-        # Set up corridor variables
+
+        # Set up mission variables
         self.points = [[]]
+        self.start_time=0
+        self.start_delay=0 # delay in micro seconds
         self.current_path = 0
         self.rotation_factor = 1
         self.directions = []
@@ -50,7 +53,7 @@ class Experiment:
         self.k_separation = experiment_parameters["k_seperation"]
         self.r_conflict = experiment_parameters["r_conflict"]
         self.r_collision = experiment_parameters["r_collision"]
-        self.pass_permission_list = experiment_parameters["pass_permission"]  # self.pass_permission_list[n]: is a dictionary to show switching paths for drone n, it should be empty if there is no switching 
+        self.pass_permission_list = experiment_parameters["pass_permission_list"]  # self.pass_permission_list[n]: is a dictionary to show switching paths for drone n, it should be empty if there is no switching 
         self.switching_points=experiment_parameters["switching_points"] # self.pass_switching_points[j]: contains all of the points which can switch from path j
         self.repeat = experiment_parameters[
             "repeat"
@@ -60,12 +63,12 @@ class Experiment:
         self.lane_radius = experiment_parameters["corridor_radius"]
         self.points = experiment_parameters["corridor_points"]
         self.rotation_dir = experiment_parameters["path_rotation_dir"]
+        self.start_delay_list=experiment_parameters["start_delay_list"]
         self.length = [
             len(self.points[j]) for j in range(len(self.points))
         ]  # j is the number of a path
         self.passed_last_point=[False for j in range(len(self.points))] # to see if the drone has passed the last point of path j or not
         self.create_directions()
-        # self.initial_nearest_point(swarm_telem)
         self.ready_flag = True
 
     def get_pre_start_positions(self, swarm_telem, swarm_priorities):
@@ -84,14 +87,16 @@ class Experiment:
     def get_path_and_permission(self, swarm_priorities):
         if self.id in swarm_priorities:
             self.current_path = self.initial_paths[swarm_priorities.index(self.id)]
+            self.start_delay=self.start_delay_list[swarm_priorities.index(self.id)]
             for j , next_path in self.pass_permission_list[swarm_priorities.index(self.id)].items():
                 self.pass_permission.update({int(j): next_path}) # j here is a string
+            
         
         self.create_adjacent_points()
 
-    def get_swarm_priorities(self, swarm_telem):
+    def get_swarm_priorities(self, swarm_telem):  # swarm_telem is an object of AgentTelemetry
         numeric_ids = {}
-        # assigned_pre_start_positions = {}
+        # assigned_pre_startawait asynciopositions = {}
         # numeric_id = int(only_numeric(self.id))
         for agent in swarm_telem.keys():
             numeric_ids[agent] = int(only_numeric(agent))
@@ -293,8 +298,7 @@ class Experiment:
             p = np.array(swarm_telem[key].position_ned, dtype="float64")
             x = np.array(swarm_telem[self.id].position_ned, dtype="float64") - p
             d = np.linalg.norm(x)
-            if self.least_distance > d:
-                self.least_distance = d
+
             if d <= r_conflict and d > r_collision and d != 0:
                 v_separation = v_separation + (
                     (x / d) * (r_conflict - d / r_conflict - r_collision)
@@ -305,6 +309,14 @@ class Experiment:
                 v_separation = (
                     v_separation * limit_v_separation / np.linalg.norm(v_separation)
                 )
+
+        # checking for start delay time
+        if (swarm_telem[self.id].current_time-self.start_time <= self.start_delay and swarm_telem[self.id].current_time!=0): # if it is true, it is not the time to start the mission
+            v_lane_cohesion=np.array([0, 0, 0], dtype="float64") 
+            v_migration=np.array([0, 0, 0], dtype="float64")
+            v_rotation=np.array([0, 0, 0], dtype="float64")
+            v_separation=np.array([0, 0, 0], dtype="float64")
+
 
         # checking the last point of the current path
         if self.passed_last_point[self.current_path]==True and self.repeat[self.current_path]=="STOP":

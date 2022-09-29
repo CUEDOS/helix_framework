@@ -30,7 +30,7 @@ class Agent:
         self.load_parameters(parameters)
         self.swarm_manager = SwarmManager()
         self.swarm_manager.telemetry[self.id] = AgentTelemetry()
-        self.current_experiment = "Parabolic_way_Roundabout_S_to_N_NZ"
+        self.current_experiment = "Same_level_vertiport"
         self.return_alt: float = 10
         if self.logging == True:
             self.logger = setup_logger(self.id)
@@ -278,13 +278,15 @@ class Agent:
         self.experiment.initial_nearest_point(self.swarm_manager.telemetry)
 
     async def run_experiment(self):
-        print("running experiment")
+        print("Starting experiment")
         await self.start_offboard(self.drone)
 
         # End of Init the drone
         offboard_loop_duration = 0.1  # duration of each loop
 
         # Loop in which the velocity command outputs are generated
+        self.experiment.start_time=self.swarm_manager.telemetry[self.id].current_time
+        # Calling method path_following
         while (
             self.comms.current_command == "Experiment"
             and self.experiment.ready_flag == True

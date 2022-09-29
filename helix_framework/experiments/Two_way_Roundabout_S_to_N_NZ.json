@@ -6,7 +6,8 @@
 	"k_seperation": 2,
 	"r_conflict": 5,
 	"r_collision": 2.5,
-	"pass_permission": [[2, 0, null, null, null], [4, null, null, 0, null], [2, 0, null, null, null], [4, null, null, 0, null], [2, 0, null, null, null], [4, null, null, 0, null], [2, 0, null, null, null], [4, null, null, 0, null], [2, 0, null, null, null], [4, null, null, 0, null]],
+	"start_delay_list":[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+	"pass_permission_list": [[2, 0, null, null, null], [4, null, null, 0, null], [2, 0, null, null, null], [4, null, null, 0, null], [2, 0, null, null, null], [4, null, null, 0, null], [2, 0, null, null, null], [4, null, null, 0, null], [2, 0, null, null, null], [4, null, null, 0, null]],
 	"repeat": ["STOP", "STOP", "STOP", "STOP", "STOP"],
 	"pre_start_positions": [
 		[
