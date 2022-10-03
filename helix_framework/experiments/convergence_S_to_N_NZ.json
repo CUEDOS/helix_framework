@@ -7,7 +7,7 @@
 	"r_conflict": 5,
 	"r_collision": 2.5,
 	"start_delay_list":[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-	"pass_permission_list": [{"0":1},{}, {"0":1}, {}, {"0":1}, {}, {"0":1}, {}, {"0":1}, {}],
+	"pass_permission_list": [{"0":[1]},{}, {"0":[1]}, {}, {"0":[1]}, {}, {"0":[1]}, {}, {"0":[1]}, {}],
 	"repeat": ["STOP", "STOP"],
 	"pre_start_positions": [
 		[

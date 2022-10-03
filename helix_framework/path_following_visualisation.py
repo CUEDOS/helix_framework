@@ -27,15 +27,18 @@ def visualize_path_following (**Input):
     Returns:
         An animated figure of all drones of simulation, and a CSV file containing position, drone id, time stamp and type of experiment
     """
+    #default parameters value
     drone_size=10
     Ticks_num=10
-    simulation_time=200
+    simulation_time=400
     dt=0.1
     drone_num = 2
     frame_duration=None
     output_CSV_file_dir=None
     JSON_file_dir=None
     show_corridors=False
+    show_annotations=False
+    CSV_order="vertical"
     for key, value in Input.items():
         if key=="simulation_time":
             simulation_time=value
@@ -55,6 +58,10 @@ def visualize_path_following (**Input):
             frame_duration=value
         elif key=='show_corridors':
             show_corridors=value
+        elif key=='CSV_order':
+            CSV_order=value
+        elif key=='show_annotations':
+            show_annotations=value
             
     if JSON_file_dir==None:
         print('Error: A directory to input JSON file should be provided')
@@ -110,7 +117,7 @@ def visualize_path_following (**Input):
     simulation_steps=0
     
     while (t<=simulation_time):
-        t+=dt
+        t=round(t+dt, 3)
         simulation_steps+=1
         # Calculating target velocities
         for id in swarm_telem:
@@ -140,25 +147,46 @@ def visualize_path_following (**Input):
     fig_colors=['blue','red', 'lightgreen', 'orange','aqua', 'silver', 'magenta', 'darkkhaki','dodgerblue','green','black','brown']
     Output_CSV_file=open(output_CSV_file_dir, 'w')
     writer = csv.writer(Output_CSV_file)
-    header=['x(m)', 'y(m)', 'z(m)', 'time(s)', 'drone id', 'offboard mode status','type of experiment']
-    writer.writerow(header)
 
+    if (CSV_order=="horizontal"):
+        header=['time(s)']
+        for id in drone_ids:
+            header.append("x(m)"+"_"+id)
+            header.append("y(m)"+"_"+id)
+            header.append("z(m)"+"_"+id)
+        writer.writerow(header)
+        # creating horizontal rows
+        for i in range(simulation_steps):
+            row=[drones[drone_ids[0]][4][i]]
+            for id in drone_ids:
+                row.append(drones[id][1][i])
+                row.append(drones[id][2][i])
+                row.append(drones[id][3][i])
+
+            writer.writerow(row)
+    else:
+        header=['x(m)', 'y(m)', 'z(m)', 'time(s)', 'drone id', 'offboard mode status','type of experiment']
+        writer.writerow(header)
+    
     for id in drone_ids:  # to count ids in order
+        print("The least distance between dornes ", id, "and ",drones[id][0].min_distance[1][id], "=", drones[id][0].min_distance[0])
         for i in range(simulation_steps):
             X_total.append(drones[id][1][i])
             Y_total.append(drones[id][2][i])
             Z_total.append(drones[id][3][i])
             Time_total.append(drones[id][4][i])
             labels_total.append(id)
-            
-            row=[drones[id][1][i], drones[id][2][i], drones[id][3][i], drones[id][4][i], id, 1, 'Python_simulation'] # x, y , z, time (s), id, offboard mode status, type of experiment
-            writer.writerow(row)
+
+            if CSV_order=="vertical":
+                row=[drones[id][1][i], drones[id][2][i], drones[id][3][i], drones[id][4][i], id, 1, 'Python_simulation'] # x, y , z, time (s), id, offboard mode status, type of experiment
+                writer.writerow(row)
+    
     Output_CSV_file.close()
     
 
     SIZE=int(drone_size)
     size=[SIZE for k in range(len(X_total))]
-    fig= px.scatter_3d(x=X_total, y=Y_total, z=Z_total, animation_frame=Time_total, opacity=1, size=size, color=labels_total, size_max=max(size),color_discrete_sequence=fig_colors)
+    fig= px.scatter_3d(x=X_total, y=Y_total, z=Z_total, animation_frame=Time_total, opacity=1, size=size, color=labels_total, size_max=max(size), color_discrete_sequence=fig_colors)
 
     #Adding lines to the figure
     for j in range(len(drone_ids)):
@@ -210,6 +238,9 @@ def visualize_path_following (**Input):
                 )
             )
 
+    #Adding annotations:
+    if show_annotations==True:
+        pass
     x_right_margin=x_max+(x_max-x_min)*0.05
     x_left_margin=x_min-(x_max-x_min)*0.05
     x_range=x_right_margin-x_left_margin
@@ -236,8 +267,14 @@ def visualize_path_following (**Input):
 
     z_up_margin=z_down_margin + max_range
     z_range=max_range
-
-
+    
+    #Creating annotations
+    annotation_list=[]
+    if (show_annotations==True):
+        for id in drone_ids:
+            for swithced_position in drones[id][0].switched_positions:
+                annotation_list.append(dict(x=swithced_position[0], y=swithced_position[1], z=-swithced_position[2], text= id+" switched", opacity=0.7, font=dict(color="black",size=5), arrowcolor="black", arrowsize=1, arrowwidth=0.5, arrowhead=1))
+    
     if frame_duration==None:
         frame_duration=dt # in seconds
     fig.layout.updatemenus[0].buttons[0].args[1]['frame']['duration'] = frame_duration*1000 # in milliseconds
@@ -248,12 +285,18 @@ def visualize_path_following (**Input):
         legend=dict(itemsizing='constant',font=dict(family="Times New Roman",size=20), bgcolor="LightSteelBlue", bordercolor="Black", borderwidth=2),
         scene_aspectmode='manual',
         scene_aspectratio=dict(x=1, y=1, z=1), 
-        scene = dict(xaxis = dict(nticks=Ticks_num,range=[x_right_margin,x_left_margin], visible=True), yaxis = dict(nticks=Ticks_num, range=[y_up_margin,y_down_margin], visible=True),zaxis = dict(nticks=Ticks_num,range=[z_down_margin,z_up_margin], visible=True)),
+        scene = dict(
+            xaxis = dict(nticks=Ticks_num,range=[x_right_margin,x_left_margin], visible=True), 
+            yaxis = dict(nticks=Ticks_num, range=[y_up_margin,y_down_margin], visible=True),
+            zaxis = dict(nticks=Ticks_num,range=[z_down_margin,z_up_margin], visible=True), 
+            annotations=annotation_list
+            ),
         legend_title_text='Drones & traces'
         )
+
     fig.layout.scene.camera.projection.type = "perspective" # for orthographic projection set it to "orthographic"
     fig.show()
 
 
-visualize_path_following(drone_num = 4, dt=0.1, output_CSV_file_dir='/home/m74744sa/Desktop/All_csvs/Python_sim.csv', JSON_file_dir='/home/m74744sa/Documents/helix_framework/helix_framework/experiments/Same_level_vertiport.json', show_corridors=True)
+visualize_path_following(drone_num = 6, dt=0.1, output_CSV_file_dir='/home/m74744sa/Desktop/All_csvs/Python_sim.csv', JSON_file_dir='/home/m74744sa/Documents/helix_framework/helix_framework/experiments/Same_level_vertiport.json', show_corridors=True, CSV_order="horizontal", show_annotations=True)
 #visualize_path_following(drone_num = number of drones, dt= time step in sec, frame_duration= duration of each frame of animation in seconds, output_CSV_file_dir='/path_to_output_CSV_file/output_CSV_file_name.csv', experiment_file_path='/path_to_experiment_json_file/json_file_name.json', show_corridors=True)

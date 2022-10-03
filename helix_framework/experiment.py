@@ -40,6 +40,8 @@ class Experiment:
         self.pass_permission = {} # self.pass_permission[j]: shows the path wchich path j can switch to
         self.target_point = np.array([0, 0, 0], dtype="float64")
         self.target_direction = np.array([1, 1, 1], dtype="float64")
+        self.min_distance=[math.inf,{}]
+        self.switched_positions=[] # to save the positions where the drone switches
         self.load(experiment_file_path, swarm_telem)
 
     def load(self, experiment_file_path, swarm_telem):
@@ -123,33 +125,30 @@ class Experiment:
         print("done creating directions")
 
     def create_adjacent_points(self) -> None:
-        self.adjacent_points = [{} for j in range(len(self.points))]
+        self.adjacent_points = [{} for j in range(len(self.points))] # jth dictionary is for jth path
         for j in self.pass_permission:  # j is the number of path
-            if self.pass_permission[j] != None: # if there is a path that path j can switch to
-                next_path=self.pass_permission[j]
-                for switching_point in self.switching_points[j]:
-                    for k in range(
-                        len(self.points[next_path]) # self.pass_permission[j] shows the path we can switch from path j
-                    ):
-                        current_distance = np.linalg.norm(
+            for switching_point in self.switching_points[j]:
+                for next_path in self.pass_permission[j]:
+                    for k in range(len(self.points[next_path])): # self.pass_permission[j] shows the path we can switch from path j
+                        points_distance = np.linalg.norm(
                             self.points[j][switching_point]
                             - self.points[next_path][k])
                             
                         if (
-                            current_distance
+                            points_distance
                             <= (self.lane_radius[j][switching_point]
-                            + self.lane_radius[self.pass_permission[j]][k])*1.001  # this 1 percent is to compensate numerical calculation inaccuracies
+                            + self.lane_radius[next_path][k])*1.001  # this 1 percent is to compensate numerical calculation inaccuracies
     
                         ):
                             pass_vector = (
                                 self.points[j][switching_point]
-                                - self.points[self.pass_permission[j]][k]
+                                - self.points[next_path][k]
                             )
                             if np.linalg.norm(pass_vector)!=0:
                                 pass_vector = pass_vector / np.linalg.norm(pass_vector)
                             
                             self.adjacent_points[j].update(
-                                {switching_point: [k, pass_vector]}
+                                {switching_point: [k, next_path, pass_vector]}
                             )  # jth dictionary is {adj. point of path j: [adj. point of next_path, vector from adj. point of path j to adj. point of next_path]}
 
     def initial_nearest_point(self, swarm_telem) -> None:
@@ -163,13 +162,13 @@ class Experiment:
                 lnitial_least_distance = range_to_point_i
                 self.current_index = i
 
-    def switch(self):
+    def switch(self, switching_point):
         print(self.id, 'switched from',self.current_path, "at index", self.current_index)
-        next_path=self.pass_permission [self.current_path]
-        self.pass_permission [self.current_path]= None  # the agent is not allowed to get back to previous path anymore
+        next_path=self.adjacent_points[self.current_path][switching_point][1]
+        self.pass_permission [self.current_path]= [] # the agent is not allowed to get back to previous path anymore
 
         self.current_index = self.adjacent_points[self.current_path][
-            self.current_index
+            switching_point
         ][
             0
         ]  # now current index is a point of the next path
@@ -184,7 +183,7 @@ class Experiment:
             self.current_index in self.adjacent_points[self.current_path] # the index is elgible for switching
         ):
             
-            pass_vector = self.adjacent_points[self.current_path][self.current_index][1]
+            pass_vector = self.adjacent_points[self.current_path][self.current_index][2]
             lane_cohesion_position_error = self.target_point - np.array(
                 swarm_telem[self.id].position_ned, dtype="float64"
             )
@@ -199,7 +198,8 @@ class Experiment:
                 cos_of_angle = np.dot(pass_vector, lane_cohesion_position_error) / (np.linalg.norm(pass_vector)* np.linalg.norm(lane_cohesion_position_error))
             
             if cos_of_angle >= 0.9:
-                self.switch()
+                self.switched_positions.append(np.array(swarm_telem[self.id].position_ned, dtype="float64"))
+                self.switch(self.current_index)
         # Finding the next bigger Index ----------
         dot_next_point = 0
             
@@ -298,6 +298,10 @@ class Experiment:
             p = np.array(swarm_telem[key].position_ned, dtype="float64")
             x = np.array(swarm_telem[self.id].position_ned, dtype="float64") - p
             d = np.linalg.norm(x)
+            
+            if d<=self.min_distance[0]:
+                self.min_distance[0]=d
+                self.min_distance[1]={self.id:key}
 
             if d <= r_conflict and d > r_collision and d != 0:
                 v_separation = v_separation + (
