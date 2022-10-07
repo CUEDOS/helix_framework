@@ -17,9 +17,10 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
         ref_alt: altitude of geodetic origin reference point
         drone_size: size of drones in visualization
         ticks_num: number of ticks for each cartesian axis
-        dt= time step of animation in seconds
+        dt: time step of animation in seconds
         sitl_or_real: if its value is 'real', it means ulg is for a real experiment and if the value is 'sitl' it means ulg is for a sitl simulation (the default value is 'real'), 
         frame_duration: duratin of each frame of animation (second)
+        cubic_space: if True, the whole sapce will be a cube
 
         Note: if a user does not provide one arguments of ref_lat, ref_long and ref_alt, the function considers 
             a point with the least latitude, longitude and altitude as the reference point
@@ -57,6 +58,8 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
             output_CSV_file_dir=value
         elif key=='frame_duration':
             frame_duration=value
+        elif key=='cubic_space':
+            cubic_space=value
         
     if folder_of_ulg==None:
         print('Error: A directory to folder of input ulg files should be provided')
@@ -251,46 +254,38 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
                 Time_total.append(t-max_start_time)
                 labels_total.append(file_names[j])
 
-    x_right_margin=x_max+(x_max-x_min)*0.05
-    x_left_margin=x_min-(x_max-x_min)*0.05
-    x_range=x_right_margin-x_left_margin
-    x_parts=Ticks_num
-
-    y_up_margin=y_max+(y_max-y_min)*0.05
-    y_down_margin=y_min-(y_max-y_min)*0.05
-    y_range=y_up_margin-y_down_margin
-
-    z_up_margin=z_max+(z_max-z_min)*0.05
-    z_down_margin=z_min
-    z_range=z_up_margin-z_down_margin
+    x_range=x_max-x_min
+    x_max=x_max+(x_range)*0.05
+    x_min=x_min-(x_range)*0.05
+    x_range=x_max-x_min
     
-    # Making figure a cube with real scale
-    x_right_margin=x_max+(x_max-x_min)*0.05
-    x_left_margin=x_min-(x_max-x_min)*0.05
-    x_range=x_right_margin-x_left_margin
-
-    y_up_margin=y_max+(y_max-y_min)*0.05
-    y_down_margin=y_min-(y_max-y_min)*0.05
-    y_range=y_up_margin-y_down_margin
-
-    z_up_margin=z_max+(z_max-z_min)*0.05
-    z_down_margin=z_min
-    z_range=z_up_margin-z_down_margin
+    y_range=y_max-y_min
+    y_max=y_max+(y_range)*0.05
+    y_min=y_min-(y_range)*0.05
+    y_range=y_max-y_min
     
-    # Making figure a cube with real scale
-    max_range=max(x_range, y_range, z_range)
-    x_mean=(x_right_margin+x_left_margin)/2.0
-    x_right_margin=x_mean + max_range/2.0
-    x_left_margin=x_mean- max_range/2.0
-    x_range=max_range
 
-    y_mean=(y_up_margin+y_down_margin)/2.0 
-    y_up_margin=y_mean + max_range/2.0
-    y_down_margin=y_mean - max_range/2.0
-    y_range=max_range
+    z_range=z_max-z_min
+    z_max=z_max+(z_range)*0.05
+    z_min=z_min
+    z_range=z_max-z_min
+    
 
-    z_up_margin=z_down_margin + max_range
-    z_range=max_range
+    if cubic_space==True: #Making figure a cube with real scale
+    
+        max_range=max(x_range, y_range, z_range)
+        x_mean=(x_max + x_min)/2.0
+        x_max=x_mean + max_range/2.0
+        x_min=x_mean- max_range/2.0
+        x_range=max_range
+
+        y_mean=(y_max+y_min)/2.0 
+        y_max=y_mean + max_range/2.0
+        y_min=y_mean - max_range/2.0
+        y_range=max_range
+
+        z_max=z_min + max_range
+        z_range=max_range
 
     
     SIZE=int(Drone_size)
@@ -314,18 +309,23 @@ def visualize_ulg (**Input):  # input keyword arguments: ref_lat, ref_long, ref_
     if frame_duration==None:
         frame_duration=(interp_time[1]-interp_time[0]) # in seconds
     fig.layout.updatemenus[0].buttons[0].args[1]['frame']['duration'] = frame_duration*1000 # in milliseconds
-    fig.layout.updatemenus[0].buttons[0].args[1]['frame']['duration'] = frame_duration*1000 # in milliseconds
     fig.layout.updatemenus[0].buttons[0].args[1]['transition']['duration'] = 1 # in milliseconds
     fig.update_layout(
         showlegend=True,
         legend=dict(itemsizing='constant',font=dict(family="Times New Roman",size=20), bgcolor="LightSteelBlue", bordercolor="Black", borderwidth=2),
         scene_aspectmode='manual',
-        scene_aspectratio=dict(x=1, y=1, z=1), 
-        scene = dict(xaxis = dict(nticks=Ticks_num,range=[x_right_margin,x_left_margin], visible=True), yaxis = dict(nticks=Ticks_num, range=[y_up_margin,y_down_margin], visible=True),zaxis = dict(nticks=Ticks_num,range=[z_down_margin,z_up_margin], visible=True)),
+        scene_aspectratio=dict(x=1, y=y_range/x_range, z=z_range/x_range), 
+        scene = dict(
+            xaxis = dict(tickmode = 'linear', dtick = int(x_range/Ticks_num), range=[x_min,x_max], visible=True), 
+            yaxis = dict(tickmode = 'linear', dtick = int(x_range/Ticks_num), range=[y_min,y_max], visible=True),
+            zaxis = dict(tickmode = 'linear', dtick = int(x_range/Ticks_num), range=[z_min,z_max], visible=True)
+            ),
         legend_title_text='Drones & traces'
         )
+
     fig.layout.scene.camera.projection.type = "perspective" # for orthographic projection set it to "orthographic"
     fig.show()
+
      
 visualize_ulg(output_CSV_file_dir='/home/m74744sa/Desktop/All_csvs/Real_shot.csv',folder_of_ulg="/home/m74744sa/Desktop/July_5th_shot",ref_lat= 52.816522986211055, ref_long= -4.1271978280723225, ref_alt= 6,drone_size=15, ticks_num=10, sitl_or_real='real')
 #visualize_ulg(output_CSV_file_dir='/path_to_csv_file/csv_file_name.csv', folder_of_ulg='/path_to_folder_containing_ulg_files',ref_lat=latitude of the reference point, ref_long= longitude of the reference point, ref_alt= altitude of the reference point,drone_size= size of drone, ticks_num=number of partitions in the final fig, frame_duration= duration of each frame of animation in seconds)

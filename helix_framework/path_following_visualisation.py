@@ -22,6 +22,7 @@ def visualize_path_following (**Input):
         drone_num: number of drones in Python simulation
         frame_duration: duratin of each frame of animation (second)
         show_corridors: to show corridors or not
+        cubic_space: if True, the whole sapce will be a cube
     
         Note: if a user does not provide one arguments of input experiment json file or output csv file, the code shows an error and stops
     Returns:
@@ -29,8 +30,8 @@ def visualize_path_following (**Input):
     """
     #default parameters value
     drone_size=10
-    Ticks_num=10
-    simulation_time=400
+    Ticks_num=5
+    simulation_time=300
     dt=0.1
     drone_num = 2
     frame_duration=None
@@ -39,6 +40,7 @@ def visualize_path_following (**Input):
     show_corridors=False
     show_annotations=False
     CSV_order="vertical"
+    cubic_space=True
     for key, value in Input.items():
         if key=="simulation_time":
             simulation_time=value
@@ -62,6 +64,8 @@ def visualize_path_following (**Input):
             CSV_order=value
         elif key=='show_annotations':
             show_annotations=value
+        elif key=='cubic_space':
+            cubic_space=value
             
     if JSON_file_dir==None:
         print('Error: A directory to input JSON file should be provided')
@@ -86,6 +90,7 @@ def visualize_path_following (**Input):
     max_speed=5
     time_step=dt
     max_accel=5
+    samllest_min_distance=math.inf
     X_total=[] # positions of all drones along x used for drawing figure
     Y_total=[] # positions of all drones along y used for drawing figure
     Z_total=[] # positions of all drones along z used for drawing figure
@@ -168,8 +173,17 @@ def visualize_path_following (**Input):
         header=['x(m)', 'y(m)', 'z(m)', 'time(s)', 'drone id', 'offboard mode status','type of experiment']
         writer.writerow(header)
     
+    # Creatinf a total list of positions for animation and finding the closest drones positons for annotation
     for id in drone_ids:  # to count ids in order
-        print("The least distance between dornes ", id, "and ",drones[id][0].min_distance[1][id], "=", drones[id][0].min_distance[0])
+        if drones[id][0].min_distance[0] < samllest_min_distance:
+            samllest_min_distance=drones[id][0].min_distance[0]
+            closest_drone_1=drones[id][0].min_distance[1]
+            closest_drone_1_position=drones[id][0].min_distance[3]
+            closest_drone_2=drones[id][0].min_distance[2]
+            closest_drone_2_position=drones[id][0].min_distance[4]
+
+        
+        print("The least distance between dornes ", id, "and ",drones[id][0].min_distance[2], "=", drones[id][0].min_distance[0])
         for i in range(simulation_steps):
             X_total.append(drones[id][1][i])
             Y_total.append(drones[id][2][i])
@@ -181,6 +195,8 @@ def visualize_path_following (**Input):
                 row=[drones[id][1][i], drones[id][2][i], drones[id][3][i], drones[id][4][i], id, 1, 'Python_simulation'] # x, y , z, time (s), id, offboard mode status, type of experiment
                 writer.writerow(row)
     
+    
+    print("The smallest least distance is between dornes ", closest_drone_1, "and ",closest_drone_2, "=", samllest_min_distance)
     Output_CSV_file.close()
     
 
@@ -238,57 +254,65 @@ def visualize_path_following (**Input):
                 )
             )
 
-    #Adding annotations:
-    if show_annotations==True:
-        pass
-    x_right_margin=x_max+(x_max-x_min)*0.05
-    x_left_margin=x_min-(x_max-x_min)*0.05
-    x_range=x_right_margin-x_left_margin
-
-    y_up_margin=y_max+(y_max-y_min)*0.05
-    y_down_margin=y_min-(y_max-y_min)*0.05
-    y_range=y_up_margin-y_down_margin
-
-    z_up_margin=z_max+(z_max-z_min)*0.05
-    z_down_margin=z_min
-    z_range=z_up_margin-z_down_margin
+    x_range=x_max-x_min
+    x_max=x_max+(x_range)*0.05
+    x_min=x_min-(x_range)*0.05
+    x_range=x_max-x_min
     
-    # Making figure a cube with real scale
-    max_range=max(x_range, y_range, z_range)
-    x_mean=(x_right_margin+x_left_margin)/2.0
-    x_right_margin=x_mean + max_range/2.0
-    x_left_margin=x_mean- max_range/2.0
-    x_range=max_range
-
-    y_mean=(y_up_margin+y_down_margin)/2.0 
-    y_up_margin=y_mean + max_range/2.0
-    y_down_margin=y_mean - max_range/2.0
-    y_range=max_range
-
-    z_up_margin=z_down_margin + max_range
-    z_range=max_range
+    y_range=y_max-y_min
+    y_max=y_max+(y_range)*0.05
+    y_min=y_min-(y_range)*0.05
+    y_range=y_max-y_min
     
+
+    z_range=z_max-z_min
+    z_max=z_max+(z_range)*0.05
+    z_min=z_min
+    z_range=z_max-z_min
+    
+
+    if cubic_space==True: #Making figure a cube with real scale
+    
+        max_range=max(x_range, y_range, z_range)
+        x_mean=(x_max + x_min)/2.0
+        x_max=x_mean + max_range/2.0
+        x_min=x_mean- max_range/2.0
+        x_range=max_range
+
+        y_mean=(y_max+y_min)/2.0 
+        y_max=y_mean + max_range/2.0
+        y_min=y_mean - max_range/2.0
+        y_range=max_range
+
+        z_max=z_min + max_range
+        z_range=max_range
+
+    
+
     #Creating annotations
     annotation_list=[]
     if (show_annotations==True):
         for id in drone_ids:
             for swithced_position in drones[id][0].switched_positions:
                 annotation_list.append(dict(x=swithced_position[0], y=swithced_position[1], z=-swithced_position[2], text= id+" switched", opacity=0.7, font=dict(color="black",size=5), arrowcolor="black", arrowsize=1, arrowwidth=0.5, arrowhead=1))
-    
+            
+            # appending the annotations for closest drones
+            annotation_list.append(dict(x=closest_drone_1_position[0], y=closest_drone_1_position[1], z=-closest_drone_1_position[2], text= closest_drone_1+" closest", opacity=0.7, font=dict(color="red",size=5), arrowcolor="red", arrowsize=1, arrowwidth=0.5, arrowhead=1))
+            annotation_list.append(dict(x=closest_drone_2_position[0], y=closest_drone_2_position[1], z=-closest_drone_2_position[2], text= closest_drone_2+" closest", opacity=0.7, font=dict(color="red",size=5), arrowcolor="red", arrowsize=1, arrowwidth=0.5, arrowhead=1))
+
     if frame_duration==None:
         frame_duration=dt # in seconds
-    fig.layout.updatemenus[0].buttons[0].args[1]['frame']['duration'] = frame_duration*1000 # in milliseconds
     fig.layout.updatemenus[0].buttons[0].args[1]['frame']['duration'] = frame_duration*1000 # in milliseconds
     fig.layout.updatemenus[0].buttons[0].args[1]['transition']['duration'] = 1 # in milliseconds
     fig.update_layout(
         showlegend=True,
         legend=dict(itemsizing='constant',font=dict(family="Times New Roman",size=20), bgcolor="LightSteelBlue", bordercolor="Black", borderwidth=2),
         scene_aspectmode='manual',
-        scene_aspectratio=dict(x=1, y=1, z=1), 
+        scene_aspectratio=dict(x=1, y=y_range/x_range, z=z_range/x_range), 
         scene = dict(
-            xaxis = dict(nticks=Ticks_num,range=[x_right_margin,x_left_margin], visible=True), 
-            yaxis = dict(nticks=Ticks_num, range=[y_up_margin,y_down_margin], visible=True),
-            zaxis = dict(nticks=Ticks_num,range=[z_down_margin,z_up_margin], visible=True), 
+            xaxis = dict(tickmode = 'linear', dtick = int(x_range/Ticks_num), range=[x_min,x_max], visible=True), 
+            yaxis = dict(tickmode = 'linear', dtick = int(x_range/Ticks_num), range=[y_min,y_max], visible=True),
+            zaxis = dict(tickmode = 'linear', dtick = int(x_range/Ticks_num), range=[z_min,z_max], visible=True), 
             annotations=annotation_list
             ),
         legend_title_text='Drones & traces'
@@ -298,5 +322,5 @@ def visualize_path_following (**Input):
     fig.show()
 
 
-visualize_path_following(drone_num = 6, dt=0.1, output_CSV_file_dir='/home/m74744sa/Desktop/All_csvs/Python_sim.csv', JSON_file_dir='/home/m74744sa/Documents/helix_framework/helix_framework/experiments/Same_level_vertiport.json', show_corridors=True, CSV_order="horizontal", show_annotations=True)
-#visualize_path_following(drone_num = number of drones, dt= time step in sec, frame_duration= duration of each frame of animation in seconds, output_CSV_file_dir='/path_to_output_CSV_file/output_CSV_file_name.csv', experiment_file_path='/path_to_experiment_json_file/json_file_name.json', show_corridors=True)
+visualize_path_following(drone_num = 8, dt=0.1, output_CSV_file_dir='/home/m74744sa/Desktop/All_csvs/Python_sim.csv', JSON_file_dir='/home/m74744sa/Documents/helix_framework/helix_framework/experiments/divergence_S_to_N_NZ.json', show_corridors=True, CSV_order="horizontal", show_annotations=True, cubic_space=True)
+#visualize_path_following(drone_num = number of drones, dt= time step in sec, frame_duration= duration of each frame of animation in seconds, output_CSV_file_dir='/path_to_output_CSV_file/output_CSV_file_name.csv', experiment_file_path='/path_to_experiment_json_file/json_file_name.json', show_corridors=True, cubic_space=True)

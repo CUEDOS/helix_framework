@@ -40,7 +40,7 @@ class Experiment:
         self.pass_permission = {} # self.pass_permission[j]: shows the path wchich path j can switch to
         self.target_point = np.array([0, 0, 0], dtype="float64")
         self.target_direction = np.array([1, 1, 1], dtype="float64")
-        self.min_distance=[math.inf,{}]
+        self.min_distance=[math.inf, 0, 0, np.array([0, 0, 0], dtype="float64"), np.array([0, 0, 0], dtype="float64")] # [distance, self.id (id of the current drone), id of the other drone, position of current drone, position of the other drone]
         self.switched_positions=[] # to save the positions where the drone switches
         self.load(experiment_file_path, swarm_telem)
 
@@ -126,30 +126,30 @@ class Experiment:
 
     def create_adjacent_points(self) -> None:
         self.adjacent_points = [{} for j in range(len(self.points))] # jth dictionary is for jth path
-        for j in self.pass_permission:  # j is the number of path
-            for switching_point in self.switching_points[j]:
-                for next_path in self.pass_permission[j]:
+        for path in self.pass_permission:  # path is the number of path in dictionary self.pass_permission
+            for switching_point in self.switching_points[path]:
+                shortest_dist_switch=math.inf # the shortest distance for switching point to switch
+                for next_path in self.pass_permission[path]:
                     for k in range(len(self.points[next_path])): # self.pass_permission[j] shows the path we can switch from path j
-                        points_distance = np.linalg.norm(
-                            self.points[j][switching_point]
+                        switching_points_distance = np.linalg.norm(
+                            self.points[path][switching_point]
                             - self.points[next_path][k])
                             
                         if (
-                            points_distance
-                            <= (self.lane_radius[j][switching_point]
-                            + self.lane_radius[next_path][k])*1.001  # this 1 percent is to compensate numerical calculation inaccuracies
+                            switching_points_distance <= (self.lane_radius[path][switching_point] + self.lane_radius[next_path][k])*1.01 and switching_points_distance < shortest_dist_switch # this 1 percent is to compensate numerical calculation inaccuracies
     
                         ):
+                            shortest_dist_switch = switching_points_distance
                             pass_vector = (
-                                self.points[j][switching_point]
+                                self.points[path][switching_point]
                                 - self.points[next_path][k]
                             )
                             if np.linalg.norm(pass_vector)!=0:
                                 pass_vector = pass_vector / np.linalg.norm(pass_vector)
                             
-                            self.adjacent_points[j].update(
-                                {switching_point: [k, next_path, pass_vector]}
-                            )  # jth dictionary is {adj. point of path j: [adj. point of next_path, vector from adj. point of path j to adj. point of next_path]}
+                            self.adjacent_points[path].update(
+                                {switching_point: [k, next_path, pass_vector]} # each switching point in path j can just switch to one path, if we add the same key with different value, the last key with the last value would be considered
+                            )  # jth dictionary is {adj. point of path j: [point of next_path, next_path, vector from adj. point of path j to adj. point of next_path]}
 
     def initial_nearest_point(self, swarm_telem) -> None:
         lnitial_least_distance = math.inf
@@ -299,9 +299,15 @@ class Experiment:
             x = np.array(swarm_telem[self.id].position_ned, dtype="float64") - p
             d = np.linalg.norm(x)
             
+            # finding the minimum distance
             if d<=self.min_distance[0]:
                 self.min_distance[0]=d
-                self.min_distance[1]={self.id:key}
+                self.min_distance[1]=self.id
+                self.min_distance[2]=key
+                self.min_distance[3]=np.array(swarm_telem[self.id].position_ned, dtype="float64")
+                self.min_distance[4]=np.array(swarm_telem[key].position_ned, dtype="float64")
+
+
 
             if d <= r_conflict and d > r_collision and d != 0:
                 v_separation = v_separation + (
@@ -324,12 +330,12 @@ class Experiment:
 
         # checking the last point of the current path
         if self.passed_last_point[self.current_path]==True and self.repeat[self.current_path]=="STOP":
-            self.k_lane_cohesion=0
-            self.k_migration =0
-            self.k_rotation=0
+            v_lane_cohesion=np.array([0, 0, 0], dtype="float64") 
+            v_migration=np.array([0, 0, 0], dtype="float64")
+            v_rotation=np.array([0, 0, 0], dtype="float64")
 
         elif self.passed_last_point[self.current_path]==True and self.repeat[self.current_path]=="STAY":
-            v_migration=0
+            v_migration=np.array([0, 0, 0], dtype="float64")
         
         elif self.passed_last_point[self.current_path]==True and self.repeat[self.current_path]=="REPEAT":
             pass
