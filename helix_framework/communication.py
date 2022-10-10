@@ -76,6 +76,11 @@ class DroneCommunication:
             self.first_connection = False
         time.sleep(1)
         client.publish(self.id + "/connection_status", "Connected", qos=2, retain=True)
+        client.publish(
+            self.id + "/experiment_files",
+            str(self.agent.experiments).strip("[]"),
+            qos=2,
+        )
 
     def on_disconnect(self, client, userdata, rc):
         print("disconnected from broker")

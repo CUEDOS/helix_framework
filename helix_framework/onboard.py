@@ -30,6 +30,7 @@ class Agent:
         self.load_parameters(parameters)
         self.swarm_manager = SwarmManager()
         self.swarm_manager.telemetry[self.id] = AgentTelemetry()
+        self.load_experiments("experiments")
         self.current_experiment = "convergence_S_to_N_NZ"
         self.return_alt: float = 10
         if self.logging == True:
@@ -43,7 +44,7 @@ class Agent:
         # self.drone: type[System] = System(
         #     mavsdk_server_address="localhost", port=self.port
         # )
-        await self.drone.connect()
+        # await self.drone.connect()
         self.drone: type[System] = System()
         await self.drone.connect(system_address=self.serial_address)
         print("Waiting for drone to connect...")
@@ -117,6 +118,14 @@ class Agent:
             json.dump(parameters, f)
 
         self.load_parameters(parameters)
+
+    # load the names of the files in a folder
+    def load_experiments(self, folder_path):
+        self.experiments = [
+            f
+            for f in os.listdir(folder_path)
+            if os.path.isfile(os.path.join(folder_path, f))
+        ]
 
     async def arm(self):
         print("ARMING")
