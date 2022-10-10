@@ -3,6 +3,7 @@ import time
 import paho.mqtt.client as mqtt
 import gtools
 from data_structures import AgentTelemetry
+import struct
 
 
 class DroneCommunication:
@@ -19,15 +20,16 @@ class DroneCommunication:
         self.current_command = "none"
 
     async def run_comms(self):
-        self.client.message_callback_add(
-            "+/telemetry/geodetic", self.on_message_geodetic
-        )
-        self.client.message_callback_add(
-            "+/telemetry/position_ned", self.on_message_position
-        )
-        self.client.message_callback_add(
-            "+/telemetry/velocity_ned", self.on_message_velocity
-        )
+        # self.client.message_callback_add(
+        #     "+/telemetry/geodetic", self.on_message_geodetic
+        # )
+        # self.client.message_callback_add(
+        #     "+/telemetry/position_ned", self.on_message_position
+        # )
+        # self.client.message_callback_add(
+        #     "+/telemetry/velocity_ned", self.on_message_velocity
+        # )
+        self.client.message_callback_add("+/T", self.on_message_telemetry)
         self.client.message_callback_add(
             self.id + "/home/altitude", self.on_message_home
         )
@@ -109,30 +111,42 @@ class DroneCommunication:
         print("selecting experiment")
         self.agent.current_experiment = msg.payload.decode()
 
-    def on_message_geodetic(self, mosq, obj, msg):
-        # Remove none numeric parts of string and then split into north east and down
-        received_string = msg.payload.decode().strip("()")
-        string_list = received_string.split(", ")
-        geodetic = [float(i) for i in string_list]
-        # time.sleep(1)  # simulating comm latency
+    def on_message_telemetry(self, mosq, obj, msg):
+        unpacked_bytes = struct.unpack("10f", msg.payload)
+        geodetic = unpacked_bytes[0:3]
+        position_ned = unpacked_bytes[3:6]
+        velocity_ned = unpacked_bytes[6:9]
+        heading = unpacked_bytes[9]
         # replace reference to first 4 characters of topic with splitting topic at /
-        self.swarm_manager.telemetry[msg.topic[0:4]].geodetic = geodetic
+        self.swarm_manager.telemetry[msg.topic[0:4]].geodetic = list(geodetic)
+        self.swarm_manager.telemetry[msg.topic[0:4]].position_ned = list(position_ned)
+        self.swarm_manager.telemetry[msg.topic[0:4]].velocity_ned = list(velocity_ned)
+        self.swarm_manager.telemetry[msg.topic[0:4]].heading = heading
 
-    def on_message_position(self, mosq, obj, msg):
-        # Remove none numeric parts of string and then split into north east and down
-        received_string = msg.payload.decode().strip("()")
-        string_list = received_string.split(", ")
-        position = [float(i) for i in string_list]
-        # time.sleep(1)  # simulating comm latency
-        self.swarm_manager.telemetry[msg.topic[0:4]].position_ned = position
+    # def on_message_geodetic(self, mosq, obj, msg):
+    #     # Remove none numeric parts of string and then split into north east and down
+    #     received_string = msg.payload.decode().strip("()")
+    #     string_list = received_string.split(", ")
+    #     geodetic = [float(i) for i in string_list]
+    #     # time.sleep(1)  # simulating comm latency
+    #     # replace reference to first 4 characters of topic with splitting topic at /
+    #     self.swarm_manager.telemetry[msg.topic[0:4]].geodetic = geodetic
 
-    def on_message_velocity(self, mosq, obj, msg):
-        # Remove none numeric parts of string and then split into north east and down
-        received_string = msg.payload.decode().strip("[]")
-        string_list = received_string.split(", ")
-        velocity = [float(i) for i in string_list]
-        # time.sleep(1)  # simulating comm latency
-        self.swarm_manager.telemetry[msg.topic[0:4]].velocity_ned = velocity
+    # def on_message_position(self, mosq, obj, msg):
+    #     # Remove none numeric parts of string and then split into north east and down
+    #     received_string = msg.payload.decode().strip("()")
+    #     string_list = received_string.split(", ")
+    #     position = [float(i) for i in string_list]
+    #     # time.sleep(1)  # simulating comm latency
+    #     self.swarm_manager.telemetry[msg.topic[0:4]].position_ned = position
+
+    # def on_message_velocity(self, mosq, obj, msg):
+    #     # Remove none numeric parts of string and then split into north east and down
+    #     received_string = msg.payload.decode().strip("[]")
+    #     string_list = received_string.split(", ")
+    #     velocity = [float(i) for i in string_list]
+    #     # time.sleep(1)  # simulating comm latency
+    #     self.swarm_manager.telemetry[msg.topic[0:4]].velocity_ned = velocity
 
     def on_message_update_parameters(self, mosq, obj, msg):
         print("received updated parameter")
