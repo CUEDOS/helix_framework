@@ -6,3 +6,4 @@ class AgentTelemetry:
         self.heading = 0.0
         self.position_ned = [0, 0, 0]
         self.velocity_ned = [0, 0, 0]
+        self.current_time=0

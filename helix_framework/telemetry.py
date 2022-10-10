@@ -78,7 +78,6 @@ class TelemetryUpdater:
         self.id = id
         self.drone = drone
         self.client = client
-
         asyncio.ensure_future(
             self.get_position(swarm_telem, geodetic_ref),
             loop=event_loop,
@@ -90,6 +89,7 @@ class TelemetryUpdater:
         )
         asyncio.ensure_future(self.get_battery_level(), loop=event_loop)
         asyncio.ensure_future(self.get_flight_mode(swarm_telem), loop=event_loop)
+        asyncio.ensure_future(self.get_time(swarm_telem), loop=event_loop) # to get the cuurent time
         time.sleep(10)
 
     async def get_position(self, swarm_telem, geodetic_ref):
@@ -180,3 +180,7 @@ class TelemetryUpdater:
                 swarm_telem[self.id].flight_mode = str(flight_mode)
                 print(swarm_telem[self.id].flight_mode)
                 self.client.publish(self.id + "/flight_mode", str(flight_mode), qos=2)
+    
+    async def get_time(self, swarm_telem):      
+        async for obj_raw_gps in self.drone.telemetry.raw_gps(): # to run the command self.drone.telemetry.raw_gps() forever
+            swarm_telem[self.id].current_time=obj_raw_gps.timestamp_us # current time in micro seconds
