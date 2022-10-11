@@ -74,6 +74,14 @@ def visualize_path_following (**Input):
         print('Error: A directory to output CSV file should be provided')
         return 0
     
+    # Extracting name of JSON file
+    i=-1
+    for character in JSON_file_dir:
+        i+=1
+        if character=="/":
+            last_slash_index=i
+    JSON_file_name=JSON_file_dir[last_slash_index+1:]
+
     def index_checker(input_index, length) -> int:
         if input_index >= length:
             return int(input_index % length)
@@ -107,7 +115,7 @@ def visualize_path_following (**Input):
 
     # Creating drones dictionary
     for id in swarm_telem:
-        drones.update({id: [Experiment(id,swarm_telem, JSON_file_dir),[],[],[],[]]}) #{id: Experiment object, [record of x], [record of y], [record of z], [record of time]}
+        drones.update({id: [Experiment(id,swarm_telem, JSON_file_dir),[], [], [], [], [], [], [], [], [], [], []]}) #{id: Experiment object, [record of x], [record of y], [record of z], [record of time], [record of v_migration], [record of v_rotation], [record of v_lane_cohesion], [reord of v_separation], [record of current_path], [record of current_index]}
 
     # Assigning prestart positions
     for id in swarm_telem:
@@ -148,17 +156,38 @@ def visualize_path_following (**Input):
 
             drones[id][4].append(t) 
 
+            
+            drones[id][5].append(drones[id][0].v_migration)
+            drones[id][6].append(drones[id][0].v_rotation)
+            drones[id][7].append(drones[id][0].v_lane_cohesion)
+            drones[id][8].append(drones[id][0].v_separation)
+            drones[id][9].append(drones[id][0].current_path)
+            drones[id][10].append(drones[id][0].current_index)
+
     # Preparing Final figure & output CSV file ---------------------------------------------------------
     fig_colors=['blue','red', 'lightgreen', 'orange','aqua', 'silver', 'magenta', 'darkkhaki','dodgerblue','green','black','brown']
     Output_CSV_file=open(output_CSV_file_dir, 'w')
     writer = csv.writer(Output_CSV_file)
 
     if (CSV_order=="horizontal"):
+        #Adding some lines before headers
+        writer.writerow(["Configurations:"])
+        writer.writerow(["Number of drones: "+str(drone_num)])
+        writer.writerow(["JSON file name: "+JSON_file_name])
+        writer.writerow(["Simulation time step in seconds: "+str(dt)])
+        writer.writerow(["Data:"])
+
         header=['time(s)']
         for id in drone_ids:
             header.append("x(m)"+"_"+id)
             header.append("y(m)"+"_"+id)
             header.append("z(m)"+"_"+id)
+            header.append("v_migration(m/s)"+"_"+id)
+            header.append("v_rotation(m/s)"+"_"+id)
+            header.append("v_lane_cohesion(m/s)"+"_"+id)
+            header.append("v_separation(m/s)"+"_"+id)
+            header.append("current_path"+"_"+id)
+            header.append("current_index"+"_"+id)
         writer.writerow(header)
         # creating horizontal rows
         for i in range(simulation_steps):
@@ -167,6 +196,14 @@ def visualize_path_following (**Input):
                 row.append(drones[id][1][i])
                 row.append(drones[id][2][i])
                 row.append(drones[id][3][i])
+
+                row.append(drones[id][5][i])
+                row.append(drones[id][6][i])
+                row.append(drones[id][7][i])
+                row.append(drones[id][8][i])
+                row.append(drones[id][9][i])
+                row.append(drones[id][10][i])
+
 
             writer.writerow(row)
     else:
@@ -322,5 +359,5 @@ def visualize_path_following (**Input):
     fig.show()
 
 
-visualize_path_following(drone_num = 8, dt=0.1, output_CSV_file_dir='/home/m74744sa/Desktop/All_csvs/Python_sim.csv', JSON_file_dir='/home/m74744sa/Documents/helix_framework/helix_framework/experiments/divergence_S_to_N_NZ.json', show_corridors=True, CSV_order="horizontal", show_annotations=True, cubic_space=True)
+visualize_path_following(drone_num = 16, dt=0.1, output_CSV_file_dir='/home/m74744sa/Desktop/All_csvs/Python_sim.csv', JSON_file_dir='/home/m74744sa/Documents/helix_framework/helix_framework/experiments/Eight_way_switching_roundabout.json', show_corridors=True, CSV_order="horizontal", show_annotations=True, cubic_space=True)
 #visualize_path_following(drone_num = number of drones, dt= time step in sec, frame_duration= duration of each frame of animation in seconds, output_CSV_file_dir='/path_to_output_CSV_file/output_CSV_file_name.csv', experiment_file_path='/path_to_experiment_json_file/json_file_name.json', show_corridors=True, cubic_space=True)
