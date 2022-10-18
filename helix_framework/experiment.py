@@ -32,6 +32,7 @@ class Experiment:
         self.v_migration=np.array([0, 0, 0], dtype="float64")
         self.v_rotation=np.array([0, 0, 0], dtype="float64")
         self.v_separation=np.array([0, 0, 0], dtype="float64")
+        self.v_force_field=np.array([0, 0, 0], dtype="float64")
 
         # Set up mission variables
         self.points = [[]]
@@ -46,6 +47,7 @@ class Experiment:
         self.target_direction = np.array([1, 1, 1], dtype="float64")
         self.min_distance=[math.inf, 0, 0, np.array([0, 0, 0], dtype="float64"), np.array([0, 0, 0], dtype="float64")] # [distance, self.id (id of the current drone), id of the other drone, position of current drone, position of the other drone]
         self.switched_positions=[] # to save the positions where the drone switches
+        self.force_field_mode=False
         self.load(experiment_file_path, swarm_telem)
 
     def load(self, experiment_file_path, swarm_telem):
@@ -57,6 +59,7 @@ class Experiment:
         self.k_lane_cohesion = experiment_parameters["k_lane_cohesion"]
         self.k_rotation = experiment_parameters["k_rotation"]
         self.k_separation = experiment_parameters["k_seperation"]
+        self.k_force_field = experiment_parameters["k_force_field"]
         self.r_conflict = experiment_parameters["r_conflict"]
         self.r_collision = experiment_parameters["r_collision"]
         self.pass_permission_list = experiment_parameters["pass_permission_list"]  # self.pass_permission_list[n]: is a dictionary to show switching paths for drone n, it should be empty if there is no switching 
@@ -70,6 +73,13 @@ class Experiment:
         self.points = experiment_parameters["corridor_points"]
         self.rotation_dir = experiment_parameters["path_rotation_dir"]
         self.start_delay_list=experiment_parameters["start_delay_list"]
+        self.vortices=experiment_parameters["vortices"]
+        if len(self.vortices)!=0: # if a vortex is defined, vortex-centre should be difined as well
+            self.force_field_mode=True
+            self.vortex_centre=np.array(experiment_parameters["vortex_centre"], dtype="float64")
+            for i in range(len(self.vortices)):
+                self.vortices[i]=np.array(self.vortices[i], dtype="float64")
+
         self.length = [
             len(self.points[j]) for j in range(len(self.points))
         ]  # j is the number of a path
@@ -346,12 +356,39 @@ class Experiment:
         
         elif self.passed_last_point[self.current_path]==True and self.repeat[self.current_path]=="REPEAT":
             pass
+        
+        # if we have vortices
+        if self.force_field_mode==True:
+            self.v_force_field=np.array([0, 0, 0], dtype="float64")
+            R_to_centre=np.linalg.norm(np.array(swarm_telem[self.id].position_ned, dtype="float64")-self.vortex_centre) # for all of the fields
+            
+            # Adding effect of the source field at the vortex centre
+            force_field=np.array(swarm_telem[self.id].position_ned, dtype="float64")-self.vortex_centre
+            force_field_magnitude=np.linalg.norm(force_field)
+
+            if force_field_magnitude!=0:
+                self.v_force_field=self.v_force_field + (1/R_to_centre)*force_field/force_field_magnitude
+
+            for vortex in self.vortices:
+                force_field=np.cross(vortex, np.array(swarm_telem[self.id].position_ned, dtype="float64")-self.vortex_centre)
+                force_field_magnitude=np.linalg.norm(force_field)
+                r_to_vortex=force_field_magnitude/np.linalg.norm(vortex) # direct distance between the vortex axis and the drone
+                if force_field_magnitude!=0 and r_to_vortex!=0:
+                    self.v_force_field=self.v_force_field + np.linalg.norm(vortex)*(1/R_to_centre)*(1/r_to_vortex)*force_field/force_field_magnitude
+            
+            self.v_migration=self.points[self.current_path][-1] - np.array(swarm_telem[self.id].position_ned) # v_migration here is like a Portional controller to get the drone to the last point
+            if np.linalg.norm(self.v_migration) > limit_v_migration:
+                self.v_migration = self.v_migration * limit_v_migration / np.linalg.norm(self.v_migration)
+
+            self.v_lane_cohesion=np.array([0, 0, 0], dtype="float64")
+            self.v_rotation=np.array([0, 0, 0], dtype="float64")
 
         desired_vel = (
             self.k_lane_cohesion * self.v_lane_cohesion
             + self.k_migration * self.v_migration
             + self.k_rotation * self.v_rotation
             + self.k_separation * self.v_separation
+            + self.k_force_field * self.v_force_field
         )
         # NOTE maybe add lane cohesion as well so we point the right way when coming from far away
         # yaw = flocking.get_desired_yaw(v_migration[0], v_migration[1])

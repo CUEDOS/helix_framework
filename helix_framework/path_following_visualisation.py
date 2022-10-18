@@ -41,6 +41,7 @@ def visualize_path_following (**Input):
     show_annotations=False
     CSV_order="vertical"
     cubic_space=True
+    show_vortices=False
     for key, value in Input.items():
         if key=="simulation_time":
             simulation_time=value
@@ -66,6 +67,8 @@ def visualize_path_following (**Input):
             show_annotations=value
         elif key=='cubic_space':
             cubic_space=value
+        elif key=='show_vortices':
+            show_vortices=value
             
     if JSON_file_dir==None:
         print('Error: A directory to input JSON file should be provided')
@@ -307,10 +310,10 @@ def visualize_path_following (**Input):
     z_min=z_min
     z_range=z_max-z_min
     
+    max_range=max(x_range, y_range, z_range)
 
     if cubic_space==True: #Making figure a cube with real scale
     
-        max_range=max(x_range, y_range, z_range)
         x_mean=(x_max + x_min)/2.0
         x_max=x_mean + max_range/2.0
         x_min=x_mean- max_range/2.0
@@ -324,7 +327,25 @@ def visualize_path_following (**Input):
         z_max=z_min + max_range
         z_range=max_range
 
-    
+    #Adding vortices
+    if show_vortices==True:
+        with open(JSON_file_dir, "r") as f:
+            experiment_parameters = json.load(f)
+
+        vortices= experiment_parameters["vortices"]
+        if len(vortices)!=0: # if a vortex is defined, vortex-centre should be difined as well
+            vortex_centre=np.array(experiment_parameters["vortex_centre"], dtype="float64")
+        for i in range(len(vortices)):
+            fig.add_trace(go.Scatter3d(
+                    x= [vortex_centre[0]-np.sign(vortices[i][0])*max_range, vortex_centre[0]+np.sign(vortices[i][0])*max_range],
+                    y=[vortex_centre[1]-np.sign(vortices[i][1])*max_range, vortex_centre[1]+np.sign(vortices[i][1])*max_range],
+                    z=[-vortex_centre[2]+np.sign(vortices[i][2])*max_range, -vortex_centre[2]-np.sign(vortices[i][2])*max_range],
+                    mode='lines',
+                    line=dict(dash='dash'),
+                    name="vortex "+str(i),
+                )
+            )
+
 
     #Creating annotations
     annotation_list=[]
@@ -359,5 +380,5 @@ def visualize_path_following (**Input):
     fig.show()
 
 
-visualize_path_following(drone_num = 16, dt=0.1, output_CSV_file_dir='/home/m74744sa/Desktop/All_csvs/Python_sim.csv', JSON_file_dir='/home/m74744sa/Documents/helix_framework/helix_framework/experiments/Eight_way_switching_roundabout.json', show_corridors=True, CSV_order="horizontal", show_annotations=True, cubic_space=True)
+visualize_path_following(drone_num = 8, dt=0.1, output_CSV_file_dir='/home/m74744sa/Desktop/All_csvs/Python_sim.csv', JSON_file_dir='/home/m74744sa/Documents/helix_framework/helix_framework/experiments/Helical_vertiport.json', show_corridors=False, CSV_order="horizontal", show_annotations=False, cubic_space=True, show_vortices=True)
 #visualize_path_following(drone_num = number of drones, dt= time step in sec, frame_duration= duration of each frame of animation in seconds, output_CSV_file_dir='/path_to_output_CSV_file/output_CSV_file_name.csv', experiment_file_path='/path_to_experiment_json_file/json_file_name.json', show_corridors=True, cubic_space=True)
