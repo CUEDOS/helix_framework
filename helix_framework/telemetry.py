@@ -93,6 +93,7 @@ class TelemetryUpdater:
         asyncio.ensure_future(
             self.get_time(swarm_telem), loop=event_loop
         )  # to get the cuurent time
+        asyncio.ensure_future(self.publish_telemetry(swarm_telem), loop=event_loop)
         time.sleep(10)
 
     async def publish_telemetry(self, swarm_telem):
@@ -101,7 +102,7 @@ class TelemetryUpdater:
             loop_start_time = time.time()
 
             bytes_to_send = struct.pack(
-                "ffffffffff",
+                ">10f",
                 swarm_telem[self.id].geodetic[0],
                 swarm_telem[self.id].geodetic[1],
                 swarm_telem[self.id].geodetic[2],
