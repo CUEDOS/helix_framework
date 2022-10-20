@@ -4,6 +4,7 @@
 	"k_lane_cohesion": 1,
 	"k_rotation": 1,
 	"k_seperation": 2,
+	"k_force_field": 0,
 	"r_conflict": 5,
 	"r_collision": 2.5,
 	"start_delay_list":[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -122,5 +123,6 @@
 				-20
 			]
 		]
-	]
+	],
+	"vortices":[]
 }

@@ -28,6 +28,11 @@ class Experiment:
     def __init__(self, id, swarm_telem, experiment_file_path) -> None:
         self.ready_flag = False
         self.id = id
+        self.v_lane_cohesion=np.array([0, 0, 0], dtype="float64") 
+        self.v_migration=np.array([0, 0, 0], dtype="float64")
+        self.v_rotation=np.array([0, 0, 0], dtype="float64")
+        self.v_separation=np.array([0, 0, 0], dtype="float64")
+        self.v_force_field=np.array([0, 0, 0], dtype="float64")
 
         # Set up mission variables
         self.points = [[]]
@@ -42,6 +47,7 @@ class Experiment:
         self.target_direction = np.array([1, 1, 1], dtype="float64")
         self.min_distance=[math.inf, 0, 0, np.array([0, 0, 0], dtype="float64"), np.array([0, 0, 0], dtype="float64")] # [distance, self.id (id of the current drone), id of the other drone, position of current drone, position of the other drone]
         self.switched_positions=[] # to save the positions where the drone switches
+        self.force_field_mode=False
         self.load(experiment_file_path, swarm_telem)
 
     def load(self, experiment_file_path, swarm_telem):
@@ -53,6 +59,7 @@ class Experiment:
         self.k_lane_cohesion = experiment_parameters["k_lane_cohesion"]
         self.k_rotation = experiment_parameters["k_rotation"]
         self.k_separation = experiment_parameters["k_seperation"]
+        self.k_force_field = experiment_parameters["k_force_field"]
         self.r_conflict = experiment_parameters["r_conflict"]
         self.r_collision = experiment_parameters["r_collision"]
         self.pass_permission_list = experiment_parameters["pass_permission_list"]  # self.pass_permission_list[n]: is a dictionary to show switching paths for drone n, it should be empty if there is no switching 
@@ -66,6 +73,13 @@ class Experiment:
         self.points = experiment_parameters["corridor_points"]
         self.rotation_dir = experiment_parameters["path_rotation_dir"]
         self.start_delay_list=experiment_parameters["start_delay_list"]
+        self.vortices=experiment_parameters["vortices"]
+        if len(self.vortices)!=0: # if a vortex is defined, vortex-centre should be difined as well
+            self.force_field_mode=True
+            self.vortex_centre=np.array(experiment_parameters["vortex_centre"], dtype="float64")
+            for i in range(len(self.vortices)):
+                self.vortices[i]=np.array(self.vortices[i], dtype="float64")
+
         self.length = [
             len(self.points[j]) for j in range(len(self.points))
         ]  # j is the number of a path
@@ -226,9 +240,9 @@ class Experiment:
         ]
         # Calculating migration velocity (normalized)---------------------
         limit_v_migration = 1
-        v_migration = self.target_direction / np.linalg.norm(self.target_direction)
-        if np.linalg.norm(v_migration) > limit_v_migration:
-            v_migration = v_migration * limit_v_migration / np.linalg.norm(v_migration)
+        self.v_migration = self.target_direction / np.linalg.norm(self.target_direction)
+        if np.linalg.norm(self.v_migration) > limit_v_migration:
+            self.v_migration = self.v_migration * limit_v_migration / np.linalg.norm(self.v_migration)
         # Calculating lane Cohesion Velocity ---------------
         limit_v_lane_cohesion = 1
         lane_cohesion_position_error = self.target_point - np.array(
@@ -242,7 +256,7 @@ class Experiment:
             lane_cohesion_position_error
         )
         if np.linalg.norm(lane_cohesion_position_error) != 0:
-            v_lane_cohesion = (
+            self.v_lane_cohesion = (
                 (
                     lane_cohesion_position_error_magnitude
                     - self.lane_radius[self.current_path][self.current_index]
@@ -250,14 +264,17 @@ class Experiment:
                 * lane_cohesion_position_error
                 / np.linalg.norm(lane_cohesion_position_error)
             )
-        else:
-            v_lane_cohesion = np.array([0.01, 0.01, 0.01], dtype="float64")
+        elif self.lane_radius[self.current_path][self.current_index]==0:
+            self.v_lane_cohesion = np.array([0.0, 0.0, 0.0], dtype="float64")
 
-        if np.linalg.norm(v_lane_cohesion) > limit_v_lane_cohesion:
-            v_lane_cohesion = (
-                v_lane_cohesion
+        else:
+            self.v_lane_cohesion = np.array([0.01, 0.01, 0.01], dtype="float64")
+
+        if np.linalg.norm(self.v_lane_cohesion) > limit_v_lane_cohesion:
+            self.v_lane_cohesion = (
+                self.v_lane_cohesion
                 * limit_v_lane_cohesion
-                / np.linalg.norm(v_lane_cohesion)
+                / np.linalg.norm(self.v_lane_cohesion)
             )
         # Calculating v_rotation (normalized)---------------------
         limit_v_rotation = 1
@@ -276,22 +293,22 @@ class Experiment:
                 )
         cross_prod = np.cross(lane_cohesion_position_error, self.target_direction)
         if np.linalg.norm(cross_prod) != 0:
-            v_rotation = (
+            self.v_rotation = (
                 self.rotation_dir[self.current_path]
                 * v_rotation_magnitude
                 * cross_prod
                 / np.linalg.norm(cross_prod)
             )
         else:
-            v_rotation = np.array([0, 0, 0], dtype="float64")
+            self.v_rotation = np.array([0, 0, 0], dtype="float64")
 
-        if np.linalg.norm(v_rotation) > limit_v_rotation:
-            v_rotation = v_rotation * limit_v_rotation / np.linalg.norm(v_rotation)
+        if np.linalg.norm(self.v_rotation) > limit_v_rotation:
+            self.v_rotation = self.v_rotation * limit_v_rotation / np.linalg.norm(self.v_rotation)
         # Calculating v_separation (normalized) -----------------------------
         limit_v_separation = 5
         r_conflict = 5
         r_collision = 2.5
-        v_separation = np.array([0, 0, 0], dtype="float64")
+        self.v_separation = np.array([0, 0, 0], dtype="float64")
         for key in swarm_telem:
             if key == self.id:
                 continue
@@ -310,49 +327,75 @@ class Experiment:
 
 
             if d <= r_conflict and d > r_collision and d != 0:
-                v_separation = v_separation + (
+                self.v_separation = self.v_separation + (
                     (x / d) * (r_conflict - d / r_conflict - r_collision)
                 )
             if d <= r_collision and d != 0:
-                v_separation = v_separation + 1 * (x / d)
-            if np.linalg.norm(v_separation) > limit_v_separation:
-                v_separation = (
-                    v_separation * limit_v_separation / np.linalg.norm(v_separation)
+                self.v_separation = self.v_separation + 1 * (x / d)
+            if np.linalg.norm(self.v_separation) > limit_v_separation:
+                self.v_separation = (
+                    self.v_separation * limit_v_separation / np.linalg.norm(self.v_separation)
                 )
 
         # checking for start delay time
         if (swarm_telem[self.id].current_time-self.start_time <= self.start_delay and swarm_telem[self.id].current_time!=0): # if it is true, it is not the time to start the mission
-            v_lane_cohesion=np.array([0, 0, 0], dtype="float64") 
-            v_migration=np.array([0, 0, 0], dtype="float64")
-            v_rotation=np.array([0, 0, 0], dtype="float64")
-            v_separation=np.array([0, 0, 0], dtype="float64")
+            self.v_lane_cohesion=np.array([0, 0, 0], dtype="float64") 
+            self.v_migration=np.array([0, 0, 0], dtype="float64")
+            self.v_rotation=np.array([0, 0, 0], dtype="float64")
+            self.v_separation=np.array([0, 0, 0], dtype="float64")
 
 
         # checking the last point of the current path
         if self.passed_last_point[self.current_path]==True and self.repeat[self.current_path]=="STOP":
-            v_lane_cohesion=np.array([0, 0, 0], dtype="float64") 
-            v_migration=np.array([0, 0, 0], dtype="float64")
-            v_rotation=np.array([0, 0, 0], dtype="float64")
+            self.v_lane_cohesion=np.array([0, 0, 0], dtype="float64") 
+            self.v_migration=np.array([0, 0, 0], dtype="float64")
+            self.v_rotation=np.array([0, 0, 0], dtype="float64")
 
         elif self.passed_last_point[self.current_path]==True and self.repeat[self.current_path]=="STAY":
-            v_migration=np.array([0, 0, 0], dtype="float64")
+            self.v_migration=np.array([0, 0, 0], dtype="float64")
         
         elif self.passed_last_point[self.current_path]==True and self.repeat[self.current_path]=="REPEAT":
             pass
+        
+        # if we have vortices
+        if self.force_field_mode==True:
+            self.v_force_field=np.array([0, 0, 0], dtype="float64")
+            R_to_centre=np.linalg.norm(np.array(swarm_telem[self.id].position_ned, dtype="float64")-self.vortex_centre) # for all of the fields
+            
+            # Adding effect of the source field at the vortex centre
+            force_field=np.array(swarm_telem[self.id].position_ned, dtype="float64")-self.vortex_centre
+            force_field_magnitude=np.linalg.norm(force_field)
+
+            if force_field_magnitude!=0:
+                self.v_force_field=self.v_force_field + (1/R_to_centre)*force_field/force_field_magnitude
+
+            for vortex in self.vortices:
+                force_field=np.cross(vortex, np.array(swarm_telem[self.id].position_ned, dtype="float64")-self.vortex_centre)
+                force_field_magnitude=np.linalg.norm(force_field)
+                r_to_vortex=force_field_magnitude/np.linalg.norm(vortex) # direct distance between the vortex axis and the drone
+                if force_field_magnitude!=0 and r_to_vortex!=0:
+                    self.v_force_field=self.v_force_field + np.linalg.norm(vortex)*(1/R_to_centre)*(1/r_to_vortex)*force_field/force_field_magnitude
+            
+            self.v_migration=self.points[self.current_path][-1] - np.array(swarm_telem[self.id].position_ned) # v_migration here is like a Portional controller to get the drone to the last point
+            if np.linalg.norm(self.v_migration) > limit_v_migration:
+                self.v_migration = self.v_migration * limit_v_migration / np.linalg.norm(self.v_migration)
+
+            self.v_lane_cohesion=np.array([0, 0, 0], dtype="float64")
+            self.v_rotation=np.array([0, 0, 0], dtype="float64")
 
         desired_vel = (
-            self.k_lane_cohesion * v_lane_cohesion
-            + self.k_migration * v_migration
-            + self.k_rotation * v_rotation
-            + self.k_separation * v_separation
+            self.k_lane_cohesion * self.v_lane_cohesion
+            + self.k_migration * self.v_migration
+            + self.k_rotation * self.v_rotation
+            + self.k_separation * self.v_separation
+            + self.k_force_field * self.v_force_field
         )
-        v_separation = np.array([0, 0, 0])
         # NOTE maybe add lane cohesion as well so we point the right way when coming from far away
         # yaw = flocking.get_desired_yaw(v_migration[0], v_migration[1])
         yaw_vel = (
-            self.k_lane_cohesion * v_lane_cohesion
-            + self.k_migration * v_migration
-            + self.k_rotation * v_rotation
+            self.k_lane_cohesion * self.v_lane_cohesion
+            + self.k_migration * self.v_migration
+            + self.k_rotation * self.v_rotation
         )
         #yaw = flocking.get_desired_yaw(yaw_vel[0], yaw_vel[1])
         yaw=0.0
