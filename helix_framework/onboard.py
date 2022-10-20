@@ -41,11 +41,13 @@ class Agent:
 
     async def run(self):
         self.drone: type[System] = System(
-        mavsdk_server_address="localhost", port=self.port
+            mavsdk_server_address="localhost", port=self.port
         )
         await self.drone.connect()
-        #self.drone: type[System] = System()
-        #await self.drone.connect(system_address=self.serial_address)
+
+        # self.drone: type[System] = System()
+        # await self.drone.connect(system_address=self.serial_address)
+
         print("Waiting for drone to connect...")
         async for state in self.drone.core.connection_state():
             if state.is_connected:
@@ -285,7 +287,7 @@ class Agent:
         offboard_loop_duration = 0.1  # duration of each loop
 
         # Loop in which the velocity command outputs are generated
-        self.experiment.start_time=self.swarm_manager.telemetry[self.id].current_time
+        self.experiment.start_time = self.swarm_manager.telemetry[self.id].current_time
         # Calling method path_following
         while (
             self.comms.current_command == "Experiment"

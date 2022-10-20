@@ -20,15 +20,6 @@ class DroneCommunication:
         self.current_command = "none"
 
     async def run_comms(self):
-        # self.client.message_callback_add(
-        #     "+/telemetry/geodetic", self.on_message_geodetic
-        # )
-        # self.client.message_callback_add(
-        #     "+/telemetry/position_ned", self.on_message_position
-        # )
-        # self.client.message_callback_add(
-        #     "+/telemetry/velocity_ned", self.on_message_velocity
-        # )
         self.client.message_callback_add("+/T", self.on_message_telemetry)
         self.client.message_callback_add(
             self.id + "/home/altitude", self.on_message_home
@@ -112,7 +103,7 @@ class DroneCommunication:
         self.agent.current_experiment = msg.payload.decode()
 
     def on_message_telemetry(self, mosq, obj, msg):
-        unpacked_bytes = struct.unpack("10f", msg.payload)
+        unpacked_bytes = struct.unpack(">10f", msg.payload)
         geodetic = unpacked_bytes[0:3]
         position_ned = unpacked_bytes[3:6]
         velocity_ned = unpacked_bytes[6:9]
@@ -122,31 +113,6 @@ class DroneCommunication:
         self.swarm_manager.telemetry[msg.topic[0:4]].position_ned = list(position_ned)
         self.swarm_manager.telemetry[msg.topic[0:4]].velocity_ned = list(velocity_ned)
         self.swarm_manager.telemetry[msg.topic[0:4]].heading = heading
-
-    # def on_message_geodetic(self, mosq, obj, msg):
-    #     # Remove none numeric parts of string and then split into north east and down
-    #     received_string = msg.payload.decode().strip("()")
-    #     string_list = received_string.split(", ")
-    #     geodetic = [float(i) for i in string_list]
-    #     # time.sleep(1)  # simulating comm latency
-    #     # replace reference to first 4 characters of topic with splitting topic at /
-    #     self.swarm_manager.telemetry[msg.topic[0:4]].geodetic = geodetic
-
-    # def on_message_position(self, mosq, obj, msg):
-    #     # Remove none numeric parts of string and then split into north east and down
-    #     received_string = msg.payload.decode().strip("()")
-    #     string_list = received_string.split(", ")
-    #     position = [float(i) for i in string_list]
-    #     # time.sleep(1)  # simulating comm latency
-    #     self.swarm_manager.telemetry[msg.topic[0:4]].position_ned = position
-
-    # def on_message_velocity(self, mosq, obj, msg):
-    #     # Remove none numeric parts of string and then split into north east and down
-    #     received_string = msg.payload.decode().strip("[]")
-    #     string_list = received_string.split(", ")
-    #     velocity = [float(i) for i in string_list]
-    #     # time.sleep(1)  # simulating comm latency
-    #     self.swarm_manager.telemetry[msg.topic[0:4]].velocity_ned = velocity
 
     def on_message_update_parameters(self, mosq, obj, msg):
         print("received updated parameter")
@@ -164,7 +130,7 @@ class DroneCommunication:
         # adds a new agent to the swarm if they are not already present
         if new_id not in self.swarm_manager.telemetry:
             self.swarm_manager.telemetry[new_id] = AgentTelemetry()
-            self.client.subscribe(new_id + "/telemetry/+")
+            self.client.subscribe(new_id + "/T")
             # publish ID so that new agent can add it to their dict
             self.client.publish(
                 "detection",
