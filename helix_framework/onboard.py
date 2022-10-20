@@ -14,6 +14,7 @@ import pymap3d as pm
 from communication import DroneCommunication
 from data_structures import AgentTelemetry
 from experiment import Experiment
+from csv_logger import CsvFormatter
 import math
 import gtools
 import numpy as np
@@ -34,9 +35,9 @@ class Agent:
         self.return_alt: float = 10
         if self.logging == True:
             self.logger = setup_logger(self.id)
-        self.logger.info("ref lat: " + str(self.ref_lat))
-        self.logger.info("ref lon: " + str(self.ref_lon))
-        self.logger.info("ref alt: " + str(self.ref_alt))
+            self.logger.info("ref lat: " + str(self.ref_lat))
+            self.logger.info("ref lon: " + str(self.ref_lon))
+            self.logger.info("ref alt: " + str(self.ref_alt))
         print("setup done")
 
     async def run(self):
@@ -90,7 +91,8 @@ class Agent:
         if self.comms.connected == False:
             # await self.catch_action_error(self.drone.action.hold())
             print("connection lost: logging")
-            self.logger.warning("connection lost")
+            if self.logging == True:
+                self.logger.warning("connection lost")
 
     def load_parameters(self, parameters):
         # takes dict of parameters and loads them into variables
@@ -122,7 +124,8 @@ class Agent:
 
     async def arm(self):
         print("ARMING")
-        self.logger.info("arming")
+        if self.logging == True:
+            self.logger.info("arming")
         try:
             await self.drone.action.arm()
             self.home_lat = self.swarm_manager.telemetry[self.id].geodetic[0]
@@ -132,7 +135,8 @@ class Agent:
 
     async def takeoff(self):
         print("Taking Off")
-        self.logger.info("taking-off")
+        if self.logging == True:
+            self.logger.info("taking-off")
         try:
             await self.drone.action.set_takeoff_altitude(20)
             await self.drone.action.takeoff()
@@ -141,7 +145,8 @@ class Agent:
 
     async def hold(self):
         print("Hold")
-        self.logger.info("holding")
+        if self.logging == True:
+            self.logger.info("holding")
         try:
             await self.drone.action.hold()
         except ActionError as error:
@@ -149,7 +154,8 @@ class Agent:
 
     async def land(self):
         print("Landing")
-        self.logger.info("landing")
+        if self.logging == True:
+            self.logger.info("landing")
         try:
             await self.drone.action.land()
         except ActionError as error:
@@ -241,7 +247,10 @@ class Agent:
             )
             print("-- Disarming")
             self.report_error(error._result.result_str)
-            self.logger.error("Offboard failed to start: ", error._result.result_str)
+            if self.logging == True:
+                self.logger.error(
+                    "Offboard failed to start: ", error._result.result_str
+                )
             await drone.action.hold()
             print("could not start offboard")
             return
@@ -361,7 +370,6 @@ class Agent:
     def report_error(self, error):
         print(error)
         self.logger.error(error)
-        # self.comms.client.publish("errors", self.id + ": " + error)
 
     async def download_ulog(self):
         entries = await self.drone.log_files.get_entries()
@@ -380,17 +388,16 @@ class Agent:
 
 
 def setup_logger(id):
-    log_format = "%(levelname)s %(asctime)s - %(message)s"
     log_date = time.strftime("%d-%m-%y_%H-%M")
 
     logging.basicConfig(
         filename="logs/" + id + "_" + log_date + ".log",
         filemode="w",
-        format=log_format,
         level=logging.INFO,
     )
 
     logger = logging.getLogger()
+    logging.root.handlers[0].setFormatter(CsvFormatter())
     return logger
 
 

@@ -142,11 +142,8 @@ class TelemetryUpdater:
             )
 
     async def get_heading(self, swarm_telem):
-        # set the rate of telemetry updates to 10Hz
-        await self.drone.telemetry.set_rate_heading(10)
         async for heading in self.drone.telemetry.heading():
-
-            swarm_telem[self.id].heading = heading
+            swarm_telem[self.id].heading = heading.heading_deg
 
     async def get_velocity(self, swarm_telem):
         # set the rate of telemetry updates to 10Hz
@@ -160,7 +157,6 @@ class TelemetryUpdater:
             )
 
     async def get_arm_status(self, swarm_telem, ulog_callback):
-        # await self.drone.telemetry.set_rate_position_velocity_ned(10)
         async for is_armed in self.drone.telemetry.armed():
             if is_armed != swarm_telem[self.id].arm_status:
                 swarm_telem[self.id].arm_status = is_armed
