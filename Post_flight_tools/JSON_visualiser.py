@@ -127,5 +127,5 @@ def JSON_visualiser (**Input):  # input keyword arguments: ref_lat, ref_long, re
     fig.show()
     
      
-JSON_visualiser(JSON_file_dir='/home/m74744sa/Documents/helix_framework/helix_framework/experiments/Four_way_switching_roundabout.json',ticks_num=10)
+JSON_visualiser(JSON_file_dir='/home/m74744sa/Documents/helix_framework/helix_framework/experiments/Eight_way_switching_roundabout.json',ticks_num=10)
 #JSON_visualiser(JSON_file_dir='/path_to_csv_file/csv_file_name.csv', ticks_num=number of partitions in the final fig)
