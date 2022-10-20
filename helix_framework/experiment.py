@@ -28,26 +28,34 @@ class Experiment:
     def __init__(self, id, swarm_telem, experiment_file_path) -> None:
         self.ready_flag = False
         self.id = id
-        self.v_lane_cohesion=np.array([0, 0, 0], dtype="float64") 
-        self.v_migration=np.array([0, 0, 0], dtype="float64")
-        self.v_rotation=np.array([0, 0, 0], dtype="float64")
-        self.v_separation=np.array([0, 0, 0], dtype="float64")
-        self.v_force_field=np.array([0, 0, 0], dtype="float64")
+        self.v_migration = np.array([0, 0, 0], dtype="float64")
+        self.v_lane_cohesion = np.array([0, 0, 0], dtype="float64")
+        self.v_separation = np.array([0, 0, 0], dtype="float64")
+        self.v_rotation = np.array([0, 0, 0], dtype="float64")
+        self.v_force_field = np.array([0, 0, 0], dtype="float64")
 
         # Set up mission variables
         self.points = [[]]
-        self.start_time=0
-        self.start_delay=0 # delay in micro seconds
+        self.start_time = 0
+        self.start_delay = 0  # delay in micro seconds
         self.current_path = 0
         self.rotation_factor = 1
         self.directions = []
         self.current_index = 0
-        self.pass_permission = {} # self.pass_permission[j]: shows the path wchich path j can switch to
+        self.pass_permission = (
+            {}
+        )  # self.pass_permission[j]: shows the path wchich path j can switch to
         self.target_point = np.array([0, 0, 0], dtype="float64")
         self.target_direction = np.array([1, 1, 1], dtype="float64")
-        self.min_distance=[math.inf, 0, 0, np.array([0, 0, 0], dtype="float64"), np.array([0, 0, 0], dtype="float64")] # [distance, self.id (id of the current drone), id of the other drone, position of current drone, position of the other drone]
-        self.switched_positions=[] # to save the positions where the drone switches
-        self.force_field_mode=False
+        self.min_distance = [
+            math.inf,
+            0,
+            0,
+            np.array([0, 0, 0], dtype="float64"),
+            np.array([0, 0, 0], dtype="float64"),
+        ]  # [distance, self.id (id of the current drone), id of the other drone, position of current drone, position of the other drone]
+        self.switched_positions = []  # to save the positions where the drone switches
+        self.force_field_mode = False
         self.load(experiment_file_path, swarm_telem)
 
     def load(self, experiment_file_path, swarm_telem):
@@ -62,8 +70,12 @@ class Experiment:
         self.k_force_field = experiment_parameters["k_force_field"]
         self.r_conflict = experiment_parameters["r_conflict"]
         self.r_collision = experiment_parameters["r_collision"]
-        self.pass_permission_list = experiment_parameters["pass_permission_list"]  # self.pass_permission_list[n]: is a dictionary to show switching paths for drone n, it should be empty if there is no switching 
-        self.switching_points=experiment_parameters["switching_points"] # self.pass_switching_points[j]: contains all of the points which can switch from path j
+        self.pass_permission_list = experiment_parameters[
+            "pass_permission_list"
+        ]  # self.pass_permission_list[n]: is a dictionary to show switching paths for drone n, it should be empty if there is no switching
+        self.switching_points = experiment_parameters[
+            "switching_points"
+        ]  # self.pass_switching_points[j]: contains all of the points which can switch from path j
         self.repeat = experiment_parameters[
             "repeat"
         ]  # the permission to go to another path
@@ -72,18 +84,24 @@ class Experiment:
         self.lane_radius = experiment_parameters["corridor_radius"]
         self.points = experiment_parameters["corridor_points"]
         self.rotation_dir = experiment_parameters["path_rotation_dir"]
-        self.start_delay_list=experiment_parameters["start_delay_list"]
-        self.vortices=experiment_parameters["vortices"]
-        if len(self.vortices)!=0: # if a vortex is defined, vortex-centre should be difined as well
-            self.force_field_mode=True
-            self.vortex_centre=np.array(experiment_parameters["vortex_centre"], dtype="float64")
+        self.start_delay_list = experiment_parameters["start_delay_list"]
+        self.vortices = experiment_parameters["vortices"]
+        if (
+            len(self.vortices) != 0
+        ):  # if a vortex is defined, vortex-centre should be difined as well
+            self.force_field_mode = True
+            self.vortex_centre = np.array(
+                experiment_parameters["vortex_centre"], dtype="float64"
+            )
             for i in range(len(self.vortices)):
-                self.vortices[i]=np.array(self.vortices[i], dtype="float64")
+                self.vortices[i] = np.array(self.vortices[i], dtype="float64")
 
         self.length = [
             len(self.points[j]) for j in range(len(self.points))
         ]  # j is the number of a path
-        self.passed_last_point=[False for j in range(len(self.points))] # to see if the drone has passed the last point of path j or not
+        self.passed_last_point = [
+            False for j in range(len(self.points))
+        ]  # to see if the drone has passed the last point of path j or not
         self.create_directions()
         self.ready_flag = True
 
@@ -103,14 +121,17 @@ class Experiment:
     def get_path_and_permission(self, swarm_priorities):
         if self.id in swarm_priorities:
             self.current_path = self.initial_paths[swarm_priorities.index(self.id)]
-            self.start_delay=self.start_delay_list[swarm_priorities.index(self.id)]
-            for j , next_path in self.pass_permission_list[swarm_priorities.index(self.id)].items():
-                self.pass_permission.update({int(j): next_path}) # j here is a string
-            
-        
+            self.start_delay = self.start_delay_list[swarm_priorities.index(self.id)]
+            for j, next_path in self.pass_permission_list[
+                swarm_priorities.index(self.id)
+            ].items():
+                self.pass_permission.update({int(j): next_path})  # j here is a string
+
         self.create_adjacent_points()
 
-    def get_swarm_priorities(self, swarm_telem):  # swarm_telem is an object of AgentTelemetry
+    def get_swarm_priorities(
+        self, swarm_telem
+    ):  # swarm_telem is an object of AgentTelemetry
         numeric_ids = {}
         # assigned_pre_startawait asynciopositions = {}
         # numeric_id = int(only_numeric(self.id))
@@ -127,10 +148,16 @@ class Experiment:
                 # All points must be converted to np arrays
                 self.points[j][i] = np.array(self.points[j][i], dtype="float64")
                 if i == len(self.points[j]) - 1:
-                    if self.repeat[j]=="STAY": # if we want to stay at the last point
-                        self.directions[j].append((self.points[j][i] - self.points[j][i-1])/ np.linalg.norm(self.points[j][i] - self.points[j][i-1]))
-                    else:    
-                        self.directions[j].append((self.points[j][0] - self.points[j][i])/ np.linalg.norm(self.points[j][0] - self.points[j][i]))
+                    if self.repeat[j] == "STAY":  # if we want to stay at the last point
+                        self.directions[j].append(
+                            (self.points[j][i] - self.points[j][i - 1])
+                            / np.linalg.norm(self.points[j][i] - self.points[j][i - 1])
+                        )
+                    else:
+                        self.directions[j].append(
+                            (self.points[j][0] - self.points[j][i])
+                            / np.linalg.norm(self.points[j][0] - self.points[j][i])
+                        )
                 else:
                     self.directions[j].append(
                         (self.points[j][i + 1] - self.points[j][i])
@@ -139,30 +166,49 @@ class Experiment:
         print("done creating directions")
 
     def create_adjacent_points(self) -> None:
-        self.adjacent_points = [{} for j in range(len(self.points))] # jth dictionary is for jth path
-        for path in self.pass_permission:  # path is the number of path in dictionary self.pass_permission
+        self.adjacent_points = [
+            {} for j in range(len(self.points))
+        ]  # jth dictionary is for jth path
+        for (
+            path
+        ) in (
+            self.pass_permission
+        ):  # path is the number of path in dictionary self.pass_permission
             for switching_point in self.switching_points[path]:
-                shortest_dist_switch=math.inf # the shortest distance for switching point to switch
+                shortest_dist_switch = (
+                    math.inf
+                )  # the shortest distance for switching point to switch
                 for next_path in self.pass_permission[path]:
-                    for k in range(len(self.points[next_path])): # self.pass_permission[j] shows the path we can switch from path j
+                    for k in range(
+                        len(self.points[next_path])
+                    ):  # self.pass_permission[j] shows the path we can switch from path j
                         switching_points_distance = np.linalg.norm(
                             self.points[path][switching_point]
-                            - self.points[next_path][k])
-                            
+                            - self.points[next_path][k]
+                        )
+
                         if (
-                            switching_points_distance <= (self.lane_radius[path][switching_point] + self.lane_radius[next_path][k])*1.01 and switching_points_distance < shortest_dist_switch # this 1 percent is to compensate numerical calculation inaccuracies
-    
+                            switching_points_distance
+                            <= (
+                                self.lane_radius[path][switching_point]
+                                + self.lane_radius[next_path][k]
+                            )
+                            * 1.01
+                            and switching_points_distance
+                            < shortest_dist_switch  # this 1 percent is to compensate numerical calculation inaccuracies
                         ):
                             shortest_dist_switch = switching_points_distance
                             pass_vector = (
                                 self.points[path][switching_point]
                                 - self.points[next_path][k]
                             )
-                            if np.linalg.norm(pass_vector)!=0:
+                            if np.linalg.norm(pass_vector) != 0:
                                 pass_vector = pass_vector / np.linalg.norm(pass_vector)
-                            
+
                             self.adjacent_points[path].update(
-                                {switching_point: [k, next_path, pass_vector]} # each switching point in path j can just switch to one path, if we add the same key with different value, the last key with the last value would be considered
+                                {
+                                    switching_point: [k, next_path, pass_vector]
+                                }  # each switching point in path j can just switch to one path, if we add the same key with different value, the last key with the last value would be considered
                             )  # jth dictionary is {adj. point of path j: [point of next_path, next_path, vector from adj. point of path j to adj. point of next_path]}
 
     def initial_nearest_point(self, swarm_telem) -> None:
@@ -177,13 +223,15 @@ class Experiment:
                 self.current_index = i
 
     def switch(self, switching_point):
-        print(self.id, 'switched from',self.current_path, "at index", self.current_index)
-        next_path=self.adjacent_points[self.current_path][switching_point][1]
-        self.pass_permission [self.current_path]= [] # the agent is not allowed to get back to previous path anymore
+        print(
+            self.id, "switched from", self.current_path, "at index", self.current_index
+        )
+        next_path = self.adjacent_points[self.current_path][switching_point][1]
+        self.pass_permission[
+            self.current_path
+        ] = []  # the agent is not allowed to get back to previous path anymore
 
-        self.current_index = self.adjacent_points[self.current_path][
-            switching_point
-        ][
+        self.current_index = self.adjacent_points[self.current_path][switching_point][
             0
         ]  # now current index is a point of the next path
         self.current_path = next_path
@@ -194,9 +242,12 @@ class Experiment:
         self.target_point = self.points[self.current_path][self.current_index]
         self.target_direction = self.directions[self.current_path][self.current_index]
         if (
-            self.current_index in self.adjacent_points[self.current_path] # the index is elgible for switching
+            self.current_index
+            in self.adjacent_points[
+                self.current_path
+            ]  # the index is elgible for switching
         ):
-            
+
             pass_vector = self.adjacent_points[self.current_path][self.current_index][2]
             lane_cohesion_position_error = self.target_point - np.array(
                 swarm_telem[self.id].position_ned, dtype="float64"
@@ -206,20 +257,31 @@ class Experiment:
                 * self.target_direction
             )
             cos_of_angle = 0
-            if abs (np.linalg.norm(pass_vector)) <=0.05 or abs(np.linalg.norm(lane_cohesion_position_error))<=0.05:
-                cos_of_angle=1
+            if (
+                abs(np.linalg.norm(pass_vector)) <= 0.05
+                or abs(np.linalg.norm(lane_cohesion_position_error)) <= 0.05
+            ):
+                cos_of_angle = 1
             else:
-                cos_of_angle = np.dot(pass_vector, lane_cohesion_position_error) / (np.linalg.norm(pass_vector)* np.linalg.norm(lane_cohesion_position_error))
-            
+                cos_of_angle = np.dot(pass_vector, lane_cohesion_position_error) / (
+                    np.linalg.norm(pass_vector)
+                    * np.linalg.norm(lane_cohesion_position_error)
+                )
+
             if cos_of_angle >= 0.9:
-                self.switched_positions.append(np.array(swarm_telem[self.id].position_ned, dtype="float64"))
+                self.switched_positions.append(
+                    np.array(swarm_telem[self.id].position_ned, dtype="float64")
+                )
                 self.switch(self.current_index)
         # Finding the next bigger Index ----------
         dot_next_point = 0
-            
-        while dot_next_point >= 0 and not (self.passed_last_point[self.current_path]==True and self.repeat[self.current_path]=="STAY"):  # Searching for farther points, if the drone reach the last point and it has STAY for its path, searching for more points should be stopped
+
+        while dot_next_point >= 0 and not (
+            self.passed_last_point[self.current_path] == True
+            and self.repeat[self.current_path] == "STAY"
+        ):  # Searching for farther points, if the drone reach the last point and it has STAY for its path, searching for more points should be stopped
             next_point = index_checker(
-                self.current_index +1, self.length[self.current_path]
+                self.current_index + 1, self.length[self.current_path]
             )
             range_to_next = (
                 np.array(swarm_telem[self.id].position_ned, dtype="float64")
@@ -229,20 +291,22 @@ class Experiment:
                 range_to_next,
                 self.directions[self.current_path][next_point - 1],
             )
-            if (dot_next_point>=0):
-                self.current_index=next_point
-                if (next_point==self.length[self.current_path]-1): # it shows the drone has passed the last point of the current path
-                    self.passed_last_point[self.current_path]=True
+            if dot_next_point >= 0:
+                self.current_index = next_point
+                if (
+                    next_point == self.length[self.current_path] - 1
+                ):  # it shows the drone has passed the last point of the current path
+                    self.passed_last_point[self.current_path] = True
 
         self.target_point = self.points[self.current_path][self.current_index]
-        self.target_direction = self.directions[self.current_path][
-            self.current_index
-        ]
+        self.target_direction = self.directions[self.current_path][self.current_index]
         # Calculating migration velocity (normalized)---------------------
         limit_v_migration = 1
         self.v_migration = self.target_direction / np.linalg.norm(self.target_direction)
         if np.linalg.norm(self.v_migration) > limit_v_migration:
-            self.v_migration = self.v_migration * limit_v_migration / np.linalg.norm(self.v_migration)
+            self.v_migration = (
+                self.v_migration * limit_v_migration / np.linalg.norm(self.v_migration)
+            )
         # Calculating lane Cohesion Velocity ---------------
         limit_v_lane_cohesion = 1
         lane_cohesion_position_error = self.target_point - np.array(
@@ -264,7 +328,7 @@ class Experiment:
                 * lane_cohesion_position_error
                 / np.linalg.norm(lane_cohesion_position_error)
             )
-        elif self.lane_radius[self.current_path][self.current_index]==0:
+        elif self.lane_radius[self.current_path][self.current_index] == 0:
             self.v_lane_cohesion = np.array([0.0, 0.0, 0.0], dtype="float64")
 
         else:
@@ -278,10 +342,16 @@ class Experiment:
             )
         # Calculating v_rotation (normalized)---------------------
         limit_v_rotation = 1
-        if lane_cohesion_position_error_magnitude==0 or self.lane_radius[self.current_path][self.current_index]==0:
-            v_rotation_magnitude=0
+        if (
+            lane_cohesion_position_error_magnitude == 0
+            or self.lane_radius[self.current_path][self.current_index] == 0
+        ):
+            v_rotation_magnitude = 0
         else:
-            if lane_cohesion_position_error_magnitude < self.lane_radius[self.current_path][self.current_index]:
+            if (
+                lane_cohesion_position_error_magnitude
+                < self.lane_radius[self.current_path][self.current_index]
+            ):
                 v_rotation_magnitude = (
                     lane_cohesion_position_error_magnitude
                     / self.lane_radius[self.current_path][self.current_index]
@@ -303,7 +373,9 @@ class Experiment:
             self.v_rotation = np.array([0, 0, 0], dtype="float64")
 
         if np.linalg.norm(self.v_rotation) > limit_v_rotation:
-            self.v_rotation = self.v_rotation * limit_v_rotation / np.linalg.norm(self.v_rotation)
+            self.v_rotation = (
+                self.v_rotation * limit_v_rotation / np.linalg.norm(self.v_rotation)
+            )
         # Calculating v_separation (normalized) -----------------------------
         limit_v_separation = 5
         r_conflict = 5
@@ -315,16 +387,18 @@ class Experiment:
             p = np.array(swarm_telem[key].position_ned, dtype="float64")
             x = np.array(swarm_telem[self.id].position_ned, dtype="float64") - p
             d = np.linalg.norm(x)
-            
+
             # finding the minimum distance
-            if d<=self.min_distance[0]:
-                self.min_distance[0]=d
-                self.min_distance[1]=self.id
-                self.min_distance[2]=key
-                self.min_distance[3]=np.array(swarm_telem[self.id].position_ned, dtype="float64")
-                self.min_distance[4]=np.array(swarm_telem[key].position_ned, dtype="float64")
-
-
+            if d <= self.min_distance[0]:
+                self.min_distance[0] = d
+                self.min_distance[1] = self.id
+                self.min_distance[2] = key
+                self.min_distance[3] = np.array(
+                    swarm_telem[self.id].position_ned, dtype="float64"
+                )
+                self.min_distance[4] = np.array(
+                    swarm_telem[key].position_ned, dtype="float64"
+                )
 
             if d <= r_conflict and d > r_collision and d != 0:
                 self.v_separation = self.v_separation + (
@@ -334,54 +408,95 @@ class Experiment:
                 self.v_separation = self.v_separation + 1 * (x / d)
             if np.linalg.norm(self.v_separation) > limit_v_separation:
                 self.v_separation = (
-                    self.v_separation * limit_v_separation / np.linalg.norm(self.v_separation)
+                    self.v_separation
+                    * limit_v_separation
+                    / np.linalg.norm(self.v_separation)
                 )
 
         # checking for start delay time
-        if (swarm_telem[self.id].current_time-self.start_time <= self.start_delay and swarm_telem[self.id].current_time!=0): # if it is true, it is not the time to start the mission
-            self.v_lane_cohesion=np.array([0, 0, 0], dtype="float64") 
-            self.v_migration=np.array([0, 0, 0], dtype="float64")
-            self.v_rotation=np.array([0, 0, 0], dtype="float64")
-            self.v_separation=np.array([0, 0, 0], dtype="float64")
-
+        if (
+            swarm_telem[self.id].current_time - self.start_time <= self.start_delay
+            and swarm_telem[self.id].current_time != 0
+        ):  # if it is true, it is not the time to start the mission
+            self.v_lane_cohesion = np.array([0, 0, 0], dtype="float64")
+            self.v_migration = np.array([0, 0, 0], dtype="float64")
+            self.v_rotation = np.array([0, 0, 0], dtype="float64")
+            self.v_separation = np.array([0, 0, 0], dtype="float64")
 
         # checking the last point of the current path
-        if self.passed_last_point[self.current_path]==True and self.repeat[self.current_path]=="STOP":
-            self.v_lane_cohesion=np.array([0, 0, 0], dtype="float64") 
-            self.v_migration=np.array([0, 0, 0], dtype="float64")
-            self.v_rotation=np.array([0, 0, 0], dtype="float64")
+        if (
+            self.passed_last_point[self.current_path] == True
+            and self.repeat[self.current_path] == "STOP"
+        ):
+            self.v_lane_cohesion = np.array([0, 0, 0], dtype="float64")
+            self.v_migration = np.array([0, 0, 0], dtype="float64")
+            self.v_rotation = np.array([0, 0, 0], dtype="float64")
 
-        elif self.passed_last_point[self.current_path]==True and self.repeat[self.current_path]=="STAY":
-            self.v_migration=np.array([0, 0, 0], dtype="float64")
-        
-        elif self.passed_last_point[self.current_path]==True and self.repeat[self.current_path]=="REPEAT":
+        elif (
+            self.passed_last_point[self.current_path] == True
+            and self.repeat[self.current_path] == "STAY"
+        ):
+            self.v_migration = np.array([0, 0, 0], dtype="float64")
+
+        elif (
+            self.passed_last_point[self.current_path] == True
+            and self.repeat[self.current_path] == "REPEAT"
+        ):
             pass
-        
-        # if we have vortices
-        if self.force_field_mode==True:
-            self.v_force_field=np.array([0, 0, 0], dtype="float64")
-            R_to_centre=np.linalg.norm(np.array(swarm_telem[self.id].position_ned, dtype="float64")-self.vortex_centre) # for all of the fields
-            
-            # Adding effect of the source field at the vortex centre
-            force_field=np.array(swarm_telem[self.id].position_ned, dtype="float64")-self.vortex_centre
-            force_field_magnitude=np.linalg.norm(force_field)
 
-            if force_field_magnitude!=0:
-                self.v_force_field=self.v_force_field + (1/R_to_centre)*force_field/force_field_magnitude
+        # if we have vortices
+        if self.force_field_mode == True:
+            self.v_force_field = np.array([0, 0, 0], dtype="float64")
+            R_to_centre = np.linalg.norm(
+                np.array(swarm_telem[self.id].position_ned, dtype="float64")
+                - self.vortex_centre
+            )  # for all of the fields
+
+            # Adding effect of the source field at the vortex centre
+            force_field = (
+                np.array(swarm_telem[self.id].position_ned, dtype="float64")
+                - self.vortex_centre
+            )
+            force_field_magnitude = np.linalg.norm(force_field)
+
+            if force_field_magnitude != 0:
+                self.v_force_field = (
+                    self.v_force_field
+                    + (1 / R_to_centre) * force_field / force_field_magnitude
+                )
 
             for vortex in self.vortices:
-                force_field=np.cross(vortex, np.array(swarm_telem[self.id].position_ned, dtype="float64")-self.vortex_centre)
-                force_field_magnitude=np.linalg.norm(force_field)
-                r_to_vortex=force_field_magnitude/np.linalg.norm(vortex) # direct distance between the vortex axis and the drone
-                if force_field_magnitude!=0 and r_to_vortex!=0:
-                    self.v_force_field=self.v_force_field + np.linalg.norm(vortex)*(1/R_to_centre)*(1/r_to_vortex)*force_field/force_field_magnitude
-            
-            self.v_migration=self.points[self.current_path][-1] - np.array(swarm_telem[self.id].position_ned) # v_migration here is like a Portional controller to get the drone to the last point
-            if np.linalg.norm(self.v_migration) > limit_v_migration:
-                self.v_migration = self.v_migration * limit_v_migration / np.linalg.norm(self.v_migration)
+                force_field = np.cross(
+                    vortex,
+                    np.array(swarm_telem[self.id].position_ned, dtype="float64")
+                    - self.vortex_centre,
+                )
+                force_field_magnitude = np.linalg.norm(force_field)
+                r_to_vortex = force_field_magnitude / np.linalg.norm(
+                    vortex
+                )  # direct distance between the vortex axis and the drone
+                if force_field_magnitude != 0 and r_to_vortex != 0:
+                    self.v_force_field = (
+                        self.v_force_field
+                        + np.linalg.norm(vortex)
+                        * (1 / R_to_centre)
+                        * (1 / r_to_vortex)
+                        * force_field
+                        / force_field_magnitude
+                    )
 
-            self.v_lane_cohesion=np.array([0, 0, 0], dtype="float64")
-            self.v_rotation=np.array([0, 0, 0], dtype="float64")
+            self.v_migration = self.points[self.current_path][-1] - np.array(
+                swarm_telem[self.id].position_ned
+            )  # v_migration here is like a Portional controller to get the drone to the last point
+            if np.linalg.norm(self.v_migration) > limit_v_migration:
+                self.v_migration = (
+                    self.v_migration
+                    * limit_v_migration
+                    / np.linalg.norm(self.v_migration)
+                )
+
+            self.v_lane_cohesion = np.array([0, 0, 0], dtype="float64")
+            self.v_rotation = np.array([0, 0, 0], dtype="float64")
 
         desired_vel = (
             self.k_lane_cohesion * self.v_lane_cohesion
@@ -397,8 +512,8 @@ class Experiment:
             + self.k_migration * self.v_migration
             + self.k_rotation * self.v_rotation
         )
-        #yaw = flocking.get_desired_yaw(yaw_vel[0], yaw_vel[1])
-        yaw=0.0
+        # yaw = flocking.get_desired_yaw(yaw_vel[0], yaw_vel[1])
+        yaw = 0.0
         output_vel = flocking.check_velocity(
             desired_vel, swarm_telem[self.id], max_speed, yaw, time_step, max_accel
         )

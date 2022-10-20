@@ -14,8 +14,10 @@ import pymap3d as pm
 from communication import DroneCommunication
 from data_structures import AgentTelemetry
 from experiment import Experiment
-from csv_logger import CsvFormatter
+from csv_logger import CSVLogger
 import math
+import threading
+import queue
 import gtools
 import numpy as np
 from telemetry import SwarmManager, TelemetryUpdater
@@ -33,11 +35,14 @@ class Agent:
         self.swarm_manager.telemetry[self.id] = AgentTelemetry()
         self.current_experiment = "Octobout"
         self.return_alt: float = 10
-        if self.logging == True:
-            self.logger = setup_logger(self.id)
+        self.csv_log_queue = queue.Queue()
+        self.logging = False  # temp
+        if self.logging:
+            # self.logger = setup_logger(self.id)
             self.logger.info("ref lat: " + str(self.ref_lat))
             self.logger.info("ref lon: " + str(self.ref_lon))
             self.logger.info("ref alt: " + str(self.ref_alt))
+            self.logger.info("5.6, 4.5, 6.7")
         print("setup done")
 
     async def run(self):
@@ -85,6 +90,8 @@ class Agent:
             self.download_ulog,
         )
 
+        self.begin_csv_logging()
+
     async def on_disconnect(self):
         print("connection lost, timeout in 5s")
         await asyncio.sleep(5)
@@ -124,7 +131,7 @@ class Agent:
 
     async def arm(self):
         print("ARMING")
-        if self.logging == True:
+        if self.logging:
             self.logger.info("arming")
         try:
             await self.drone.action.arm()
@@ -135,7 +142,7 @@ class Agent:
 
     async def takeoff(self):
         print("Taking Off")
-        if self.logging == True:
+        if self.logging:
             self.logger.info("taking-off")
         try:
             await self.drone.action.set_takeoff_altitude(20)
@@ -145,7 +152,7 @@ class Agent:
 
     async def hold(self):
         print("Hold")
-        if self.logging == True:
+        if self.logging:
             self.logger.info("holding")
         try:
             await self.drone.action.hold()
@@ -154,7 +161,7 @@ class Agent:
 
     async def land(self):
         print("Landing")
-        if self.logging == True:
+        if self.logging:
             self.logger.info("landing")
         try:
             await self.drone.action.land()
@@ -313,6 +320,33 @@ class Agent:
                 )
             )
 
+            self.csv_log_queue.put(
+                (
+                    self.swarm_manager.telemetry[self.id].current_time,
+                    self.experiment.v_migration[0],
+                    self.experiment.v_migration[1],
+                    self.experiment.v_migration[2],
+                    self.experiment.v_lane_cohesion[0],
+                    self.experiment.v_lane_cohesion[1],
+                    self.experiment.v_lane_cohesion[2],
+                    self.experiment.v_separation[0],
+                    self.experiment.v_separation[1],
+                    self.experiment.v_separation[2],
+                    self.experiment.v_rotation[0],
+                    self.experiment.v_rotation[1],
+                    self.experiment.v_rotation[2],
+                    self.experiment.v_force_field[0],
+                    self.experiment.v_force_field[1],
+                    self.experiment.v_force_field[2],
+                )
+            )
+
+            if self.logging:
+                self.logger.info(
+                    str(self.experiment.v_migration[0])
+                    + str(self.experiment.v_migration[2])
+                )
+
             await self.check_altitude()
 
             # Checking frequency of the loop
@@ -386,19 +420,26 @@ class Agent:
                 previous_progress = new_progress
         print()
 
+    def begin_csv_logging(self):
+        csv_logger = CSVLogger()
+        csv_thread = threading.Thread(
+            target=csv_logger.write_log, args=(self.csv_log_queue,), daemon=True
+        )
+        csv_thread.start()
 
-def setup_logger(id):
-    log_date = time.strftime("%d-%m-%y_%H-%M")
 
-    logging.basicConfig(
-        filename="logs/" + id + "_" + log_date + ".log",
-        filemode="w",
-        level=logging.INFO,
-    )
+# def setup_logger(id):
+#     log_date = time.strftime("%d-%m-%y_%H-%M")
 
-    logger = logging.getLogger()
-    logging.root.handlers[0].setFormatter(CsvFormatter())
-    return logger
+#     logging.basicConfig(
+#         filename="logs/" + id + "_" + log_date + ".log",
+#         filemode="w",
+#         level=logging.INFO,
+#     )
+
+#     logger = logging.getLogger()
+#     logging.root.handlers[0].setFormatter(CsvFormatter())
+#     return logger
 
 
 if __name__ == "__main__":
