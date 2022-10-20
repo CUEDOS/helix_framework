@@ -7,6 +7,7 @@ from mavsdk.offboard import OffboardError, VelocityNedYaw
 import pymap3d as pm
 from data_structures import AgentTelemetry
 import numpy as np
+import struct
 
 
 class SwarmManager:
@@ -78,6 +79,7 @@ class TelemetryUpdater:
         self.id = id
         self.drone = drone
         self.client = client
+        asyncio.ensure_future(self.publish_telemetry(swarm_telem), loop=event_loop)
         asyncio.ensure_future(
             self.get_position(swarm_telem, geodetic_ref),
             loop=event_loop,
@@ -89,8 +91,35 @@ class TelemetryUpdater:
         )
         asyncio.ensure_future(self.get_battery_level(), loop=event_loop)
         asyncio.ensure_future(self.get_flight_mode(swarm_telem), loop=event_loop)
-        asyncio.ensure_future(self.get_time(swarm_telem), loop=event_loop) # to get the cuurent time
+        asyncio.ensure_future(
+            self.get_time(swarm_telem), loop=event_loop
+        )  # to get the curent time
         time.sleep(10)
+
+    async def publish_telemetry(self, swarm_telem):
+        loop_duration = 0.1
+        while True:
+            loop_start_time = time.time()
+
+            telemetry_bytes = struct.pack(
+                ">10f",
+                swarm_telem[self.id].geodetic[0],
+                swarm_telem[self.id].geodetic[1],
+                swarm_telem[self.id].geodetic[2],
+                swarm_telem[self.id].position_ned[0],
+                swarm_telem[self.id].position_ned[1],
+                swarm_telem[self.id].position_ned[2],
+                swarm_telem[self.id].velocity_ned[0],
+                swarm_telem[self.id].velocity_ned[1],
+                swarm_telem[self.id].velocity_ned[2],
+                swarm_telem[self.id].heading,
+            )
+            self.client.publish(
+                self.id + "/T",
+                telemetry_bytes,
+            )
+
+            await asyncio.sleep(loop_duration - (time.time() - loop_start_time))
 
     async def get_position(self, swarm_telem, geodetic_ref):
         # set the rate of telemetry updates to 10Hz
@@ -112,33 +141,12 @@ class TelemetryUpdater:
                 geodetic_ref[2],
             )
 
-            self.client.publish(
-                self.id + "/telemetry/geodetic",
-                str(swarm_telem[self.id].geodetic).strip("()"),
-            )
-
-            self.client.publish(
-                self.id + "/telemetry/position_ned",
-                str(swarm_telem[self.id].position_ned).strip("()"),
-            )
-
-            # if (
-            #     -swarm_telem.position_ned[2] <= bottom_alt_limit
-            #     or -swarm_telem.position_ned[2] >= top_alt_limit
-            # ):
-            #     self.client.publish("emergency_stop", "reached an altitude limit")
-
     async def get_heading(self, swarm_telem):
         # set the rate of telemetry updates to 10Hz
-        # await drone.telemetry.set_rate_heading(10)
+        await self.drone.telemetry.set_rate_heading(10)
         async for heading in self.drone.telemetry.heading():
 
             swarm_telem[self.id].heading = heading
-
-            self.client.publish(
-                self.id + "/telemetry/heading",
-                str(swarm_telem[self.id].heading.heading_deg).strip("()"),
-            )
 
     async def get_velocity(self, swarm_telem):
         # set the rate of telemetry updates to 10Hz
@@ -150,28 +158,27 @@ class TelemetryUpdater:
                 position_velocity_ned.velocity.east_m_s,
                 position_velocity_ned.velocity.down_m_s,
             )
-            self.client.publish(
-                self.id + "/telemetry/velocity_ned",
-                str(swarm_telem[self.id].velocity_ned).strip("()"),
-            )
 
     async def get_arm_status(self, swarm_telem, ulog_callback):
+        # await self.drone.telemetry.set_rate_position_velocity_ned(10)
         async for is_armed in self.drone.telemetry.armed():
             if is_armed != swarm_telem[self.id].arm_status:
                 swarm_telem[self.id].arm_status = is_armed
                 self.client.publish(
-                    self.id + "/telemetry/arm_status",
+                    self.id + "/arm_status",
                     str(swarm_telem[self.id].arm_status),
                 )
-                # if swarm_telem[self.id].arm_status == False:
-                #     await ulog_callback()
 
     async def get_battery_level(self):
         await self.drone.telemetry.set_rate_battery(0.1)
         async for battery_level in self.drone.telemetry.battery():
+            battery_level_bytes = struct.pack(
+                ">h",
+                round(battery_level.remaining_percent * 100),
+            )
             self.client.publish(
-                self.id + "/battery_level",
-                str(round(battery_level.remaining_percent * 100)),
+                self.id + "/B",
+                battery_level_bytes,
             )
 
     async def get_flight_mode(self, swarm_telem):
@@ -180,7 +187,9 @@ class TelemetryUpdater:
                 swarm_telem[self.id].flight_mode = str(flight_mode)
                 print(swarm_telem[self.id].flight_mode)
                 self.client.publish(self.id + "/flight_mode", str(flight_mode), qos=2)
-    
-    async def get_time(self, swarm_telem):      
-        async for obj_raw_gps in self.drone.telemetry.raw_gps(): # to run the command self.drone.telemetry.raw_gps() forever
-            swarm_telem[self.id].current_time=obj_raw_gps.timestamp_us # current time in micro seconds
+
+    async def get_time(self, swarm_telem):
+        async for obj_raw_gps in self.drone.telemetry.raw_gps():  # to run the command self.drone.telemetry.raw_gps() forever
+            swarm_telem[
+                self.id
+            ].current_time = obj_raw_gps.timestamp_us  # current time in micro seconds
