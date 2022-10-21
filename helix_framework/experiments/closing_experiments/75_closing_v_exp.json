@@ -1,0 +1,125 @@
+{
+   "experiment_id":1,
+   "k_migration":1,
+   "k_lane_cohesion":0,
+   "k_rotation":0,
+   "k_seperation":1,
+   "k_force_field":0,
+   "r_conflict":5,
+   "r_collision":2.5,
+   "start_delay_list":[
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+   ],
+   "pass_permission_list":[
+      {
+         
+      },
+      {
+         
+      },
+      {
+         
+      },
+      {
+         
+      },
+      {
+         
+      },
+      {
+         
+      },
+      {
+         
+      },
+      {
+         
+      },
+      {
+         
+      },
+      {
+         
+      }
+   ],
+   "repeat":[
+      "STOP",
+      "STOP"
+   ],
+   "pre_start_positions":[
+      [
+         -20,
+         -15.347,
+         -20
+      ],
+      [
+         -20,
+         15.347,
+         -20
+      ]
+   ],
+   "initial_paths":[
+      0,
+      1
+   ],
+   "path_rotation_dir":[
+      1,
+      -1
+   ],
+   "switching_points":[
+      [
+         
+      ]
+   ],
+   "corridor_radius":[
+      [
+         5,
+         5,
+         5
+      ],
+      [
+         5,
+         5,
+         5,
+         5
+      ]
+   ],
+   "corridor_points":[
+      [
+         [
+            -20,
+            -15.347,
+            -20
+         ],
+         [
+            -20,
+            15.347,
+            -20
+         ]
+      ],
+      [
+         [
+            -20,
+            15.347,
+            -20
+         ],
+         [
+            20,
+            -15.347,
+            -20
+         ]
+      ]
+   ],
+   "vortices":[
+      
+   ]
+}
