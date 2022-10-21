@@ -244,7 +244,7 @@ class Experiment:
         self.target_point = self.points[self.current_path][self.current_index]
         self.target_direction = self.directions[self.current_path][self.current_index]
 
-    def path_following(self, swarm_telem, max_speed, time_step, max_accel):
+    def path_following(self, swarm_telem, max_speed, time_step, max_accel, mqtt_client):
         self.target_point = self.points[self.current_path][self.current_index]
         self.target_direction = self.directions[self.current_path][self.current_index]
         if (
@@ -440,9 +440,13 @@ class Experiment:
             self.passed_last_point[self.current_path] == True
             and self.repeat[self.current_path] == "STOP"
         ):
+            # stop the drone at the current position with seperation rule still running
             self.v_lane_cohesion = np.array([0, 0, 0], dtype="float64")
             self.v_migration = np.array([0, 0, 0], dtype="float64")
             self.v_rotation = np.array([0, 0, 0], dtype="float64")
+
+            # update status to for automated experiments
+            mqtt_client.publish(self.id + "/status", "DONE")
 
         elif (
             self.passed_last_point[self.current_path] == True

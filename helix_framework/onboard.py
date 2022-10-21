@@ -295,6 +295,9 @@ class Agent:
         # once in pre start position find the intiial nearest point
         self.experiment.initial_nearest_point(self.swarm_manager.telemetry)
 
+        # update status for automated experiment running
+        self.comms.client.publish(self.id + "/status", "READY")
+
     async def run_experiment(self):
         print("Starting experiment")
         await self.start_offboard(self.drone)
@@ -317,6 +320,7 @@ class Agent:
                     self.max_speed,
                     offboard_loop_duration,
                     10,
+                    self.comms.client,
                 )
             )
 
