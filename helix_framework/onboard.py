@@ -33,7 +33,7 @@ class Agent:
         self.load_parameters(parameters)
         self.swarm_manager = SwarmManager()
         self.swarm_manager.telemetry[self.id] = AgentTelemetry()
-        self.current_experiment = "Octobout"
+        self.current_experiment = "closing_v_exp"
         self.return_alt: float = 10
         self.csv_log_queue = queue.Queue()
         self.logging = False  # temp
@@ -338,6 +338,10 @@ class Agent:
                     self.experiment.v_force_field[0],
                     self.experiment.v_force_field[1],
                     self.experiment.v_force_field[2],
+                    self.experiment.loop1_counter,  # debugging
+                    self.experiment.loop2_counter,  # debugging
+                    self.experiment.x,  # debugging
+                    self.experiment.d,  # debugging
                 )
             )
 
@@ -423,7 +427,7 @@ class Agent:
     def begin_csv_logging(self):
         csv_logger = CSVLogger()
         csv_thread = threading.Thread(
-            target=csv_logger.write_log, args=(self.csv_log_queue,), daemon=True
+            target=csv_logger.write_log, args=(self.csv_log_queue, self.id), daemon=True
         )
         csv_thread.start()
 

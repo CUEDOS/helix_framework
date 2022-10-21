@@ -1,5 +1,6 @@
 import csv
 import atexit
+from datetime import datetime
 
 
 class CSVLogger:
@@ -7,9 +8,11 @@ class CSVLogger:
         self.running = True
         atexit.register(self.stop)
 
-    def write_log(self, queue):
-        with open("log.csv", "a") as self.f:
-            # dict_writer = csv.DictWriter(self.f, fieldnames=self.field_names)
+    def write_log(self, queue, drone_id):
+        file_name = datetime.now().strftime(
+            "logs/" + drone_id + "_log_-%Y-%m-%d-%H-%M.csv"
+        )
+        with open(file_name, "a+") as self.f:
             writer = csv.writer(self.f, delimiter=",", quoting=csv.QUOTE_NONE)
             writer.writerow(
                 (
@@ -29,13 +32,15 @@ class CSVLogger:
                     "N_v_force_field",
                     "E_v_force_field",
                     "D_v_force_field",
+                    "loop1_counter",  # debugging
+                    "loop2_counter",  # debugging
+                    "x",  # debugging
+                    "d",  # debugging
                 )
             )
             while self.running:
                 if queue.empty():
                     continue
-                # with open("log.csv", "a") as f:
-                # dict_writer = csv.DictWriter(f, fieldnames=self.field_names)
                 csv_line = queue.get()
                 writer.writerow(csv_line)
                 # f.close
