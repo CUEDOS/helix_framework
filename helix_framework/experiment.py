@@ -34,12 +34,6 @@ class Experiment:
         self.v_rotation = np.array([0, 0, 0], dtype="float64")
         self.v_force_field = np.array([0, 0, 0], dtype="float64")
 
-        # Debugging variables
-        self.loop1_counter = 0
-        self.loop2_counter = 0
-        self.x = np.array([0, 0, 0])  # debugging
-        self.d = 0  # debugging
-
         # Set up mission variables
         self.points = [[]]
         self.start_time = 0
@@ -388,8 +382,6 @@ class Experiment:
         for key in swarm_telem:
             if key == self.id:
                 continue
-            print(swarm_telem.keys())
-            print(self.id + ":" + key)
             p = np.array(swarm_telem[key].position_ned, dtype="float64")
             x = np.array(swarm_telem[self.id].position_ned, dtype="float64") - p
             d = np.linalg.norm(x)
@@ -407,15 +399,11 @@ class Experiment:
                 )
 
             if d <= self.r_conflict and d > self.r_collision and d != 0:
-                self.loop1_counter += 1  # debugging
-                self.x = x  # debugging
-                self.d = d  # debugging
                 self.v_separation = self.v_separation + (
                     (x / d)
                     * ((self.r_conflict - d) / (self.r_conflict - self.r_collision))
                 )
             if d <= self.r_collision and d != 0:
-                self.loop2_counter += 1  # debugging
                 self.v_separation = self.v_separation + 1 * (x / d)
 
         if np.linalg.norm(self.v_separation) > limit_v_separation:

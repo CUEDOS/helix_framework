@@ -1,6 +1,7 @@
 import csv
 import atexit
 from datetime import datetime
+from tkinter import E
 
 
 class CSVLogger:
@@ -8,9 +9,12 @@ class CSVLogger:
         self.running = True
         atexit.register(self.stop)
 
-    def write_log(self, queue, drone_id):
+    def write_log(self, queue, drone_id, experiment_path):
+        self.running = True
+        experiment_name = experiment_path.split("/")[-1]
+        print(experiment_name)
         file_name = datetime.now().strftime(
-            "logs/" + drone_id + "_log_-%Y-%m-%d-%H-%M.csv"
+            "logs/" + experiment_name + "_" + drone_id + "_log-%Y-%m-%d-%H-%M.csv"
         )
         with open(file_name, "a+") as self.f:
             writer = csv.writer(self.f, delimiter=",", quoting=csv.QUOTE_NONE)
@@ -32,10 +36,6 @@ class CSVLogger:
                     "N_v_force_field",
                     "E_v_force_field",
                     "D_v_force_field",
-                    "loop1_counter",  # debugging
-                    "loop2_counter",  # debugging
-                    "x",  # debugging
-                    "d",  # debugging
                 )
             )
             while self.running:
@@ -43,9 +43,9 @@ class CSVLogger:
                     continue
                 csv_line = queue.get()
                 writer.writerow(csv_line)
-                # f.close
+            self.f.close()
 
     def stop(self):
         self.running = False
-        if hasattr(self, "f"):
-            self.f.close()
+        # if hasattr(self, "f"):
+        #     self.f.close()

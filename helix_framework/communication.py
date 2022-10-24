@@ -108,11 +108,15 @@ class DroneCommunication:
         position_ned = unpacked_bytes[3:6]
         velocity_ned = unpacked_bytes[6:9]
         heading = unpacked_bytes[9]
-        # replace reference to first 4 characters of topic with splitting topic at /
-        self.swarm_manager.telemetry[msg.topic[0:4]].geodetic = list(geodetic)
-        self.swarm_manager.telemetry[msg.topic[0:4]].position_ned = list(position_ned)
-        self.swarm_manager.telemetry[msg.topic[0:4]].velocity_ned = list(velocity_ned)
-        self.swarm_manager.telemetry[msg.topic[0:4]].heading = heading
+
+        self.swarm_manager.telemetry[msg.topic.split("/")[0]].geodetic = list(geodetic)
+        self.swarm_manager.telemetry[msg.topic.split("/")[0]].position_ned = list(
+            position_ned
+        )
+        self.swarm_manager.telemetry[msg.topic.split("/")[0]].velocity_ned = list(
+            velocity_ned
+        )
+        self.swarm_manager.telemetry[msg.topic.split("/")[0]].heading = heading
 
     def on_message_update_parameters(self, mosq, obj, msg):
         print("received updated parameter")

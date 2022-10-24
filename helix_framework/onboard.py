@@ -35,6 +35,7 @@ class Agent:
         self.swarm_manager.telemetry[self.id] = AgentTelemetry()
         self.current_experiment = "closing_v_exp"
         self.return_alt: float = 10
+        self.csv_logger = CSVLogger()
         self.csv_log_queue = queue.Queue()
         self.logging = False  # temp
         if self.logging:
@@ -89,8 +90,6 @@ class Agent:
             [self.ref_lat, self.ref_lon, self.ref_alt],
             self.download_ulog,
         )
-
-        self.begin_csv_logging()
 
     async def on_disconnect(self):
         print("connection lost, timeout in 5s")
@@ -299,6 +298,7 @@ class Agent:
         self.comms.client.publish(self.id + "/status", "READY")
 
     async def run_experiment(self):
+        self.begin_csv_logging()
         print("Starting experiment")
         await self.start_offboard(self.drone)
 
@@ -342,10 +342,6 @@ class Agent:
                     self.experiment.v_force_field[0],
                     self.experiment.v_force_field[1],
                     self.experiment.v_force_field[2],
-                    self.experiment.loop1_counter,  # debugging
-                    self.experiment.loop2_counter,  # debugging
-                    self.experiment.x,  # debugging
-                    self.experiment.d,  # debugging
                 )
             )
 
@@ -361,6 +357,9 @@ class Agent:
             await asyncio.sleep(
                 offboard_loop_duration - (time.time() - offboard_loop_start_time)
             )
+        await asyncio.sleep(1)
+        self.csv_logger.stop()
+        self.csv_log_queue.queue.clear()
 
     async def return_to_home(self):
         rtl_start_lat = self.swarm_manager.telemetry[self.id].geodetic[0]
@@ -429,9 +428,10 @@ class Agent:
         print()
 
     def begin_csv_logging(self):
-        csv_logger = CSVLogger()
         csv_thread = threading.Thread(
-            target=csv_logger.write_log, args=(self.csv_log_queue, self.id), daemon=True
+            target=self.csv_logger.write_log,
+            args=(self.csv_log_queue, self.id, self.current_experiment),
+            daemon=True,
         )
         csv_thread.start()
 
