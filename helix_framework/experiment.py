@@ -189,6 +189,9 @@ class Experiment:
         self.current_path = next_path
         self.target_point = self.points[self.current_path][self.current_index]
         self.target_direction = self.directions[self.current_path][self.current_index]
+    
+    def creat_separation_vel(self):
+        pass
 
     def path_following(self, swarm_telem, max_speed, time_step, max_accel):
         self.target_point = self.points[self.current_path][self.current_index]
