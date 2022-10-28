@@ -40,6 +40,7 @@ class Experiment:
         self.start_delay = 0  # delay in micro seconds
         self.current_path = 0
         self.rotation_factor = 1
+        self.stick_to_radius = False
         self.directions = []
         self.current_index = 0
         self.pass_permission = (
@@ -70,6 +71,7 @@ class Experiment:
         self.k_force_field = experiment_parameters["k_force_field"]
         self.r_conflict = experiment_parameters["r_conflict"]
         self.r_collision = experiment_parameters["r_collision"]
+        self.stick_to_radius_list = experiment_parameters["stick_to_radius"]
         self.pass_permission_list = experiment_parameters[
             "pass_permission_list"
         ]  # self.pass_permission_list[n]: is a dictionary to show switching paths for drone n, it should be empty if there is no switching
@@ -88,7 +90,7 @@ class Experiment:
         self.vortices = experiment_parameters["vortices"]
         if (
             len(self.vortices) != 0
-        ):  # if a vortex is defined, vortex-centre should be difined as well
+        ):  # if a vortex is defined, vortex-centre should be defined as well
             self.force_field_mode = True
             self.vortex_centre = np.array(
                 experiment_parameters["vortex_centre"], dtype="float64"
@@ -122,6 +124,9 @@ class Experiment:
         if self.id in swarm_priorities:
             self.current_path = self.initial_paths[swarm_priorities.index(self.id)]
             self.start_delay = self.start_delay_list[swarm_priorities.index(self.id)]
+            self.stick_to_radius = self.stick_to_radius_list[
+                swarm_priorities.index(self.id)
+            ]
             for j, next_path in self.pass_permission_list[
                 swarm_priorities.index(self.id)
             ].items():
@@ -320,17 +325,20 @@ class Experiment:
             lane_cohesion_position_error
         )
         if np.linalg.norm(lane_cohesion_position_error) != 0:
-            self.v_lane_cohesion = (
-                (
-                    lane_cohesion_position_error_magnitude
-                    - self.lane_radius[self.current_path][self.current_index]
+            if self.stick_to_radius or (
+                lane_cohesion_position_error_magnitude
+                > self.lane_radius[self.current_path][self.current_index]
+            ):
+                self.v_lane_cohesion = (
+                    (
+                        lane_cohesion_position_error_magnitude
+                        - self.lane_radius[self.current_path][self.current_index]
+                    )
+                    * lane_cohesion_position_error
+                    / np.linalg.norm(lane_cohesion_position_error)
                 )
-                * lane_cohesion_position_error
-                / np.linalg.norm(lane_cohesion_position_error)
-            )
         elif self.lane_radius[self.current_path][self.current_index] == 0:
             self.v_lane_cohesion = np.array([0.0, 0.0, 0.0], dtype="float64")
-
         else:
             self.v_lane_cohesion = np.array([0.01, 0.01, 0.01], dtype="float64")
 
@@ -519,6 +527,8 @@ class Experiment:
         # yaw = flocking.get_desired_yaw(yaw_vel[0], yaw_vel[1])
         yaw = 0.0
         output_vel = flocking.check_velocity(
-            desired_vel, swarm_telem[self.id], max_speed, yaw, time_step, max_accel
+            desired_vel,
+            max_speed,
+            yaw,
         )
         return output_vel

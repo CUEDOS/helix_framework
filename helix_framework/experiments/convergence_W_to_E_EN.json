@@ -6,6 +6,18 @@
 	"k_seperation": 2,
 	"r_conflict": 5,
 	"r_collision": 2.5,
+	"stick_to_radius":[
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+   ],
 	"pass_permission": [true, false, true, false, true, false, true, false, true, false],
 	"repeat": false,
 	"pre_start_positions": [

@@ -9,7 +9,7 @@ import struct
 class DroneCommunication:
     client = mqtt.Client()
 
-    def __init__(self, agent, swarm_manager):
+    def __init__(self, agent, swarm_manager, log_latency=False):
         self.agent = agent
         self.swarm_manager = swarm_manager
         self.broker_ip = agent.broker_ip
@@ -18,9 +18,15 @@ class DroneCommunication:
         self.id = agent.id
         self.command_functions = {}
         self.current_command = "none"
+        self.log_latency = log_latency
+        self.loopback_time = 0
 
     async def run_comms(self):
         self.client.message_callback_add("+/T", self.on_message_telemetry)
+        if self.log_latency:
+            self.client.message_callback_add(
+                self.id + "/LBT", self.on_message_loopback_test
+            )
         self.client.message_callback_add(
             self.id + "/home/altitude", self.on_message_home
         )
@@ -61,6 +67,8 @@ class DroneCommunication:
         client.subscribe("+/corridor_points")
         client.subscribe(self.id + "/update_parameters")
         client.subscribe(self.id + "/current_experiment")
+        if self.log_latency:
+            client.subscribe(self.id + "/LBT")
         if self.first_connection:
             client.publish(
                 "detection",
@@ -101,6 +109,11 @@ class DroneCommunication:
     def on_message_current_experiment(self, mosq, obj, msg):
         print("selecting experiment")
         self.agent.current_experiment = msg.payload.decode()
+
+    def on_message_loopback_test(self, mosq, obj, msg):
+        current_time = time.time()
+        received_time = struct.unpack(">d", msg.payload)[0]
+        self.loopback_time = current_time - received_time
 
     def on_message_telemetry(self, mosq, obj, msg):
         unpacked_bytes = struct.unpack(">10f", msg.payload)

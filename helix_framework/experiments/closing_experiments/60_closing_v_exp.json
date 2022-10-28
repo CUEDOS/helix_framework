@@ -1,12 +1,24 @@
 {
    "experiment_id":1,
    "k_migration":1,
-   "k_lane_cohesion":0,
+   "k_lane_cohesion":1,
    "k_rotation":0,
    "k_seperation":1,
    "k_force_field":0,
    "r_conflict":5,
    "r_collision":2.5,
+   "stick_to_radius":[
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+   ],
    "start_delay_list":[
       0,
       0,
@@ -83,12 +95,9 @@
    "corridor_radius":[
       [
          5,
-         5,
          5
       ],
       [
-         5,
-         5,
          5,
          5
       ]

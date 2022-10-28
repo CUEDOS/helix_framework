@@ -64,6 +64,7 @@ class Agent:
         self.comms = DroneCommunication(
             self,
             self.swarm_manager,
+            self.log_latency,
         )
         asyncio.ensure_future(self.comms.run_comms())
         await asyncio.sleep(2)
@@ -89,6 +90,7 @@ class Agent:
             event_loop,
             [self.ref_lat, self.ref_lon, self.ref_alt],
             self.download_ulog,
+            self.log_latency,
         )
 
     async def on_disconnect(self):
@@ -111,6 +113,7 @@ class Agent:
         self.ref_lat: float = parameters["ref_lat"]
         self.ref_lon: float = parameters["ref_lon"]
         self.ref_alt: float = parameters["ref_alt"]
+        self.log_latency: bool = parameters["log_latency"]
 
     def update_parameter(self, new_parameters_json):
 
@@ -308,6 +311,7 @@ class Agent:
         # Loop in which the velocity command outputs are generated
         self.experiment.start_time = self.swarm_manager.telemetry[self.id].current_time
         # Calling method path_following
+        experiment_start_time = time.time()
         while (
             self.comms.current_command == "Experiment"
             and self.experiment.ready_flag == True
@@ -326,7 +330,16 @@ class Agent:
 
             self.csv_log_queue.put(
                 (
+                    time.time() - experiment_start_time,
                     self.swarm_manager.telemetry[self.id].current_time,
+                    self.comms.loopback_time,
+                    self.experiment.current_index,
+                    self.swarm_manager.telemetry[self.id].position_ned[0],
+                    self.swarm_manager.telemetry[self.id].position_ned[1],
+                    self.swarm_manager.telemetry[self.id].position_ned[2],
+                    self.swarm_manager.telemetry[self.id].velocity_ned[0],
+                    self.swarm_manager.telemetry[self.id].velocity_ned[1],
+                    self.swarm_manager.telemetry[self.id].velocity_ned[2],
                     self.experiment.v_migration[0],
                     self.experiment.v_migration[1],
                     self.experiment.v_migration[2],
@@ -436,18 +449,17 @@ class Agent:
         csv_thread.start()
 
 
-# def setup_logger(id):
-#     log_date = time.strftime("%d-%m-%y_%H-%M")
+def setup_logger(id):
+    log_date = time.strftime("%d-%m-%y_%H-%M")
 
-#     logging.basicConfig(
-#         filename="logs/" + id + "_" + log_date + ".log",
-#         filemode="w",
-#         level=logging.INFO,
-#     )
+    logging.basicConfig(
+        filename="logs/" + id + "_" + log_date + ".log",
+        filemode="w",
+        level=logging.INFO,
+    )
 
-#     logger = logging.getLogger()
-#     logging.root.handlers[0].setFormatter(CsvFormatter())
-#     return logger
+    logger = logging.getLogger()
+    return logger
 
 
 if __name__ == "__main__":

@@ -75,6 +75,7 @@ class TelemetryUpdater:
         event_loop,
         geodetic_ref,
         ulog_callback,
+        log_latency=False,
     ):
         self.id = id
         self.drone = drone
@@ -94,7 +95,25 @@ class TelemetryUpdater:
         asyncio.ensure_future(
             self.get_time(swarm_telem), loop=event_loop
         )  # to get the curent time
+        if log_latency:
+            asyncio.ensure_future(self.loopback_test(), loop=event_loop)
         time.sleep(10)
+
+    async def loopback_test(self):
+        loop_duration = 1
+        while True:
+            loop_start_time = time.time()
+            current_time = struct.pack(
+                ">d",
+                time.time(),
+            )
+
+            self.client.publish(
+                self.id + "/LBT",
+                current_time,
+            )
+
+            await asyncio.sleep(loop_duration - (time.time() - loop_start_time))
 
     async def publish_telemetry(self, swarm_telem):
         loop_duration = 0.1

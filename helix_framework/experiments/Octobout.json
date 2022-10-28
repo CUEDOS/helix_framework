@@ -7,6 +7,18 @@
 	"k_force_field": 5,
 	"r_conflict": 5,
 	"r_collision": 2.5,
+	"stick_to_radius":[
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+   ],
 	"start_delay_list":[68000000, 66000000, 17000000, 70000000, 12000000, 5000000, 72000000, 69000000, 30000000, 9000000, 62000000, 21000000, 52000000, 45000000, 16000000, 23000000, 0, 54000000, 58000000, 34000000],
 	"pass_permission_list": [{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}],
 	"repeat": [ "STOP", "STOP", "STOP", "STOP", "STOP", "STOP", "STOP", "STOP","STOP",  "STOP", "STOP", "STOP", "STOP", "STOP", "STOP", "STOP", "STOP","STOP","STOP","STOP"],

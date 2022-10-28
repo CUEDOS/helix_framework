@@ -21,6 +21,15 @@ class CSVLogger:
             writer.writerow(
                 (
                     "time",
+                    "GPS_time",
+                    "loopback_time",
+                    "next_point",
+                    "position_N",
+                    "position_E",
+                    "position_D",
+                    "velocity_N",
+                    "velocity_E",
+                    "velocity_D",
                     "N_v_migration",
                     "E_v_migration",
                     "D_v_migration",
