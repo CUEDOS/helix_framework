@@ -5,9 +5,7 @@ import math
 from mavsdk.offboard import VelocityNedYaw
 
 
-def check_velocity(
-    desired_vel, my_pos_vel, max_speed, yaw, time_step, max_accelleration
-):
+def check_velocity(desired_vel, max_speed, yaw):
     # current_vel = np.array(my_pos_vel.velocity_ned)
 
     # impose velocity limit

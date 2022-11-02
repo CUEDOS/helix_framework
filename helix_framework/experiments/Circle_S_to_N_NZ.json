@@ -7,6 +7,18 @@
 	"k_force_field": 0,
 	"r_conflict": 5,
 	"r_collision": 2.5,
+	"stick_to_radius":[
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+   ],
 	"start_delay_list":[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
 	"pass_permission_list": [{}, {}, {}, {}, {}, {}, {}, {}, {}, {}],
 	"repeat": ["REPEAT"],

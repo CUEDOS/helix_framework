@@ -14,7 +14,10 @@ import pymap3d as pm
 from communication import DroneCommunication
 from data_structures import AgentTelemetry
 from experiment import Experiment
+from csv_logger import CSVLogger
 import math
+import threading
+import queue
 import gtools
 import numpy as np
 from telemetry import SwarmManager, TelemetryUpdater
@@ -30,13 +33,17 @@ class Agent:
         self.load_parameters(parameters)
         self.swarm_manager = SwarmManager()
         self.swarm_manager.telemetry[self.id] = AgentTelemetry()
-        self.current_experiment = "Octobout"
+        self.current_experiment = "closing_v_exp"
         self.return_alt: float = 10
-        if self.logging == True:
-            self.logger = setup_logger(self.id)
-        self.logger.info("ref lat: " + str(self.ref_lat))
-        self.logger.info("ref lon: " + str(self.ref_lon))
-        self.logger.info("ref alt: " + str(self.ref_alt))
+        self.csv_logger = CSVLogger()
+        self.csv_log_queue = queue.Queue()
+        self.logging = False  # temp
+        if self.logging:
+            # self.logger = setup_logger(self.id)
+            self.logger.info("ref lat: " + str(self.ref_lat))
+            self.logger.info("ref lon: " + str(self.ref_lon))
+            self.logger.info("ref alt: " + str(self.ref_alt))
+            self.logger.info("5.6, 4.5, 6.7")
         print("setup done")
 
     async def run(self):
@@ -57,6 +64,7 @@ class Agent:
         self.comms = DroneCommunication(
             self,
             self.swarm_manager,
+            self.log_latency,
         )
         asyncio.ensure_future(self.comms.run_comms())
         await asyncio.sleep(2)
@@ -82,6 +90,7 @@ class Agent:
             event_loop,
             [self.ref_lat, self.ref_lon, self.ref_alt],
             self.download_ulog,
+            self.log_latency,
         )
 
     async def on_disconnect(self):
@@ -90,7 +99,8 @@ class Agent:
         if self.comms.connected == False:
             # await self.catch_action_error(self.drone.action.hold())
             print("connection lost: logging")
-            self.logger.warning("connection lost")
+            if self.logging == True:
+                self.logger.warning("connection lost")
 
     def load_parameters(self, parameters):
         # takes dict of parameters and loads them into variables
@@ -103,6 +113,7 @@ class Agent:
         self.ref_lat: float = parameters["ref_lat"]
         self.ref_lon: float = parameters["ref_lon"]
         self.ref_alt: float = parameters["ref_alt"]
+        self.log_latency: bool = parameters["log_latency"]
 
     def update_parameter(self, new_parameters_json):
 
@@ -122,7 +133,8 @@ class Agent:
 
     async def arm(self):
         print("ARMING")
-        self.logger.info("arming")
+        if self.logging:
+            self.logger.info("arming")
         try:
             await self.drone.action.arm()
             self.home_lat = self.swarm_manager.telemetry[self.id].geodetic[0]
@@ -132,7 +144,8 @@ class Agent:
 
     async def takeoff(self):
         print("Taking Off")
-        self.logger.info("taking-off")
+        if self.logging:
+            self.logger.info("taking-off")
         try:
             await self.drone.action.set_takeoff_altitude(20)
             await self.drone.action.takeoff()
@@ -141,7 +154,8 @@ class Agent:
 
     async def hold(self):
         print("Hold")
-        self.logger.info("holding")
+        if self.logging:
+            self.logger.info("holding")
         try:
             await self.drone.action.hold()
         except ActionError as error:
@@ -149,7 +163,8 @@ class Agent:
 
     async def land(self):
         print("Landing")
-        self.logger.info("landing")
+        if self.logging:
+            self.logger.info("landing")
         try:
             await self.drone.action.land()
         except ActionError as error:
@@ -241,7 +256,10 @@ class Agent:
             )
             print("-- Disarming")
             self.report_error(error._result.result_str)
-            self.logger.error("Offboard failed to start: ", error._result.result_str)
+            if self.logging == True:
+                self.logger.error(
+                    "Offboard failed to start: ", error._result.result_str
+                )
             await drone.action.hold()
             print("could not start offboard")
             return
@@ -279,7 +297,11 @@ class Agent:
         # once in pre start position find the intiial nearest point
         self.experiment.initial_nearest_point(self.swarm_manager.telemetry)
 
+        # update status for automated experiment running
+        self.comms.client.publish(self.id + "/status", "READY")
+
     async def run_experiment(self):
+        self.begin_csv_logging()
         print("Starting experiment")
         await self.start_offboard(self.drone)
 
@@ -289,6 +311,7 @@ class Agent:
         # Loop in which the velocity command outputs are generated
         self.experiment.start_time = self.swarm_manager.telemetry[self.id].current_time
         # Calling method path_following
+        experiment_start_time = time.time()
         while (
             self.comms.current_command == "Experiment"
             and self.experiment.ready_flag == True
@@ -301,8 +324,45 @@ class Agent:
                     self.max_speed,
                     offboard_loop_duration,
                     10,
+                    self.comms.client,
                 )
             )
+
+            self.csv_log_queue.put(
+                (
+                    time.time() - experiment_start_time,
+                    self.swarm_manager.telemetry[self.id].current_time,
+                    self.comms.loopback_time,
+                    self.experiment.current_index,
+                    self.swarm_manager.telemetry[self.id].position_ned[0],
+                    self.swarm_manager.telemetry[self.id].position_ned[1],
+                    self.swarm_manager.telemetry[self.id].position_ned[2],
+                    self.swarm_manager.telemetry[self.id].velocity_ned[0],
+                    self.swarm_manager.telemetry[self.id].velocity_ned[1],
+                    self.swarm_manager.telemetry[self.id].velocity_ned[2],
+                    self.experiment.v_migration[0],
+                    self.experiment.v_migration[1],
+                    self.experiment.v_migration[2],
+                    self.experiment.v_lane_cohesion[0],
+                    self.experiment.v_lane_cohesion[1],
+                    self.experiment.v_lane_cohesion[2],
+                    self.experiment.v_separation[0],
+                    self.experiment.v_separation[1],
+                    self.experiment.v_separation[2],
+                    self.experiment.v_rotation[0],
+                    self.experiment.v_rotation[1],
+                    self.experiment.v_rotation[2],
+                    self.experiment.v_force_field[0],
+                    self.experiment.v_force_field[1],
+                    self.experiment.v_force_field[2],
+                )
+            )
+
+            if self.logging:
+                self.logger.info(
+                    str(self.experiment.v_migration[0])
+                    + str(self.experiment.v_migration[2])
+                )
 
             await self.check_altitude()
 
@@ -310,6 +370,9 @@ class Agent:
             await asyncio.sleep(
                 offboard_loop_duration - (time.time() - offboard_loop_start_time)
             )
+        await asyncio.sleep(1)
+        self.csv_logger.stop()
+        self.csv_log_queue.queue.clear()
 
     async def return_to_home(self):
         rtl_start_lat = self.swarm_manager.telemetry[self.id].geodetic[0]
@@ -361,7 +424,6 @@ class Agent:
     def report_error(self, error):
         print(error)
         self.logger.error(error)
-        # self.comms.client.publish("errors", self.id + ": " + error)
 
     async def download_ulog(self):
         entries = await self.drone.log_files.get_entries()
@@ -378,15 +440,21 @@ class Agent:
                 previous_progress = new_progress
         print()
 
+    def begin_csv_logging(self):
+        csv_thread = threading.Thread(
+            target=self.csv_logger.write_log,
+            args=(self.csv_log_queue, self.id, self.current_experiment),
+            daemon=True,
+        )
+        csv_thread.start()
+
 
 def setup_logger(id):
-    log_format = "%(levelname)s %(asctime)s - %(message)s"
     log_date = time.strftime("%d-%m-%y_%H-%M")
 
     logging.basicConfig(
         filename="logs/" + id + "_" + log_date + ".log",
         filemode="w",
-        format=log_format,
         level=logging.INFO,
     )
 
