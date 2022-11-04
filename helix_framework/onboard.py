@@ -3,15 +3,12 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import math
 import os
 import queue
 import sys
 import threading
 import time
-import typing
 
-import flocking
 import gtools
 import numpy as np
 import pymap3d as pm
