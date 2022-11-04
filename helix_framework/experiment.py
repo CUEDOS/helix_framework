@@ -98,19 +98,24 @@ class Experiment:
             )
             for i in range(len(self.vortices)):
                 self.vortices[i] = np.array(self.vortices[i], dtype="float64")
-            
-        
-        if len(self.ribbons)!=0: # if a ribbon is defined, ribbon_norm_vect should be defined as well
+
+        if (
+            len(self.ribbons) != 0
+        ):  # if a ribbon is defined, ribbon_norm_vect should be defined as well
             ribbons_norm_vect_str = experiment_parameters["ribbons_norm_vect"]
-            self.ribbons_norm_vect={}
+            self.ribbons_norm_vect = {}
             for path, norm_vect_list in ribbons_norm_vect_str.items():
-                normalized_norm_vect_list=[]
+                normalized_norm_vect_list = []
                 for norm_vect in norm_vect_list:
-                    normalized_norm_vect=np.array(norm_vect)
-                    if np.linalg.norm(normalized_norm_vect)!=0: # normalizinf the norm vector
-                        normalized_norm_vect=normalized_norm_vect/np.linalg.norm(normalized_norm_vect)
+                    normalized_norm_vect = np.array(norm_vect)
+                    if (
+                        np.linalg.norm(normalized_norm_vect) != 0
+                    ):  # normalizinf the norm vector
+                        normalized_norm_vect = normalized_norm_vect / np.linalg.norm(
+                            normalized_norm_vect
+                        )
                     normalized_norm_vect_list.append(normalized_norm_vect)
-                
+
                 self.ribbons_norm_vect.update({int(path): normalized_norm_vect_list})
 
         self.length = [
@@ -144,19 +149,17 @@ class Experiment:
                 swarm_priorities.index(self.id)
             ].items():
                 self.pass_permission.update({int(j): next_path})  # j here is a string
-        
+
         self.create_adjacent_points()
-    
+
     def determine_path_type(self):
         # the path type for each path is tube unless another type has been set for a path
-        self.path_type=["tube" for i in range(len(self.points))]
+        self.path_type = ["tube" for i in range(len(self.points))]
         for i in range(len(self.points)):
             if i in self.ribbons:
-                self.path_type[i]="ribbon"
+                self.path_type[i] = "ribbon"
             elif i in self.cylinders:
-                self.path_type[i]="cylinder"
-
-        
+                self.path_type[i] = "cylinder"
 
     def get_swarm_priorities(
         self, swarm_telem
@@ -177,7 +180,9 @@ class Experiment:
                 # All points must be converted to np arrays
                 self.points[j][i] = np.array(self.points[j][i], dtype="float64")
                 if i == len(self.points[j]) - 1:
-                    if self.repeat[j] == "STAY":  # if we want to stay at the last point
+                    if (
+                        self.repeat[j] == "STAY" or self.repeat[j] == "STOP"
+                    ):  # if we want to stay at the last point
                         self.directions[j].append(
                             (self.points[j][i] - self.points[j][i - 1])
                             / np.linalg.norm(self.points[j][i] - self.points[j][i - 1])
@@ -307,7 +312,10 @@ class Experiment:
 
         while dot_next_point >= 0 and not (
             self.passed_last_point[self.current_path] == True
-            and (self.repeat[self.current_path] == "STAY" or self.repeat[self.current_path] == "STOP")
+            and (
+                self.repeat[self.current_path] == "STAY"
+                or self.repeat[self.current_path] == "STOP"
+            )
         ):  # Searching for farther points, if the drone reach the last point and it has STAY for its path, searching for more points should be stopped
             next_point = index_checker(
                 self.current_index + 1, self.length[self.current_path]
@@ -320,7 +328,7 @@ class Experiment:
                 range_to_next,
                 self.directions[self.current_path][next_point],
             )
-            if dot_next_point >= 0: # the drone has passed the next point
+            if dot_next_point >= 0:  # the drone has passed the next point
                 self.current_index = next_point
                 if (
                     next_point == self.length[self.current_path] - 1
@@ -349,25 +357,25 @@ class Experiment:
             lane_cohesion_position_error
         )
         if np.linalg.norm(lane_cohesion_position_error) != 0:
-            if  (
-                lane_cohesion_position_error_magnitude
-                > self.lane_radius[self.current_path][self.current_index]
-            ):
-                self.v_lane_cohesion = (
-                    (
-                        lane_cohesion_position_error_magnitude
-                        - self.lane_radius[self.current_path][self.current_index]
-                    )
-                    * lane_cohesion_position_error
-                    / np.linalg.norm(lane_cohesion_position_error)
+            self.v_lane_cohesion = (
+                (
+                    lane_cohesion_position_error_magnitude
+                    - self.lane_radius[self.current_path][self.current_index]
                 )
+                * lane_cohesion_position_error
+                / np.linalg.norm(lane_cohesion_position_error)
+            )
         elif self.lane_radius[self.current_path][self.current_index] == 0:
             self.v_lane_cohesion = np.array([0.0, 0.0, 0.0], dtype="float64")
         else:
             self.v_lane_cohesion = np.array([0.01, 0.01, 0.01], dtype="float64")
 
         # if we have a cylinder
-        if self.path_type[self.current_path]=="cylinder" and lane_cohesion_position_error_magnitude<self.lane_radius[self.current_path][self.current_index]:
+        if (
+            self.path_type[self.current_path] == "cylinder"
+            and lane_cohesion_position_error_magnitude
+            < self.lane_radius[self.current_path][self.current_index]
+        ):
             self.v_lane_cohesion = np.array([0.0, 0.0, 0.0], dtype="float64")
 
         if np.linalg.norm(self.v_lane_cohesion) > limit_v_lane_cohesion:
@@ -470,7 +478,7 @@ class Experiment:
             self.v_rotation = np.array([0, 0, 0], dtype="float64")
 
             # update status to for automated experiments
-            #mqtt_client.publish(self.id + "/status", "DONE")
+            # mqtt_client.publish(self.id + "/status", "DONE")
 
         elif (
             self.passed_last_point[self.current_path] == True
@@ -485,38 +493,80 @@ class Experiment:
             pass
 
         # if we have ribbons
-        if self.path_type[self.current_path]=="ribbon":
-            #calculating v_lane_cohesion normal to the ribbon
-            lane_cohesion_position_error = self.target_point - np.array(swarm_telem[self.id].position_ned, dtype="float64") # target point is a point on the current ribbon
-            lane_cohesion_position_error_normal = np.dot(lane_cohesion_position_error, self.ribbons_norm_vect[self.current_path][self.current_index])* self.ribbons_norm_vect[self.current_path][self.current_index]
-            
-            #calculating v_lane_cohesion along width of the ribbon
-            lane_cohesion_position_error_lane_width_vector=lane_cohesion_position_error - (np.dot(lane_cohesion_position_error, self.target_direction)* self.target_direction)
-            lane_cohesion_position_error_lane_width_vector=lane_cohesion_position_error_lane_width_vector-np.dot(lane_cohesion_position_error_lane_width_vector, self.ribbons_norm_vect[self.current_path][self.current_index])* self.ribbons_norm_vect[self.current_path][self.current_index]
-            
-            lane_cohesion_position_error_lane_width_vector_magnitude=np.linalg.norm (lane_cohesion_position_error_lane_width_vector)
-            
-            if lane_cohesion_position_error_lane_width_vector_magnitude<=self.lane_radius[self.current_path][self.current_index]: # when the drone distance in plane of ribbon is less than ribbon width
-                lane_cohesion_position_error_lane_width_vector=np.array([0.0, 0.0, 0.0], dtype="float64")
+        if self.path_type[self.current_path] == "ribbon":
+            # calculating v_lane_cohesion normal to the ribbon
+            lane_cohesion_position_error = self.target_point - np.array(
+                swarm_telem[self.id].position_ned, dtype="float64"
+            )  # target point is a point on the current ribbon
+            lane_cohesion_position_error_normal = (
+                np.dot(
+                    lane_cohesion_position_error,
+                    self.ribbons_norm_vect[self.current_path][self.current_index],
+                )
+                * self.ribbons_norm_vect[self.current_path][self.current_index]
+            )
+
+            # calculating v_lane_cohesion along width of the ribbon
+            lane_cohesion_position_error_lane_width_vector = (
+                lane_cohesion_position_error
+                - (
+                    np.dot(lane_cohesion_position_error, self.target_direction)
+                    * self.target_direction
+                )
+            )
+            lane_cohesion_position_error_lane_width_vector = (
+                lane_cohesion_position_error_lane_width_vector
+                - np.dot(
+                    lane_cohesion_position_error_lane_width_vector,
+                    self.ribbons_norm_vect[self.current_path][self.current_index],
+                )
+                * self.ribbons_norm_vect[self.current_path][self.current_index]
+            )
+
+            lane_cohesion_position_error_lane_width_vector_magnitude = np.linalg.norm(
+                lane_cohesion_position_error_lane_width_vector
+            )
+
+            if (
+                lane_cohesion_position_error_lane_width_vector_magnitude
+                <= self.lane_radius[self.current_path][self.current_index]
+            ):  # when the drone distance in plane of ribbon is less than ribbon width
+                lane_cohesion_position_error_lane_width_vector = np.array(
+                    [0.0, 0.0, 0.0], dtype="float64"
+                )
             else:
-                lane_cohesion_position_error_lane_width_vector=(lane_cohesion_position_error_lane_width_vector_magnitude-self.lane_radius[self.current_path][self.current_index])*lane_cohesion_position_error_lane_width_vector/lane_cohesion_position_error_lane_width_vector_magnitude                
-            
-            lane_cohesion_position_error=lane_cohesion_position_error_normal+lane_cohesion_position_error_lane_width_vector
+                lane_cohesion_position_error_lane_width_vector = (
+                    (
+                        lane_cohesion_position_error_lane_width_vector_magnitude
+                        - self.lane_radius[self.current_path][self.current_index]
+                    )
+                    * lane_cohesion_position_error_lane_width_vector
+                    / lane_cohesion_position_error_lane_width_vector_magnitude
+                )
+
+            lane_cohesion_position_error = (
+                lane_cohesion_position_error_normal
+                + lane_cohesion_position_error_lane_width_vector
+            )
             self.v_lane_cohesion = lane_cohesion_position_error
-            
+
             if np.linalg.norm(self.v_lane_cohesion) > limit_v_lane_cohesion:
-                self.v_lane_cohesion = (self.v_lane_cohesion* limit_v_lane_cohesion/ np.linalg.norm(self.v_lane_cohesion))
-            
-            self.v_rotation=np.array([0, 0, 0], dtype="float64")
-            
-            if self.id=="S004"and swarm_telem[self.id].position_ned[0]>-50 and self.current_index==1:
-                print(self.v_lane_cohesion)
-        
+                self.v_lane_cohesion = (
+                    self.v_lane_cohesion
+                    * limit_v_lane_cohesion
+                    / np.linalg.norm(self.v_lane_cohesion)
+                )
+
+            self.v_rotation = np.array([0, 0, 0], dtype="float64")
+
         # if we have a cylinder
-        if self.path_type[self.current_path]=="cylinder":
-            if lane_cohesion_position_error_magnitude<self.lane_radius[self.current_path][self.current_index]:
+        if self.path_type[self.current_path] == "cylinder":
+            if (
+                lane_cohesion_position_error_magnitude
+                < self.lane_radius[self.current_path][self.current_index]
+            ):
                 self.v_lane_cohesion = np.array([0.0, 0.0, 0.0], dtype="float64")
-            self.v_rotation=np.array([0, 0, 0], dtype="float64")
+            self.v_rotation = np.array([0, 0, 0], dtype="float64")
 
         if np.linalg.norm(self.v_lane_cohesion) > limit_v_lane_cohesion:
             self.v_lane_cohesion = (
@@ -524,7 +574,7 @@ class Experiment:
                 * limit_v_lane_cohesion
                 / np.linalg.norm(self.v_lane_cohesion)
             )
-        
+
         # if we have vortices
         if self.force_field_mode == True:
             self.v_force_field = np.array([0, 0, 0], dtype="float64")

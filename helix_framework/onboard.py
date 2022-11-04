@@ -33,7 +33,7 @@ class Agent:
         self.load_parameters(parameters)
         self.swarm_manager = SwarmManager()
         self.swarm_manager.telemetry[self.id] = AgentTelemetry()
-        self.current_experiment = "closing_v_exp"
+        self.current_experiment = "convergence_experiments/ribbon_convergence_in_plane"
         self.return_alt: float = 10
         self.csv_logger = CSVLogger()
         self.csv_log_queue = queue.Queue()
@@ -47,13 +47,13 @@ class Agent:
         print("setup done")
 
     async def run(self):
-        self.drone: type[System] = System(
-            mavsdk_server_address="localhost", port=self.port
-        )
-        await self.drone.connect()
+        # self.drone: type[System] = System(
+        #     mavsdk_server_address="localhost", port=self.port
+        # )
+        # await self.drone.connect()
 
-        # self.drone: type[System] = System()
-        # await self.drone.connect(system_address=self.serial_address)
+        self.drone: type[System] = System()
+        await self.drone.connect(system_address=self.serial_address)
 
         print("Waiting for drone to connect...")
         async for state in self.drone.core.connection_state():
@@ -450,11 +450,13 @@ class Agent:
 
 
 def setup_logger(id):
+    log_format = "%(levelname)s %(asctime)s - %(message)s"
     log_date = time.strftime("%d-%m-%y_%H-%M")
 
     logging.basicConfig(
         filename="logs/" + id + "_" + log_date + ".log",
         filemode="w",
+        format=log_format,
         level=logging.INFO,
     )
 
