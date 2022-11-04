@@ -1,16 +1,18 @@
 from __future__ import annotations
+
 import json
+import math
+import time
+from string import digits
+
 import flocking
-from mavsdk import System
-from mavsdk.action import ActionError
-from mavsdk.offboard import OffboardError, VelocityNedYaw
+import numpy as np
 import pymap3d as pm
 from communication import DroneCommunication
 from data_structures import AgentTelemetry
-import math
-import numpy as np
-from string import digits
-import time
+from mavsdk import System
+from mavsdk.action import ActionError
+from mavsdk.offboard import OffboardError, VelocityNedYaw
 
 
 def index_checker(input_index, length) -> int:
