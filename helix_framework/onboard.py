@@ -1,25 +1,27 @@
-from __future__ import annotations  # compatibility with older python versions than 3.9
-import sys
-import os
-import time
+from __future__ import annotations
+
+import asyncio
 import json
 import logging
-import asyncio
+import math
+import os
+import queue
+import sys
+import threading
+import time
 import typing
+
 import flocking
+import gtools
+import numpy as np
+import pymap3d as pm
+from communication import DroneCommunication
+from csv_logger import CSVLogger
+from data_structures import AgentTelemetry
+from experiment import Experiment
 from mavsdk import System
 from mavsdk.action import ActionError
 from mavsdk.offboard import OffboardError, VelocityNedYaw
-import pymap3d as pm
-from communication import DroneCommunication
-from data_structures import AgentTelemetry
-from experiment import Experiment
-from csv_logger import CSVLogger
-import math
-import threading
-import queue
-import gtools
-import numpy as np
 from telemetry import SwarmManager, TelemetryUpdater
 
 
