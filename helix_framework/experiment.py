@@ -506,14 +506,7 @@ class Experiment:
             )
 
             # calculating v_lane_cohesion along width of the ribbon
-            lane_cohesion_position_error_lane_width_vector = (
-                lane_cohesion_position_error
-                - np.dot(
-                    lane_cohesion_position_error,
-                    self.ribbons_norm_vect[self.current_path][self.current_index],
-                )
-                * self.ribbons_norm_vect[self.current_path][self.current_index]
-            )
+            lane_cohesion_position_error_lane_width_vector = lane_cohesion_position_error - lane_cohesion_position_error_normal
 
             lane_cohesion_position_error_lane_width_vector_magnitude = np.linalg.norm(
                 lane_cohesion_position_error_lane_width_vector
