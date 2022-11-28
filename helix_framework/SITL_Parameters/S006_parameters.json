@@ -1,1 +1,1 @@
-{"id": "S006", "broker_ip": "localhost", "port": 50046, "serial_address": "serial:///dev/ttyAMA0:921600", "logging": true, "max_speed": 5, "ref_lat": 52.816541009349706, "ref_lon": -4.124644656271923, "ref_alt": 14, "log_latency": true}
+{"id": "S006", "broker_ip": "localhost", "port": 50046, "serial_address": "serial:///dev/ttyAMA0:921600", "logging": true, "max_speed": 10, "ref_lat": 52.816541009349706, "ref_lon": -4.124644656271923, "ref_alt": 14, "log_latency": true}

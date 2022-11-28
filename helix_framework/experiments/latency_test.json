@@ -1,0 +1,36 @@
+{
+	"experiment_id": 1,
+	"k_migration": 0,
+	"k_lane_cohesion": 0,
+	"k_rotation": 0,
+	"k_seperation": 1,
+	"k_force_field": 0,
+	"r_conflict": 5,
+	"r_collision": 2.5,
+	"start_delay_list":[0,0,0 ,0, 0, 0],
+	"pass_permission_list": [{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}],
+	"repeat": [ "STOP", "STOP", "STOP", "STOP", "STOP", "STOP", "STOP", "STOP","STOP",  "STOP"],
+	"pre_start_positions": [[0, 0, -20], [0, -3, -20], [-0, -6, -20], [-0, -9, -20], [-0, -12, -20], [0, -15, -20], [0, -18, -20], [0, -21, -20], [0, -24, -20], [0, -27, -20]],
+	"initial_paths": [
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0
+	],
+	"path_rotation_dir": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+	"switching_points": [[], [], [], [], [], [], [], [], []],
+	"corridor_radius": [[5,5, 5, 5], [5, 5, 5, 5]],
+	"corridor_points":  [[[0, 0, -20.0],[0, 1, -20.0]]],
+	"ribbons":[],
+	"ribbons_norm_vect":{},
+	"cylinders":[],
+	"tubes":[],
+	"vortices":[]
+
+}
