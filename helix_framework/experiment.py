@@ -1,16 +1,18 @@
 from __future__ import annotations
+
 import json
+import math
+import time
+from string import digits
+
 import flocking
-from mavsdk import System
-from mavsdk.action import ActionError
-from mavsdk.offboard import OffboardError, VelocityNedYaw
+import numpy as np
 import pymap3d as pm
 from communication import DroneCommunication
 from data_structures import AgentTelemetry
-import math
-import numpy as np
-from string import digits
-import time
+from mavsdk import System
+from mavsdk.action import ActionError
+from mavsdk.offboard import OffboardError, VelocityNedYaw
 
 
 def index_checker(input_index, length) -> int:
@@ -495,9 +497,6 @@ class Experiment:
         # if we have ribbons
         if self.path_type[self.current_path] == "ribbon":
             # calculating v_lane_cohesion normal to the ribbon
-            lane_cohesion_position_error = self.target_point - np.array(
-                swarm_telem[self.id].position_ned, dtype="float64"
-            )  # target point is a point on the current ribbon
             lane_cohesion_position_error_normal = (
                 np.dot(
                     lane_cohesion_position_error,
@@ -507,21 +506,7 @@ class Experiment:
             )
 
             # calculating v_lane_cohesion along width of the ribbon
-            lane_cohesion_position_error_lane_width_vector = (
-                lane_cohesion_position_error
-                - (
-                    np.dot(lane_cohesion_position_error, self.target_direction)
-                    * self.target_direction
-                )
-            )
-            lane_cohesion_position_error_lane_width_vector = (
-                lane_cohesion_position_error_lane_width_vector
-                - np.dot(
-                    lane_cohesion_position_error_lane_width_vector,
-                    self.ribbons_norm_vect[self.current_path][self.current_index],
-                )
-                * self.ribbons_norm_vect[self.current_path][self.current_index]
-            )
+            lane_cohesion_position_error_lane_width_vector = lane_cohesion_position_error - lane_cohesion_position_error_normal
 
             lane_cohesion_position_error_lane_width_vector_magnitude = np.linalg.norm(
                 lane_cohesion_position_error_lane_width_vector

@@ -1,7 +1,6 @@
 import csv
 import atexit
 from datetime import datetime
-from tkinter import E
 
 
 class CSVLogger:
